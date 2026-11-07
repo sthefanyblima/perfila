@@ -8,14 +8,14 @@ O Perfila transforma eventos de comportamento (navegação, compra, interação)
 
 Desenvolvido com **Spec-Driven Development** (a especificação é a fonte da verdade e o agente de IA implementa) e **Behavior-Driven Development** (cenários Gherkin executáveis provam o comportamento).
 
-## Estado (07/11/2026) — fase Core concluída
+## Estado (07/11/2026) — Core e Support concluídos
 
 | Marco | Período | Estado |
 |---|---|---|
 | Arquivos `.md` (CLAUDE.md + UML1..UML8) | 20/10–27/10 | ✅ |
-| **Core** (domínio + aplicação) — 50% | 27/10–08/11 | ✅ 73 cenários verdes · cobertura 92,5% |
+| **Core** (domínio + aplicação) — 50% | 27/10–08/11 | ✅ 79 cenários verdes · cobertura 92,2% |
 | 1ª chamada de acompanhamento (relatório parcial) | 09–11/11 | `docs/RELATORIO_PARCIAL.md` |
-| Support (API, middlewares, CMD) — 25% | 09–13/11 | ⬜ |
+| Support (API, middlewares, CMD) — 25% | 09–13/11 | ✅ 20 cenários de API verdes · `make serve` |
 | Generic (PostgreSQL, Docker/Nginx, auth) — 25% | 16–19/11 | ⬜ |
 | Fechamento do escopo | 19/11 | ⬜ |
 | Ensaio · evento final | 23/11 · 24/11 | ⬜ |
@@ -26,7 +26,10 @@ Requisitos: Go 1.22 ou superior.
 
 ```bash
 make verify   # formatação, vet, testes com -race, BDD e teste de arquitetura
-make demo     # fluxo do diagrama de sequência em memória (UC-08 → UC-01 → UC-02 → UC-03 → UC-04)
+make demo     # fluxo do diagrama de sequência em memória, passo a passo
+make serve    # API HTTP em modo memória na porta 8080 (token dev-token)
+make demo-api # roteiro de curl contra o servidor (rode make serve em outro terminal)
+make build    # binário estático bin/omega-server
 make cover    # cobertura de domínio + aplicação
 ```
 

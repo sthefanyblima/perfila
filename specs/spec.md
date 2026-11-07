@@ -2,7 +2,7 @@
 
 **Perfila — Sistema de Segmentação e Perfilamento do Comportamento do Cliente — Go**
 
-Equipe Omega · GoLang & CLP · Documento 1 de 3 · **Versão 1.0 (03/11/2026)** · Base: Módulos 1 a 5 (casos de uso, classes, pacotes, sequência, estados, componentes e implantação), transcritos em `docs/uml/UML1..UML8`
+Equipe Omega · GoLang & CLP · Documento 1 de 3 · **Versão 1.1 (07/11/2026)** · Base: Módulos 1 a 5 (casos de uso, classes, pacotes, sequência, estados, componentes e implantação), transcritos em `docs/uml/UML1..UML8`
 
 ## Como usar este documento
 
@@ -34,7 +34,7 @@ Os diagramas foram feitos em módulos diferentes e nem sempre concordam. Para o 
 | Servidores, contêineres e configuração | Diagrama de Implantação (Mód. 5) | UML8 | Ver D-21 |
 | Trechos de código dos Mód. 2 e 3 | Nenhuma | — | São didáticos e divergem do modelo (D-11) |
 
-**Dentro do MVP:** UC-01, UC-02, UC-03, UC-04 e UC-08 de ponta a ponta, como no diagrama de sequência, com consentimento obrigatório, API HTTP, PostgreSQL e implantação em contêineres.
+**Dentro do MVP:** UC-01, UC-02, UC-03, UC-04, UC-08 e UC-09 (cadastro, D-22) de ponta a ponta, como no diagrama de sequência, com consentimento obrigatório, API HTTP, PostgreSQL e implantação em contêineres.
 
 **Fora do MVP:** UC-05, UC-06 e UC-07 (D-04); notificação real ao cliente; autenticação JWT; gestão de segmentos pela API (segmentos entram por migração); política de retenção e eliminação de dados (D-13).
 
@@ -56,6 +56,7 @@ A Constituição (regras C-01 a C-12) foi movida para **`CLAUDE.md`**, na raiz d
 | UC-06 | Criar Campanha de Marketing Direcionada | Analista de Marketing | — | Não (D-04) |
 | UC-07 | Visualizar Relatórios de Segmentação | Analista de Marketing | — | Não (D-04) |
 | UC-08 | Gerenciar Consentimento de Dados (LGPD) | Cliente (titular) e Administrador do Sistema | `GerenciarConsentimentoUseCase` | Sim |
+| UC-09 | Cadastrar Cliente [ADIÇÃO, D-22] | Cliente / Sistema Externo | `CadastrarClienteUseCase` | Sim |
 
 Administrador do Sistema: ligado a UC-08 no UML1 e, pelo UML8, executa os subcomandos do CMD (`serve` e `expirar-recomendacoes`) por SSH. Agente Inteligente: ator de automação [ADIÇÃO] que dispara UC-03 e UC-04 (D-17).
 
@@ -139,7 +140,7 @@ type Produto struct {
 
 | Entidade | Métodos | Observação |
 |---|---|---|
-| Cliente | `AtualizarDados(nome, email string) error`, `Ativar()`, `Desativar()` | Nome e e-mail não podem ser vazios |
+| Cliente | `NovoCliente(id uuid.UUID, nome, email string, agora time.Time) (Cliente, error)` (construtor, D-22), `AtualizarDados(nome, email string) error`, `Ativar()`, `Desativar()` | Nome e e-mail não podem ser vazios; nasce ativo, com DataCadastro = agora |
 | ConsentimentoLGPD | `NovoConsentimento(id, clienteID uuid.UUID, agora time.Time)` (construtor, estado NAO_CONCEDIDO), `Conceder(finalidade, versaoTermo string, agora time.Time) error`, `Revogar(agora time.Time) error`, `EstaValido() bool` | Transições da seção 3.4.1 |
 | EventoComportamental | `Validar(agora time.Time) error` | RN-04 |
 | PerfilCliente | `CalcularScore(eventos []EventoComportamental, agora time.Time, meta int)`, `AtualizarPerfil(novo PerfilCliente)` | RN-05. `AtualizarPerfil` copia as métricas e preserva ID, ClienteID e SegmentoID. `meta <= 0` resulta em score 0 |
@@ -211,6 +212,11 @@ Qualquer outra combinação: `ErrTransicaoInvalida`. O comando `expirar-recomend
 | `ErrSemProdutoElegivel` | RN-07 | Não é erro HTTP: 200 com recomendação nula | sem_produto_elegivel |
 | `ErrConsentimentoNaoEncontrado` | Uso interno do repositório; o caso de uso traduz em NAO_CONCEDIDO | — | — |
 
+**UC-09 `CadastrarClienteUseCase`** [ADIÇÃO, D-22] (não exige consentimento: é o ponto de entrada do cliente)
+
+- `Executar(ctx, nome, email string) (Cliente, error)`: `NovoCliente` (nome e e-mail obrigatórios, `ErrDadosInvalidos`), ID novo, Ativo, DataCadastro = agora; persiste com `ClienteRepository.Salvar`.
+- O cliente nasce sem registro de consentimento (equivale a NAO_CONCEDIDO, D-02): nada além de nome e e-mail é tratado até UC-08 Conceder.
+
 **UC-08 `GerenciarConsentimentoUseCase`** (não exige consentimento válido, pois é quem o gerencia)
 
 - `Conceder(ctx, clienteID, finalidade, versaoTermo string) error`: cria o registro se não existir, aplica a transição 3.4.1 e persiste com `ConsentimentoRepository.Salvar`.
@@ -221,7 +227,7 @@ Qualquer outra combinação: `ErrTransicaoInvalida`. O comando `expirar-recomend
 **UC-01 `ColetarDadosUseCase`**
 
 - `Executar(ctx, clienteID) ([]EventoComportamental, error)`: RN-01 e `EventoRepository.BuscarPorCliente` (sequência, passos 3 e 4).
-- `Registrar(ctx, e EventoComportamental) error` [ADIÇÃO, D-12]: RN-01, `Validar` (RN-04) e `EventoRepository.Salvar`.
+- `Registrar(ctx, e EventoComportamental) (EventoComportamental, error)` [ADIÇÃO, D-12]: RN-01, `Validar` (RN-04), atribui ID se vazio e `EventoRepository.Salvar`; devolve o evento gravado (v1.1: a API responde 201 com ele).
 
 **UC-02 `GerarPerfilUseCase`**
 
@@ -297,6 +303,7 @@ Proposta da equipe: os diagramas citam handlers, rotas e DTOs, mas não as defin
 
 | Método e rota | Caso de uso | Entrada | Sucesso | Middlewares |
 |---|---|---|---|---|
+| `POST /v1/clientes` | UC-09 Cadastrar | nome e email | 201 com id, nome, email, ativo e dataCadastro | Autenticação |
 | `POST /v1/clientes/{clienteID}/processamento` | UC-01 a UC-04 (RN-09) | — | 200 com perfil, segmento e recomendacao (nula se `ErrSemProdutoElegivel`) | Autenticação e LGPD |
 | `POST /v1/clientes/{clienteID}/eventos` | UC-01 Registrar | Evento: tipo, origem, timestamp, valor, categoria | 201 | Autenticação e LGPD |
 | `PUT /v1/clientes/{clienteID}/consentimento` | UC-08 Conceder | finalidade e versaoTermo | 200 | Autenticação |
@@ -314,7 +321,7 @@ Proposta da equipe: os diagramas citam handlers, rotas e DTOs, mas não as defin
 | Variável | Padrão | Uso |
 |---|---|---|
 | `HTTP_PORT` | 8080 | Porta do servidor; o balanceador distribui para ela |
-| `DATABASE_URL` | obrigatória | Conexão com o PostgreSQL (porta 5432, banco omega_db) |
+| `DATABASE_URL` | vazia = modo memória (D-23) | Conexão com o PostgreSQL (porta 5432, banco omega_db); obrigatória a partir da fase Generic |
 | `AUTH_TOKEN` | obrigatória | Token Bearer (D-16) |
 | `RECOMENDACAO_VALIDADE_DIAS` | 30 | RN-08 |
 | `ENGAJAMENTO_META_EVENTOS` | 30 | RN-05 |
@@ -379,6 +386,8 @@ Prioridade Alta: impede gerar código correto. Média: gera comportamento ambíg
 | D-18 | Classes | Métodos nomeados de forma diferente entre Spec v0 e UML2 (`ClassificaPerfil` × `ClassificarPerfil`) | Vale o nome do diagrama (C-04): `ClassificarPerfil` | Baixa |
 | D-19 | Classes | Associação "ConsentimentoLGPD 1 possui 0..1 PerfilCliente": o perfil pertence ao cliente, não ao consentimento | `Cliente 1 → 0..1 PerfilCliente` via `PerfilCliente.ClienteID` | Baixa |
 | D-20 | Estados × classes | O UML5 chama o atributo de `dataConcessao`; o UML2, de `dataConsentimento` | Vale o nome da classe: `DataConsentimento` | Baixa |
+| D-22 | Casos de uso, classes, sequência | Nenhum diagrama diz como um Cliente entra no sistema; todos os UCs exigem cliente existente | [ADIÇÃO] UC-09 `CadastrarClienteUseCase`, `NovoCliente` e `POST /v1/clientes`; acrescentar ao UML1 até 19/11 | Alta |
+| D-23 | Configuração | Até a fase Generic não há PostgreSQL, mas a API precisa rodar para demonstração | `DATABASE_URL` vazia = repositórios em memória com segmentos e catálogo sintéticos; com valor, o servidor recusa subir até T-19 | Baixa |
 | D-21 | Implantação | O produto foi nomeado **Perfila**, mas o UML8 usa `omega-server` e `omega_db` | Artefatos mantêm os nomes do diagrama; módulo Go e repositório usam `perfila` | Baixa |
 
 ## 4. Histórico de versões
@@ -386,4 +395,5 @@ Prioridade Alta: impede gerar código correto. Média: gera comportamento ambíg
 | Versão | Data | Mudanças |
 |---|---|---|
 | v0 | 27/10/2026 | Documento único (PDF) e depois dividido em três `.md` |
+| v1.1 | 07/11/2026 | UC-09 Cadastrar Cliente (D-22), `NovoCliente` e rota `POST /v1/clientes`; Support implementado (API, middlewares, CMD, gateways, configuração) |
 | **v1.0** | 03/11/2026 | Nome do produto (Perfila); Constituição movida para `CLAUDE.md`; diagramas transcritos em `docs/uml/UML1..UML8`; `ClassificaPerfil` → `ClassificarPerfil` (D-18); `NovoConsentimento`, `Precondicoes` e `ExpirarRecomendacoesUseCase` explicitados; atores de UC-08 corrigidos (D-17); D-07 e D-10 corrigidos; D-17 a D-21 novos; estrutura de pastas marcada por fase (Core, Support, Generic) |

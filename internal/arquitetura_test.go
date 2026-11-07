@@ -27,6 +27,7 @@ var regras = []regra{
 	{"application", []string{modulo + "api", modulo + "infra", "net/http", "database/sql"},
 		[]string{"github.com/google/uuid"}},
 	{"shared", []string{modulo + "api", modulo + "application", modulo + "infra", modulo + "domain"}, nil},
+	{"api", []string{modulo + "infra", "database/sql"}, []string{"github.com/google/uuid"}},
 }
 
 func arquivosGo(t *testing.T, dir string, incluirTestes bool) []string {

@@ -18,6 +18,7 @@ const num = `(-?\d+(?:\.\d+)?)`
 // InitializeScenario registra cada passo reutilizável uma única vez (B-12).
 func InitializeScenario(sc *godog.ScenarioContext) {
 	m := novoMundo()
+	registrarPassosAPI(sc, m)
 
 	// ---- comuns ----
 	sc.Step(`^que a data atual é "([^"]*)"$`, m.dataAtual)
@@ -37,6 +38,28 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^a validade retornada é "(verdadeiro|falso)"$`, m.validadeRetornada)
 	sc.Step(`^a data de consentimento é "([^"]*)"$`, m.dataConsentimento)
 	sc.Step(`^a data de revogação é "([^"]*)"$`, m.dataRevogacao)
+
+	// ---- cadastro (UC-09) ----
+	sc.Step(`^um cliente é cadastrado com nome "([^"]*)" e e-mail "([^"]*)"$`, m.cadastra)
+	sc.Step(`^que um cliente foi cadastrado com nome "([^"]*)" e e-mail "([^"]*)"$`, func(n, e string) error {
+		if err := m.cadastra(n, e); err != nil {
+			return err
+		}
+		return m.semErro()
+	})
+	sc.Step(`^o cliente cadastrado está ativo$`, m.cadastradoAtivo)
+	sc.Step(`^a data de cadastro é "([^"]*)"$`, func(s string) error {
+		t := m.clienteCadastrado.DataCadastro
+		return m.confereData("cadastro", &t, s)
+	})
+	sc.Step(`^o consentimento do cliente cadastrado está no estado "([^"]*)"$`, m.estadoConsentimentoCadastrado)
+	sc.Step(`^que o cliente cadastrado concedeu consentimento para a finalidade "([^"]*)" com o termo "([^"]*)"$`, func(f, t string) error {
+		return m.uc().consentimento.Conceder(m.ctx, m.clienteCadastrado.ID, f, t)
+	})
+	sc.Step(`^o perfil do cliente cadastrado é gerado$`, func() error {
+		m.perfil, m.err = m.uc().gerarPerfil.Executar(m.ctx, m.clienteCadastrado.ID)
+		return nil
+	})
 
 	// ---- eventos (UC-01) ----
 	sc.Step(`^o sistema registra para o cliente "([^"]*)" um evento "([^"]*)" de origem "([^"]*)" com valor `+num+` em "([^"]*)"$`, m.registraEvento)
@@ -264,7 +287,7 @@ func (m *Mundo) registraEvento(nome, tipo, origem string, valor float64, quando 
 	if err != nil {
 		return err
 	}
-	m.err = m.uc().coletar.Registrar(m.ctx, entity.EventoComportamental{
+	_, m.err = m.uc().coletar.Registrar(m.ctx, entity.EventoComportamental{
 		ClienteID: id(nome), Tipo: entity.TipoEvento(tipo), Origem: origem, Timestamp: t, Valor: valor,
 	})
 	return nil
@@ -676,4 +699,36 @@ func (m *Mundo) recomendacaoEstado(estado string) error {
 
 func (m *Mundo) validade(s string) error {
 	return m.confereData("validade", m.recomendacao.Validade, s)
+}
+
+// ======================= cadastro (UC-09) =======================
+
+func (m *Mundo) cadastra(nome, email string) error {
+	m.clienteCadastrado, m.err = m.uc().cadastrar.Executar(m.ctx, nome, email)
+	return nil
+}
+
+func (m *Mundo) cadastradoAtivo() error {
+	if err := m.semErro(); err != nil {
+		return err
+	}
+	c, err := m.clientes.BuscarPorID(m.ctx, m.clienteCadastrado.ID)
+	if err != nil {
+		return err
+	}
+	if !c.Ativo {
+		return errors.New("cliente cadastrado não está ativo")
+	}
+	return nil
+}
+
+func (m *Mundo) estadoConsentimentoCadastrado(estado string) error {
+	c, err := m.uc().consentimento.Consultar(m.ctx, m.clienteCadastrado.ID)
+	if err != nil {
+		return err
+	}
+	if string(c.Status) != estado {
+		return fmt.Errorf("estado: esperado %s, obtido %s", estado, c.Status)
+	}
+	return nil
 }

@@ -1,6 +1,7 @@
 # UML4 — Diagrama de Sequência (processamento de um cliente)
 
 > **Fonte:** Módulo 4 · imagem original: [`img/UML4_sequencia.png`](img/UML4_sequencia.png)
+> **Imagem corrigida (v1, gerada do Mermaid abaixo):** [`img/v1/UML4_sequencia.png`](img/v1/UML4_sequencia.png)
 > **Fonte da verdade para:** ordem do fluxo de processamento (Spec 1, RN-09).
 > **Versão:** v1.0 (Core) · **Decisões relacionadas:** D-01, D-07, D-09.
 
@@ -67,7 +68,7 @@ sequenceDiagram
 ## Estado de implementação
 
 - **Core (pronto):** casos de uso e serviços; o fluxo completo roda em memória com `make demo`.
-- **Support (09–13/11):** handler `POST /processamento`, middlewares e DTOs (`features/api.feature`).
+- **Support (pronto):** handler `POST /processamento`, middlewares e DTOs (`internal/api`, `features/api.feature`); `make serve` + `make demo-api`.
 
 ## Rastreabilidade
 

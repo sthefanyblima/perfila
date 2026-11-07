@@ -19,6 +19,16 @@ type Cliente struct {
 	Ativo        bool
 }
 
+// NovoCliente cria um cliente ativo, com DataCadastro = agora. Nome e e-mail são
+// obrigatórios (mesma regra de AtualizarDados). Spec: UC-09, D-22.
+func NovoCliente(id uuid.UUID, nome, email string, agora time.Time) (Cliente, error) {
+	c := Cliente{ID: id, DataCadastro: agora.UTC(), Ativo: true}
+	if err := c.AtualizarDados(nome, email); err != nil {
+		return Cliente{}, err
+	}
+	return c, nil
+}
+
 // AtualizarDados troca nome e e-mail; nenhum dos dois pode ser vazio. Spec: 3.2.
 func (c *Cliente) AtualizarDados(nome, email string) error {
 	nome, email = strings.TrimSpace(nome), strings.TrimSpace(email)

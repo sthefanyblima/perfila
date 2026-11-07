@@ -72,7 +72,7 @@ Esforço relativo: P (pequeno), M (médio), G (grande). A ordem vai de dentro pa
 | F1 Fechar a modelagem | Core | Decidir as lacunas e corrigir os diagramas | T-04 | D-01 a D-21 com decisão padrão; Spec v1.0; UML1..UML8 em texto | P | **Concluída** (correção das imagens até 19/11) |
 | F2 Domínio | Core | Entidades, estados e serviços | T-05 a T-12 | Features `@dominio` verdes; `domain` sem imports proibidos; cobertura ≥ 80% | G | **Concluída** |
 | F3 Aplicação | Core | Ports, fakes e casos de uso | T-13 a T-18 | Features `@aplicacao` verdes com fakes em memória | M | **Concluída** |
-| F5 Apresentação | Support | API, middlewares, CMD, gateways, configuração | T-20 a T-23 | Features `@api` verdes, incluindo o processamento ponta a ponta | M | Em andamento (09–13/11) |
+| F5 Apresentação | Support | API, middlewares, CMD, gateways, configuração | T-20 a T-23 | Features `@api` verdes, incluindo o processamento ponta a ponta | M | **Concluída** (07/11, adiantada) |
 | F4 Infraestrutura | Generic | PostgreSQL e suíte de contrato | T-19 | Suíte de contrato passa com o fake em memória e com o PostgreSQL | M | 16–19/11 |
 | F6 Implantação | Generic | Contêiner, balanceador e réplicas | T-24 | Features `@implantacao` verdes (réplicas: corte planejado) | M | 16–19/11 |
 | F7 Fechamento | Generic | Conformidade, documentação e demonstração | T-25 | Checklist LGPD; README; roteiro de demonstração | P | Parcial (README e demo do core prontos) |

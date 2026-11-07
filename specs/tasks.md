@@ -29,18 +29,21 @@ Legenda de status: ✅ concluída · 🟡 parcial · ⬜ a fazer. "Prova" é o q
 | T-26 | [nova] Demo do fluxo da sequência em memória (`cmd/perfila-demo`) | T-18 | `make demo` | ✅ |
 | T-27 | [nova] `ExpirarRecomendacoesUseCase` (D-08) | T-11, T-13 | `recomendacao_ciclo.feature` (comando) | ✅ |
 
-**Portão do Core:** 73 cenários / 476 passos verdes (`@dominio` + `@aplicacao`), teste de arquitetura verde, cobertura de domínio + aplicação 92,5% (meta ≥ 80%).
+| T-28 | [nova] UC-09 Cadastrar Cliente: `NovoCliente`, `CadastrarClienteUseCase` (D-22) | T-13 | `cliente.feature` | ✅ |
+| T-29 | [nova] Diagramas corrigidos renderizados do Mermaid (`docs/uml/img/v1/`) | T-04 | 9 imagens | ✅ |
+
+**Portão do Core:** 79 cenários `@dominio` + `@aplicacao` verdes, teste de arquitetura verde, cobertura de domínio + aplicação 92,2% (meta ≥ 80%).
 
 ## Support — semana 1 (09–13/11) — 25%
 
 | ID | Tarefa | Depende de | Prova | Status |
 |---|---|---|---|---|
-| T-20 | Gateways (`ConsentimentoGateway` local, `IntegracaoGateway` stub) e leitura de `config.env` | T-13 | testes unitários | ⬜ |
-| T-21 | DTOs, handlers, rotas (`net/http` 1.22) e mapeamento erro → HTTP (Spec 3.5 e 3.7) | T-14 a T-18 | `api.feature` | ⬜ |
-| T-22 | Middlewares de autenticação (Bearer) e LGPD | T-21 | `api.feature` (401 e 403) | ⬜ |
-| T-23 | CMD `omega-server`: raiz de composição; subcomandos `serve` e `expirar-recomendacoes` | T-20 a T-22, T-27 | execução local ponta a ponta (fakes) | ⬜ |
+| T-20 | Gateways (`ConsentimentoGateway` local, `IntegracaoGateway` stub) e leitura de `config.env` | T-13 | testes unitários | ✅ |
+| T-21 | DTOs, handlers, rotas (`net/http` 1.22) e mapeamento erro → HTTP (Spec 3.5 e 3.7) | T-14 a T-18 | `api.feature` | ✅ |
+| T-22 | Middlewares de autenticação (Bearer) e LGPD | T-21 | `api.feature` (401 e 403) | ✅ |
+| T-23 | CMD `omega-server`: raiz de composição; subcomandos `serve` e `expirar-recomendacoes` | T-20 a T-22, T-27 | `cmd/omega-server/main_test.go` + `make serve` / `make demo-api` | ✅ |
 
-Ao iniciar: remover `~@api` de `tagsPadrao` em `features/bdd_test.go`.
+**Portão do Support:** `api.feature` com 20 cenários verdes (`@api` ativo no filtro); total 99 cenários / 668 passos; build e testes conferidos também com Go 1.22 (versão do CI). Concluído em 07/11, adiantado.
 
 ## Generic — semana 2 (16–19/11) — 25%
 

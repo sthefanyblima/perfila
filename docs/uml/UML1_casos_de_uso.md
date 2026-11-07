@@ -1,8 +1,9 @@
 # UML1 — Diagrama de Casos de Uso
 
 > **Fonte:** Módulo 2 · imagem original: [`img/UML1_casos_de_uso.png`](img/UML1_casos_de_uso.png)
+> **Imagem corrigida (v1, gerada do Mermaid abaixo):** [`img/v1/UML1_casos_de_uso.png`](img/v1/UML1_casos_de_uso.png)
 > **Fonte da verdade para:** atores e casos de uso (Spec 1).
-> **Versão:** v1.0 (Core) · **Decisões relacionadas:** D-04, D-07, D-15, D-17.
+> **Versão:** v1.1 (Core) · **Decisões relacionadas:** D-04, D-07, D-15, D-17, D-22.
 
 ## Diagrama (v1.0)
 
@@ -22,10 +23,12 @@ flowchart LR
     UC06(["UC-06 Criar Campanha de<br/>Marketing Direcionada"])
     UC07(["UC-07 Visualizar Relatórios<br/>de Segmentação"])
     UC08(["UC-08 Gerenciar Consentimento<br/>de Dados (LGPD)"])
+    UC09(["UC-09 Cadastrar Cliente<br/>[ADIÇÃO D-22]"])
   end
 
   cliente --- UC01
   cliente --- UC08
+  cliente --- UC09
   admin --- UC08
   agente --- UC03
   analista --- UC05
@@ -49,6 +52,7 @@ flowchart LR
 | UC-06 | Criar Campanha de Marketing Direcionada | Analista de Marketing | — | Não (D-04) | — |
 | UC-07 | Visualizar Relatórios de Segmentação | Analista de Marketing | — | Não (D-04) | — |
 | UC-08 | Gerenciar Consentimento de Dados (LGPD) | Cliente (titular) e Administrador | `GerenciarConsentimentoUseCase` | Sim | Core |
+| UC-09 | Cadastrar Cliente [ADIÇÃO] | Cliente / Sistema Externo | `CadastrarClienteUseCase` | Sim | Core |
 
 ## Relações
 
@@ -61,12 +65,14 @@ flowchart LR
 1. Implementar somente os UCs com MVP = Sim. UC-05 a UC-07 exigem modelagem antes (D-04).
 2. Todo UC que processa dado pessoal (UC-01 a UC-04) começa pelas pré-condições RN-01 (cliente existe → ativo → consentimento válido).
 3. UC-08 não exige consentimento válido (é quem o gerencia), mas exige cliente existente.
+4. UC-09 é a porta de entrada: cria o cliente ativo e sem consentimento (NAO_CONCEDIDO).
 
 ## Divergências registradas
 
 | ID | Divergência | Decisão |
 |---|---|---|
 | D-07 | O diagrama está **correto** em UML (setas «include» saem do caso base para o incluído). A inversão está apenas no Diagrama de Sequência (passo 5). | Seguir a direção deste diagrama; o comportamento observável é o da sequência. |
+| D-22 | Nenhum caso de uso cria o Cliente, mas todos exigem que ele exista. | [ADIÇÃO] UC-09 Cadastrar Cliente, associado ao Cliente. **Ação da equipe:** acrescentar ao diagrama. |
 | D-17 | O diagrama tem **Administrador do Sistema** ligado a UC-08 e **não** tem "Agente Inteligente"; UC-02 a UC-04 não têm ator. A versão anterior da Spec usava Cliente para UC-08 e Agente Inteligente para UC-02 a UC-04. | UC-08: Cliente (titular, via API) **e** Administrador. "Agente Inteligente" entra como ator de automação secundário de UC-03/UC-04 (regras determinísticas, não um LLM). **Ação da equipe:** acrescentar o ator ao diagrama até a apresentação final. |
 
 ## Rastreabilidade

@@ -2,7 +2,7 @@
 
 > Constituição do projeto para o agente de código (Claude Code). Lida automaticamente no início de cada sessão.
 > **Sistema de Segmentação e Perfilamento do Comportamento do Cliente** · Equipe Omega · Go 1.22+
-> Versão da Spec: **v1.0** · Fase atual: **Support** (09–13/11) · escopo fecha em **19/11** · evento final **24/11**
+> Versão da Spec: **v1.1** · Core e Support concluídos · próxima fase: **Generic** (16–19/11) · escopo fecha em **19/11** · evento final **24/11**
 
 ## 1. O que é o projeto
 
@@ -86,4 +86,5 @@ Aceite: cenários <tags> verdes; make verify verde; mudança de até ~300 linhas
 - Camadas: `internal/domain/{entity,port,service}`, `internal/application/usecase`, `internal/infra/{memoria,relogio,repository/pg,external,config}`, `internal/api`, `internal/shared/errs`, `cmd/`.
 - Erro → código: `errs.Codigo(err)` devolve o código estável (`consentimento_invalido`, …) usado pela API e pelos cenários.
 - Fakes em memória (`internal/infra/memoria`) são a infraestrutura dos cenários `@dominio` e `@aplicacao` e da demo.
-- Fase Core: `@api` e `@implantacao` ficam fora do filtro do BDD até as fases Support e Generic.
+- `@implantacao` fica fora do filtro do BDD até a fase Generic; `@api` já roda.
+- Sem `DATABASE_URL`, o `omega-server` usa repositórios em memória com dados sintéticos (D-23).

@@ -1,6 +1,7 @@
 # UML8 — Diagrama de Implantação
 
 > **Fonte:** Módulo 5 · imagem original: [`img/UML8_implantacao.png`](img/UML8_implantacao.png)
+> **Imagem corrigida (v1, gerada do Mermaid abaixo):** [`img/v1/UML8_implantacao.png`](img/v1/UML8_implantacao.png)
 > **Fonte da verdade para:** servidores, contêineres e configuração (Spec 3.8).
 > **Versão:** v1.0 · **Fase de implementação:** Generic (16–19/11) · **Decisões relacionadas:** D-16, D-21.
 

@@ -1,6 +1,7 @@
 # UML3 — Diagrama de Pacotes
 
 > **Fonte:** Módulo 3 · imagem original: [`img/UML3_pacotes.jpg`](img/UML3_pacotes.jpg)
+> **Imagem corrigida (v1, gerada do Mermaid abaixo):** [`img/v1/UML3_pacotes.png`](img/v1/UML3_pacotes.png)
 > **Fonte da verdade para:** organização em pacotes Go (complementar ao UML7, que prevalece — D-10).
 > **Versão:** v1.0 (Core) · **Decisões relacionadas:** C-01, C-02, D-10.
 
@@ -49,14 +50,14 @@ flowchart TB
 
 | Pacote do diagrama | Pasta Go | Fase | Estado |
 |---|---|---|---|
-| cmd | `cmd/omega-server`, `cmd/perfila-demo` | Support / Core (demo) | demo pronta |
-| api | `internal/api` | Support | pendente |
+| cmd | `cmd/omega-server`, `cmd/perfila-demo` | Support / Core (demo) | **pronto** |
+| api | `internal/api` | Support | **pronto** |
 | application | `internal/application/usecase` | Core | **pronto** |
 | domain | `internal/domain/entity`, `internal/domain/port` | Core | **pronto** |
 | service | `internal/domain/service` | Core | **pronto** |
 | repository | `internal/infra/repository/pg` (+ `internal/infra/memoria`) | Generic (+ Core) | fakes prontos |
-| external | `internal/infra/external` | Support | pendente |
-| config | `internal/infra/config` | Support | pendente |
+| external | `internal/infra/external` | Support | **pronto** |
+| config | `internal/infra/config` | Support | **pronto** |
 | shared | `internal/shared/errs` | Core | **pronto** |
 
 ## Regras para o agente

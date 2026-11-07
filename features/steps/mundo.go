@@ -34,14 +34,17 @@ type Mundo struct {
 	validadeDias int
 
 	// últimos resultados
-	err             error
-	consentimento   entity.ConsentimentoLGPD
-	eventosColeta   []entity.EventoComportamental
-	perfil          entity.PerfilCliente
-	perfilIDOrigem  uuid.UUID
-	segmento        entity.Segmento
-	recomendacao    entity.RecomendacaoProduto
-	temRecomendacao bool
+	err               error
+	clienteCadastrado entity.Cliente
+	consentimento     entity.ConsentimentoLGPD
+	eventosColeta     []entity.EventoComportamental
+	perfil            entity.PerfilCliente
+	perfilIDOrigem    uuid.UUID
+	segmento          entity.Segmento
+	recomendacao      entity.RecomendacaoProduto
+	temRecomendacao   bool
+
+	api estadoAPI
 }
 
 // Padrões da Spec 3.8.
@@ -68,6 +71,7 @@ func novoMundo() *Mundo {
 
 // casos de uso montados com a configuração atual do cenário (raiz de composição de teste).
 type casos struct {
+	cadastrar     *usecase.CadastrarClienteUseCase
 	consentimento *usecase.GerenciarConsentimentoUseCase
 	coletar       *usecase.ColetarDadosUseCase
 	gerarPerfil   *usecase.GerarPerfilUseCase
@@ -80,6 +84,7 @@ func (m *Mundo) uc() casos {
 	pre := usecase.NovasPrecondicoes(m.clientes, service.NovoValidadorLGPD(m.consentimentos))
 	coletar := usecase.NovoColetarDadosUseCase(pre, m.eventos, m.clock)
 	return casos{
+		cadastrar:     usecase.NovoCadastrarClienteUseCase(m.clientes, m.clock),
 		consentimento: usecase.NovoGerenciarConsentimentoUseCase(m.clientes, m.consentimentos, m.clock),
 		coletar:       coletar,
 		gerarPerfil: usecase.NovoGerarPerfilUseCase(pre, coletar,

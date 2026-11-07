@@ -1,16 +1,17 @@
-// Comando perfila-demo: executa o fluxo do Diagrama de Sequência (UC-08 → UC-01 → UC-02 →
-// UC-03 → UC-04) com repositórios em memória e dados sintéticos. Serve de demonstração do
-// core na apresentação parcial; o servidor HTTP (omega-server) chega na fase Support.
+// Comando perfila-demo: executa, passo a passo, o fluxo do Diagrama de Sequência (UML4)
+// com repositórios em memória e dados sintéticos. É a demonstração do core; o servidor
+// HTTP (omega-server) chega na fase Support e chama exatamente os mesmos casos de uso.
 //
-// Raiz de composição (C-08): é o único lugar, junto de omega-server, que monta dependências.
+// Raiz de composição (C-08): único lugar, junto de omega-server, que monta dependências.
 package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -24,15 +25,23 @@ import (
 )
 
 func main() {
-	if err := executar(); err != nil {
+	if err := executar(os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, "erro:", err)
 		os.Exit(1)
 	}
 }
 
-func executar() error {
+func passo(w io.Writer, n int, uc, titulo string) {
+	fmt.Fprintf(w, "\n[%d] %s — %s\n", n, uc, titulo)
+}
+
+func linha(w io.Writer, formato string, args ...any) {
+	fmt.Fprintf(w, "    "+formato+"\n", args...)
+}
+
+func executar(w io.Writer) error {
 	ctx := context.Background()
-	log := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	log := slog.New(slog.NewTextHandler(io.Discard, nil)) // logs vão para o arquivo/coletor na fase Support
 	clock := relogio.Sistema{}
 	agora := clock.Agora()
 
@@ -63,6 +72,7 @@ func executar() error {
 
 	// Composição dos casos de uso.
 	pre := usecase.NovasPrecondicoes(clientes, service.NovoValidadorLGPD(consentimentos))
+	cadastrar := usecase.NovoCadastrarClienteUseCase(clientes, clock)
 	consentimento := usecase.NovoGerenciarConsentimentoUseCase(clientes, consentimentos, clock)
 	coletar := usecase.NovoColetarDadosUseCase(pre, eventos, clock)
 	gerarPerfil := usecase.NovoGerarPerfilUseCase(pre, coletar, service.NovoPerfilamentoService(clock, 10), perfis)
@@ -70,21 +80,28 @@ func executar() error {
 	recomendar := usecase.NovoGerarRecomendacaoUseCase(pre, perfis, segmentos,
 		service.NovoRecomendacaoService(produtos, clock), recomendacoes, clock, 30, log)
 
-	cliente := entity.Cliente{ID: uuid.New(), Nome: "Cliente Sintético", Email: "c-001@exemplo.test", DataCadastro: agora, Ativo: true}
-	if err := clientes.Salvar(ctx, cliente); err != nil {
+	fmt.Fprintln(w, "Perfila — demonstração do core (fluxo do Diagrama de Sequência, em memória)")
+	fmt.Fprintln(w, strings.Repeat("─", 72))
+
+	passo(w, 1, "UC-09", "Cadastrar cliente")
+	cliente, err := cadastrar.Executar(ctx, "Cliente Sintético", "c-001@exemplo.test")
+	if err != nil {
 		return err
 	}
+	linha(w, "cliente %s… criado, ativo, sem consentimento", cliente.ID.String()[:8])
 
-	// 0) Sem consentimento, nada é processado (C-03).
-	_, err := gerarPerfil.Executar(ctx, cliente.ID)
-	fmt.Printf("Sem consentimento → %s\n", errs.Codigo(err))
+	passo(w, 2, "UC-02", "Tentar gerar perfil SEM consentimento (C-03)")
+	_, err = gerarPerfil.Executar(ctx, cliente.ID)
+	linha(w, "bloqueado → %s", errs.Codigo(err))
 
-	// UC-08: conceder consentimento.
+	passo(w, 3, "UC-08", "Conceder consentimento LGPD")
 	if err := consentimento.Conceder(ctx, cliente.ID, "segmentacao", "v1"); err != nil {
 		return err
 	}
+	c, _ := consentimento.Consultar(ctx, cliente.ID)
+	linha(w, "NAO_CONCEDIDO → %s (finalidade %q, termo %q)", c.Status, c.Finalidade, c.VersaoTermo)
 
-	// UC-01: registrar eventos sintéticos.
+	passo(w, 4, "UC-01", "Registrar eventos comportamentais")
 	for i, e := range []struct {
 		tipo      entity.TipoEvento
 		valor     float64
@@ -95,47 +112,50 @@ func executar() error {
 	} {
 		ev := entity.EventoComportamental{ClienteID: cliente.ID, Tipo: e.tipo, Origem: "ecommerce",
 			Timestamp: agora.Add(-time.Duration(i+1) * 24 * time.Hour), Valor: e.valor, Categoria: e.categoria}
-		if err := coletar.Registrar(ctx, ev); err != nil {
+		if _, err := coletar.Registrar(ctx, ev); err != nil {
 			return err
 		}
+		linha(w, "%-9s valor %6.2f  categoria %q", e.tipo, e.valor, e.categoria)
 	}
+	_, err = gerarPerfil.Executar(ctx, uuid.New())
+	linha(w, "(cliente inexistente → %s)", errs.Codigo(err))
+	_, err = coletar.Registrar(ctx, entity.EventoComportamental{ClienteID: cliente.ID, Tipo: entity.TipoCompra,
+		Origem: "ecommerce", Timestamp: agora, Valor: 0})
+	linha(w, "(compra com valor 0 → %s, RN-04)", errs.Codigo(err))
 
-	// Fluxo RN-09: UC-02 → UC-03 → UC-04.
+	passo(w, 5, "UC-02", "Gerar perfil («include» Coletar)")
 	perfil, err := gerarPerfil.Executar(ctx, cliente.ID)
 	if err != nil {
 		return err
 	}
+	linha(w, "frequência de compras  %d", perfil.FrequenciaCompras)
+	linha(w, "ticket médio           %.2f", perfil.TicketMedio)
+	linha(w, "categoria preferida    %s", perfil.CategoriaPreferida)
+	linha(w, "score de engajamento   %.2f (5 eventos em 30 dias / meta 10)", perfil.ScoreEngajamento)
+
+	passo(w, 6, "UC-03", "Segmentar cliente (primeiro critério que casa)")
 	seg, err := segmentar.Executar(ctx, cliente.ID)
 	if err != nil {
 		return err
 	}
+	linha(w, "segmento %q ← critério: %s", seg.Nome, seg.Criterio)
+
+	passo(w, 7, "UC-04", "Recomendar produto («extend» Segmentar)")
 	rec, err := recomendar.Executar(ctx, cliente.ID)
 	if err != nil {
 		return err
 	}
+	linha(w, "status %s · motivo %q", rec.Status, rec.Motivo)
+	linha(w, "válida até %s (30 dias)", rec.Validade.Format("02/01/2006"))
 
-	saida := map[string]map[string]string{
-		"perfil": {
-			"frequenciaCompras":  fmt.Sprint(perfil.FrequenciaCompras),
-			"ticketMedio":        fmt.Sprintf("%.2f", perfil.TicketMedio),
-			"categoriaPreferida": perfil.CategoriaPreferida,
-			"scoreEngajamento":   fmt.Sprintf("%.2f", perfil.ScoreEngajamento),
-		},
-		"segmento":     {"nome": seg.Nome, "criterio": seg.Criterio},
-		"recomendacao": {"status": string(rec.Status), "motivo": rec.Motivo, "validade": rec.Validade.Format(time.RFC3339)},
-	}
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetEscapeHTML(false)
-	enc.SetIndent("", "  ")
-	if err := enc.Encode(saida); err != nil {
-		return err
-	}
-
-	// RN-03: revogação tem efeito imediato.
+	passo(w, 8, "UC-08", "Revogar consentimento (RN-03: efeito imediato)")
 	if err := consentimento.Revogar(ctx, cliente.ID); err != nil {
 		return err
 	}
 	_, err = recomendar.Executar(ctx, cliente.ID)
-	fmt.Printf("Após revogar → %s\n", errs.Codigo(err))
+	linha(w, "nova recomendação → %s", errs.Codigo(err))
+
+	fmt.Fprintln(w, "\n"+strings.Repeat("─", 72))
+	fmt.Fprintln(w, "Mesmos casos de uso que a API chamará na fase Support; só a infraestrutura muda.")
 	return nil
 }

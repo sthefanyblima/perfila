@@ -9,9 +9,9 @@ import (
 	"perfila/features/steps"
 )
 
-// Fase Core: @api e @implantacao ficam fora até as fases Support e Generic.
+// Fase Support concluída: só @implantacao fica fora até a fase Generic.
 // Sobrescreva com BDD_TAGS, por exemplo: BDD_TAGS="@lgpd" go test ./features/...
-const tagsPadrao = "~@api && ~@implantacao && ~@wip"
+const tagsPadrao = "~@implantacao && ~@wip"
 
 func TestFeatures(t *testing.T) {
 	tags := os.Getenv("BDD_TAGS")

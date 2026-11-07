@@ -60,7 +60,7 @@ Ferramenta: godog (Cucumber para Go), que lê Gherkin em português. Os arquivos
 
 ```go
 // features/bdd_test.go
-const tagsPadrao = "~@api && ~@implantacao && ~@wip" // fase Core
+const tagsPadrao = "~@implantacao && ~@wip" // Core e Support concluídos
 
 func TestFeatures(t *testing.T) {
     tags := os.Getenv("BDD_TAGS")
@@ -91,7 +91,7 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 ```
 
 - O alvo `make bdd` executa `go test ./features/...`; `make verify` inclui `make bdd`.
-- Filtro por fase: na fase Core, `@api` e `@implantacao` ficam fora. Para outra seleção: `BDD_TAGS="@lgpd" make bdd`. A sintaxe é a do godog (`~` nega, `&&` e `,` combinam).
+- Filtro por fase: `@implantacao` fica fora até a fase Generic. Para outra seleção: `BDD_TAGS="@lgpd" make bdd`. A sintaxe é a do godog (`~` nega, `&&` e `,` combinam).
 - Identificadores sintéticos (`c-001`, `Livro A`) viram UUIDs determinísticos no passo (B-08).
 - Cada passo reutilizável aparece uma vez em `features/steps/`; um passo novo exige justificativa no PR (B-12).
 
@@ -107,10 +107,11 @@ As features vivem em `features/` e são a versão executável deste documento. E
 | `segmentacao.feature` | UC-03, RN-06 | `@aplicacao` e `@dominio` | 19 | Core ✅ |
 | `recomendacao.feature` | UC-04, RN-07, RN-08 | `@aplicacao` | 6 | Core ✅ |
 | `recomendacao_ciclo.feature` | 3.4.2, RN-08 | `@dominio` e `@aplicacao` | 9 | Core ✅ |
-| `api.feature` | UC-01..04, UC-08, RN-09 | `@api` | 12 | Support ⬜ |
+| `cliente.feature` | UC-09 (D-22) | `@aplicacao` | 6 | Core ✅ |
+| `api.feature` | UC-01..04, UC-08, UC-09, RN-09 | `@api` | 20 | Support ✅ |
 | `implantacao.feature` | UML8 | `@implantacao @slow` | 3 | Generic ⬜ |
 
-Total da fase Core: **73 cenários, 476 passos, todos verdes.**
+Total executado: **99 cenários, 668 passos, todos verdes** (Core 79 + Support 20).
 
 ### 6.1 Mudanças da v1.0 nas features (aprovadas junto com a Spec v1.0, B-14)
 

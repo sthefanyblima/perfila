@@ -1,6 +1,7 @@
 # UML6 — Diagrama de Estados: RecomendacaoProduto
 
 > **Fonte:** Módulo 4 · imagem original: [`img/UML6_estados_recomendacao.png`](img/UML6_estados_recomendacao.png)
+> **Imagem corrigida (v1, gerada do Mermaid abaixo):** [`img/v1/UML6_estados_recomendacao.png`](img/v1/UML6_estados_recomendacao.png)
 > **Fonte da verdade para:** ciclo de vida da recomendação (Spec 3.4.2, RN-08).
 > **Versão:** v1.0 (Core) · **Decisões relacionadas:** D-08.
 

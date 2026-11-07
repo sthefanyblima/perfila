@@ -1,6 +1,7 @@
 # UML5 — Diagrama de Estados: ConsentimentoLGPD
 
 > **Fonte:** Módulo 4 · imagem original: [`img/UML5_estados_consentimento.png`](img/UML5_estados_consentimento.png)
+> **Imagem corrigida (v1, gerada do Mermaid abaixo):** [`img/v1/UML5_estados_consentimento.png`](img/v1/UML5_estados_consentimento.png)
 > **Fonte da verdade para:** ciclo de vida do consentimento (Spec 3.4.1).
 > **Versão:** v1.0 (Core) · **Decisões relacionadas:** D-02, D-03.
 

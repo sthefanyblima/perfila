@@ -1,6 +1,7 @@
 # UML7 — Diagrama de Componentes
 
 > **Fonte:** Módulo 5 · imagem original: [`img/UML7_componentes.png`](img/UML7_componentes.png)
+> **Imagem corrigida (v1, gerada do Mermaid abaixo):** [`img/v1/UML7_componentes.png`](img/v1/UML7_componentes.png)
 > **Fonte da verdade para:** camadas, ports e direção das dependências (prevalece sobre UML3 — D-10).
 > **Versão:** v1.0 (Core) · **Decisões relacionadas:** C-01, C-02, D-05, D-12, D-16.
 
@@ -44,16 +45,16 @@ flowchart TB
 
 | Componente | Interfaces oferecidas / requeridas | Fase | Estado |
 |---|---|---|---|
-| CMD | requer: Casos de Uso, Configuração | Support | demo (`cmd/perfila-demo`) |
-| API | requer: Casos de Uso; oferece HTTP | Support | pendente |
+| CMD | requer: Casos de Uso, Configuração | Support | **pronto** (`cmd/omega-server`) |
+| API | requer: Casos de Uso; oferece HTTP | Support | **pronto** |
 | Casos de Uso | requer: Ports, Serviços | Core | **pronto** |
 | Entidades | — | Core | **pronto** |
 | Serviços de Domínio | requer: Ports | Core | **pronto** |
 | Ports | oferecidos pelo domínio | Core | **pronto** |
 | Repositórios em memória | implementa os 7 repositórios + Clock | Core | **pronto** |
 | Repositórios PostgreSQL | implementa os 7 repositórios | Generic | pendente |
-| Serviços Externos | implementa ConsentimentoGateway, IntegracaoGateway | Support | pendente |
-| Configuração | `config.env` (Spec 3.8) | Support | pendente |
+| Serviços Externos | implementa ConsentimentoGateway, IntegracaoGateway | Support | **pronto** (local / stub) |
+| Configuração | `config.env` (Spec 3.8) | Support | **pronto** |
 
 ## Regras para o agente
 

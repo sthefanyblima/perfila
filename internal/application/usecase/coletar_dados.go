@@ -29,17 +29,20 @@ func (uc *ColetarDadosUseCase) Executar(ctx context.Context, clienteID uuid.UUID
 	return uc.eventos.BuscarPorCliente(ctx, clienteID)
 }
 
-// Registrar [ADIÇÃO, D-12] valida e grava um evento. Spec: UC-01 RN-01 RN-04.
-func (uc *ColetarDadosUseCase) Registrar(ctx context.Context, e entity.EventoComportamental) error {
+// Registrar [ADIÇÃO, D-12] valida, grava e devolve o evento (com ID). Spec: UC-01 RN-01 RN-04.
+func (uc *ColetarDadosUseCase) Registrar(ctx context.Context, e entity.EventoComportamental) (entity.EventoComportamental, error) {
 	if _, err := uc.pre.Verificar(ctx, e.ClienteID); err != nil {
-		return err
+		return entity.EventoComportamental{}, err
 	}
 	if err := e.Validar(uc.clock.Agora()); err != nil {
-		return err
+		return entity.EventoComportamental{}, err
 	}
 	if e.ID == uuid.Nil {
 		e.ID = uuid.New()
 	}
 	e.Timestamp = e.Timestamp.UTC()
-	return uc.eventos.Salvar(ctx, e)
+	if err := uc.eventos.Salvar(ctx, e); err != nil {
+		return entity.EventoComportamental{}, err
+	}
+	return e, nil
 }

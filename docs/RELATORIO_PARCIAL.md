@@ -16,7 +16,7 @@ Construir, em Go, um sistema que coleta eventos de comportamento do cliente, cal
 | 20/10–27/10 | Arquivos `.md`: `CLAUDE.md` + `UML1.md`…`UML8.md`, SDD e BDD | — | Concluído |
 | 27/10–08/11 | **Core**: domínio + aplicação | 50% | **Concluído** |
 | 09–11/11 | 1ª chamada de acompanhamento | — | Este relatório |
-| 09–13/11 | Support: API HTTP, middlewares, CMD, gateways | 25% | Em andamento |
+| 09–13/11 | Support: API HTTP, middlewares, CMD, gateways | 25% | **Concluído (adiantado)** |
 | 16–19/11 | Generic: PostgreSQL, autenticação, Docker/Nginx | 25% | A iniciar |
 | 19/11 | Fechamento do escopo (depois, só correções) | — | — |
 | 23/11 · 24/11 | Ensaio · evento final | — | — |
@@ -62,13 +62,23 @@ Classificação DDD usada para dividir o trabalho:
 
 - Repositórios em memória (implementam os mesmos ports que o PostgreSQL implementará).
 - `make demo`: o fluxo do Diagrama de Sequência de ponta a ponta, inclusive o bloqueio por falta de consentimento e a revogação com efeito imediato.
+- **UC-09 Cadastrar Cliente** (D-22): a modelagem não dizia como um cliente entra no sistema; o cliente agora nasce ativo e sem consentimento.
+- Diagramas corrigidos renderizados a partir do Mermaid (`docs/uml/img/v1/`).
+
+**Support (adiantado, concluído em 07/11)**
+
+- API HTTP (`net/http`): cadastro, consentimento, eventos e o processamento consolidado do passo 23 da sequência.
+- Middlewares: autenticação Bearer (401) e LGPD com as pré-condições RN-01 (404, 409, 403).
+- `omega-server` com `serve` e `expirar-recomendacoes`, configuração por ambiente ou `config.env`.
+- Sem banco ainda: o servidor roda em memória com dados sintéticos (D-23); `make serve` + `make demo-api` mostram o fluxo por HTTP.
 
 ## 5. Resultados medidos
 
 | Indicador | Meta (portão) | Resultado |
 |---|---|---|
-| Cenários BDD `@dominio` + `@aplicacao` | 100% verdes | **73/73** (476 passos) |
-| Cobertura de domínio + aplicação | ≥ 80% | **92,5%** |
+| Cenários BDD `@dominio` + `@aplicacao` | 100% verdes | **79/79** |
+| Cenários BDD `@api` (Support) | 100% verdes | **20/20** (total 99 cenários, 668 passos) |
+| Cobertura de domínio + aplicação | ≥ 80% | **92,2%** |
 | Teste de arquitetura (C-01, C-05, C-07, C-08) | verde | **verde** (e comprovadamente vermelho ao violar) |
 | `go vet`, `gofmt`, testes com `-race` | sem achados | **sem achados** |
 | Teste de mutação manual (validade da recomendação alterada) | cenários detectam | **3 cenários falharam**, como esperado |
@@ -91,7 +101,7 @@ Principais decisões de modelagem mantidas: consentimento com 3 estados em vez d
 | Perguntas Q-01 a Q-06 sem resposta | Cada uma tem padrão implementado e dono |
 | PostgreSQL pode divergir dos fakes | Suíte de contrato única rodando contra os dois (T-19) |
 
-**Support (09–13/11):** handlers e rotas (`net/http` 1.22), middlewares Bearer e LGPD, mapeamento erro → HTTP, CMD `omega-server` com `serve` e `expirar-recomendacoes`. Portão: `api.feature` (12 cenários) verde.
+**Support:** concluído antes do prazo; `api.feature` com 20 cenários verdes.
 **Generic (16–19/11):** migrações e 7 repositórios PostgreSQL, Docker multiestágio, Nginx com 2 réplicas, checklist LGPD. Portão: `implantacao.feature` verde. Se a semana apertar, as duas réplicas saem do MVP (decisão até 17/11).
 
 **19/11:** escopo fecha. **23/11:** ensaio. **24/11:** evento final.

@@ -174,3 +174,14 @@ func TestClienteEProduto(t *testing.T) {
 		t.Error("preço zero é válido")
 	}
 }
+
+// Spec: UC-09, D-22.
+func TestNovoCliente(t *testing.T) {
+	c, err := NovoCliente(uuid.New(), " Ana ", "a@exemplo.test", agoraTeste)
+	if err != nil || !c.Ativo || c.Nome != "Ana" || !c.DataCadastro.Equal(agoraTeste) {
+		t.Fatalf("cliente válido: %+v %v", c, err)
+	}
+	if _, err := NovoCliente(uuid.New(), "", "a@exemplo.test", agoraTeste); !errors.Is(err, errs.ErrDadosInvalidos) {
+		t.Fatalf("nome vazio deveria falhar: %v", err)
+	}
+}

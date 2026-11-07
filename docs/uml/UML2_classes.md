@@ -1,6 +1,7 @@
 # UML2 — Diagrama de Classes
 
 > **Fonte:** Módulo 3 · imagem original: [`img/UML2_classes.jpg`](img/UML2_classes.jpg)
+> **Imagem corrigida (v1, gerada do Mermaid abaixo):** [`img/v1/UML2_classes_dominio.png`](img/v1/UML2_classes_dominio.png) · [`img/v1/UML2_classes_aplicacao.png`](img/v1/UML2_classes_aplicacao.png)
 > **Fonte da verdade para:** entidades, campos, métodos e nomes (Spec 1, C-04).
 > **Versão:** v1.0 (Core) · **Decisões relacionadas:** D-02, D-05, D-06, D-08, D-10, D-14, D-15, D-19.
 
@@ -17,6 +18,7 @@ classDiagram
     -Email string
     -DataCadastro time
     -Ativo bool
+    +NovoCliente(id, nome, email, agora) «ADIÇÃO D-22»
     +AtualizarDados(nome, email) error
     +Ativar()
     +Desativar()
@@ -119,6 +121,9 @@ classDiagram
     +Conceder(ctx, clienteID, finalidade, versao) error
     +Revogar(ctx, clienteID) error
     +Consultar(ctx, clienteID) «ADIÇÃO»
+  }
+  class CadastrarClienteUseCase {
+    +Executar(ctx, nome, email) Cliente, error «ADIÇÃO D-22»
   }
   class ExpirarRecomendacoesUseCase {
     +Executar(ctx) int, error «ADIÇÃO D-08»
