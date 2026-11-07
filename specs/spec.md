@@ -170,7 +170,7 @@ Desvios idiomáticos em relação aos diagramas (não são lacunas): `context.Co
     - operador: `>`, `>=`, `<`, `<=` ou `==`
     - número: decimal com ponto
     - A avaliação usa função própria, sem reflexão e sem execução dinâmica de código. Critério inválido: `ErrDadosInvalidos`. Todas as condições são validadas, mesmo depois de uma condição falsa, para que um critério mal escrito nunca passe despercebido.
-    - Nenhum segmento ativo casa (só possível sem o segmento padrao): `ErrDadosInvalidos` (OPEN_QUESTIONS Q-02).
+    - Nenhum segmento ativo casa (só possível sem o segmento padrao): falha de configuração `ErrSemSegmentoAplicavel`, que não é erro de domínio e vira HTTP 500 (Q-02).
     - O resultado é persistido em `PerfilCliente.SegmentoID` (D-06).
 - **RN-07 Recomendação (regra provisória, D-05).** Candidatos são os produtos ativos da CategoriaPreferida do perfil; escolhe-se o primeiro por Nome em ordem alfabética, com desempate por ID. Sem categoria ou sem candidatos: `ErrSemProdutoElegivel`, que não é falha (a API devolve recomendação nula). O Motivo segue o formato `segmento:<nome>;categoria:<categoria>`.
 - **RN-08 Ciclo da recomendação.** UC-04 cria e já disponibiliza: GERADA é transitória e a recomendação é persistida uma única vez, já em ATIVA. Validade é DataAtivacao mais `RECOMENDACAO_VALIDADE_DIAS` (padrão 30). Expira quando Validade é menor ou igual a agora, pelo comando `expirar-recomendacoes` (D-08).
@@ -360,9 +360,9 @@ Persistência e implantação:
 - A migração inicial cria o segmento padrao (critério vazio, Prioridade 99). Dados de teste são sintéticos.
 - Binário estático `omega-server` em contêiner Docker com `config.env`; duas réplicas atrás de Nginx (TLS e proxy para a porta 8080); PostgreSQL em servidor próprio, nunca acessível do dispositivo do cliente.
 
-### 3.9 Lacunas e inconsistências da modelagem (decisões padrão)
+### 3.9 Lacunas e inconsistências da modelagem (decisões)
 
-Prioridade Alta: impede gerar código correto. Média: gera comportamento ambíguo. Baixa: ajuste de limpeza. A equipe pode trocar qualquer padrão; a mudança entra primeiro aqui e na spec (tarefa T-04 do Documento 2).
+Prioridade Alta: impede gerar código correto. Média: gera comportamento ambíguo. Baixa: ajuste de limpeza. **Status:** todas as decisões abaixo foram adotadas como finais em 07/11/2026 (T-04); as perguntas Q-01 a Q-06 também foram decididas (`OPEN_QUESTIONS.md`). Mudança futura entra primeiro aqui.
 
 | ID | Onde | Problema | Decisão padrão | Prior. |
 |---|---|---|---|---|
@@ -395,5 +395,5 @@ Prioridade Alta: impede gerar código correto. Média: gera comportamento ambíg
 | Versão | Data | Mudanças |
 |---|---|---|
 | v0 | 27/10/2026 | Documento único (PDF) e depois dividido em três `.md` |
-| v1.1 | 07/11/2026 | UC-09 Cadastrar Cliente (D-22), `NovoCliente` e rota `POST /v1/clientes`; Support implementado (API, middlewares, CMD, gateways, configuração) |
+| v1.1 | 07/11/2026 | UC-09 Cadastrar Cliente (D-22), `NovoCliente` e rota `POST /v1/clientes`; Support implementado (API, middlewares, CMD, gateways, configuração); D-01 a D-23 adotadas como finais; Q-01 a Q-06 decididas (Q-02 muda o erro de "nenhum segmento" para falha de configuração) |
 | **v1.0** | 03/11/2026 | Nome do produto (Perfila); Constituição movida para `CLAUDE.md`; diagramas transcritos em `docs/uml/UML1..UML8`; `ClassificaPerfil` → `ClassificarPerfil` (D-18); `NovoConsentimento`, `Precondicoes` e `ExpirarRecomendacoesUseCase` explicitados; atores de UC-08 corrigidos (D-17); D-07 e D-10 corrigidos; D-17 a D-21 novos; estrutura de pastas marcada por fase (Core, Support, Generic) |

@@ -11,7 +11,7 @@ Legenda de status: ✅ concluída · 🟡 parcial · ⬜ a fazer. "Prova" é o q
 | T-01 | Bootstrap: `go.mod` (`perfila`), layout da Spec 3.8, `Makefile` com `verify`, CI (`.github/workflows/ci.yml`) | — | CI verde | ✅ |
 | T-02 | Teste de arquitetura (C-01, C-05, C-07, C-08) | T-01 | `internal/arquitetura_test.go` fica vermelho ao violar | ✅ |
 | T-03 | Harness godog (relógio fixo, fakes, mundo por cenário) | T-01 | `features/bdd_test.go` + `features/steps/` | ✅ |
-| T-04 | Decisões D-01 a D-21 e Spec v1.0; UML1..UML8 em texto | — | `specs/spec.md` v1.0; `docs/uml/` | 🟡 decisões padrão aplicadas; **equipe** valida na 1ª chamada e corrige as imagens até 19/11 |
+| T-04 | Decisões D-01 a D-21 e Spec v1.0; UML1..UML8 em texto | — | `specs/spec.md` v1.0; `docs/uml/` | ✅ D-01 a D-23 adotadas como finais e Q-01 a Q-06 decididas (07/11); imagens corrigidas em `docs/uml/img/v1/` |
 | T-05 | Erros sentinelas e tipos enumerados | T-04 | `internal/shared/errs`, `entity/tipos.go` | ✅ |
 | T-06 | `Cliente` e invariantes | T-05 | `entity_test.go` | ✅ |
 | T-07 | `ConsentimentoLGPD` e máquina de estados | T-05 | `consentimento.feature`, `TestConsentimentoTransicoes` | ✅ |

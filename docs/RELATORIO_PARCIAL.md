@@ -97,8 +97,8 @@ Principais decisões de modelagem mantidas: consentimento com 3 estados em vez d
 
 | Risco | Mitigação |
 |---|---|
-| Imagens dos diagramas ainda divergem da Spec v1.0 | Corrigir até 19/11 (lista em D-xx) |
-| Perguntas Q-01 a Q-06 sem resposta | Cada uma tem padrão implementado e dono |
+| Imagens originais dos diagramas divergem da Spec | Versões corrigidas geradas em `docs/uml/img/v1/` (07/11); a equipe pode redesenhá-las no estilo original até 19/11 |
+| Decisões de modelagem e perguntas em aberto | Resolvidas: D-01 a D-23 adotadas e Q-01 a Q-06 decididas em 07/11 (`OPEN_QUESTIONS.md`) |
 | PostgreSQL pode divergir dos fakes | Suíte de contrato única rodando contra os dois (T-19) |
 
 **Support:** concluído antes do prazo; `api.feature` com 20 cenários verdes.
