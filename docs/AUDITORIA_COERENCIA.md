@@ -31,5 +31,5 @@ Os três documentos estavam **coerentes entre si** nas regras de negócio (RN-01
 
 ## Pendências da equipe (não resolvíveis por texto)
 
-1. Corrigir as **imagens** dos diagramas conforme D-02, D-03, D-05 a D-10, D-17, D-19 (prazo: 26/11).
+1. Corrigir as **imagens** dos diagramas conforme D-02, D-03, D-05 a D-10, D-17, D-19 (prazo: 19/11).
 2. Responder Q-01 a Q-06 em `OPEN_QUESTIONS.md`.

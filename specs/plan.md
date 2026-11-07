@@ -13,12 +13,18 @@ Este plano organiza como a equipe vai implementar o sistema com apoio de IA gene
 | Período | Marco | Peso | Entrega |
 |---|---|---|---|
 | 20/10–27/10 | Arquivos `.md` para o Claude Code (SDD) | — | `CLAUDE.md` + `UML1.md` … `UML8.md`; regras BDD (Dado/Quando/Então) |
-| 27/10–10/11 | **Core** | 50% | Domínio + aplicação completos, com BDD `@dominio`/`@aplicacao` verdes |
-| **10/11** | **Apresentação de andamento (relatório parcial)** | — | Relatório parcial + demonstração do core |
-| 10/11–17/11 | **Support** | 25% | API HTTP, middlewares, CMD, gateways, configuração |
-| 17/11–24/11 | **Generic** | 25% | PostgreSQL, autenticação, Docker/Nginx com duas réplicas, checklist LGPD |
-| 24/11–26/11 | Ensaio | — | Roteiro de demonstração reproduzível |
-| **26/11** | **Apresentação final** | — | Sistema implantado; todas as features verdes |
+| 27/10–08/11 | **Core** | 50% | Domínio + aplicação completos, com BDD `@dominio`/`@aplicacao` verdes |
+| **09–11/11** | **1ª chamada de acompanhamento** (relatório parcial) | — | Demonstração do core; Trello atualizado |
+| 09–13/11 (semana 1) | **Support** | 25% | API HTTP, middlewares, CMD, gateways, configuração — "primeira funcionalidade rodando" pela API |
+| 16–19/11 (semana 2) | **Generic** | 25% | PostgreSQL, Docker/Nginx, checklist LGPD |
+| **19/11** | **Fechamento do escopo** | — | Depois disso, só correções |
+| 20–22/11 | Correções | — | Só defeitos; nenhuma funcionalidade nova |
+| 23/11 | Ajustes finais e ensaio | — | Roteiro de demonstração reproduzível |
+| **24/11** | **Evento final** | — | Sistema implantado; todas as features do MVP verdes |
+
+**Acompanhamento:** Trello atualizado **toda sexta** (13/11 e 20/11); uma chamada por etapa.
+
+**Corte planejado se a semana 2 apertar:** duas réplicas atrás do Nginx (cenários de réplica em `implantacao.feature`) saem do MVP; o UML8 é demonstrado com uma réplica. Decisão até 17/11.
 
 ### Classificação dos subdomínios (DDD)
 
@@ -63,12 +69,12 @@ Esforço relativo: P (pequeno), M (médio), G (grande). A ordem vai de dentro pa
 | Fase | Marco | Objetivo | Tarefas | Portão de saída | Esforço | Estado (03/11) |
 |---|---|---|---|---|---|---|
 | F0 Fundação | Core | Repositório, CI e harness de testes | T-01 a T-03 | `make verify` verde no CI com o teste de arquitetura | P | **Concluída** |
-| F1 Fechar a modelagem | Core | Decidir as lacunas e corrigir os diagramas | T-04 | D-01 a D-21 com decisão padrão; Spec v1.0; UML1..UML8 em texto | P | **Concluída** (correção das imagens até 26/11) |
+| F1 Fechar a modelagem | Core | Decidir as lacunas e corrigir os diagramas | T-04 | D-01 a D-21 com decisão padrão; Spec v1.0; UML1..UML8 em texto | P | **Concluída** (correção das imagens até 19/11) |
 | F2 Domínio | Core | Entidades, estados e serviços | T-05 a T-12 | Features `@dominio` verdes; `domain` sem imports proibidos; cobertura ≥ 80% | G | **Concluída** |
 | F3 Aplicação | Core | Ports, fakes e casos de uso | T-13 a T-18 | Features `@aplicacao` verdes com fakes em memória | M | **Concluída** |
-| F5 Apresentação | Support | API, middlewares, CMD, gateways, configuração | T-20 a T-23 | Features `@api` verdes, incluindo o processamento ponta a ponta | M | A iniciar em 10/11 |
-| F4 Infraestrutura | Generic | PostgreSQL e suíte de contrato | T-19 | Suíte de contrato passa com o fake em memória e com o PostgreSQL | M | A iniciar em 17/11 |
-| F6 Implantação | Generic | Contêiner, balanceador e réplicas | T-24 | Features `@implantacao` verdes | M | A iniciar em 17/11 |
+| F5 Apresentação | Support | API, middlewares, CMD, gateways, configuração | T-20 a T-23 | Features `@api` verdes, incluindo o processamento ponta a ponta | M | Em andamento (09–13/11) |
+| F4 Infraestrutura | Generic | PostgreSQL e suíte de contrato | T-19 | Suíte de contrato passa com o fake em memória e com o PostgreSQL | M | 16–19/11 |
+| F6 Implantação | Generic | Contêiner, balanceador e réplicas | T-24 | Features `@implantacao` verdes (réplicas: corte planejado) | M | 16–19/11 |
 | F7 Fechamento | Generic | Conformidade, documentação e demonstração | T-25 | Checklist LGPD; README; roteiro de demonstração | P | Parcial (README e demo do core prontos) |
 
 A API (F5) vem antes do PostgreSQL (F4) porque roda sobre os fakes em memória: a fase Support entrega o fluxo HTTP completo sem depender de banco, e a Generic só troca a infraestrutura.

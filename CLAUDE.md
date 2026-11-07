@@ -2,7 +2,7 @@
 
 > Constituição do projeto para o agente de código (Claude Code). Lida automaticamente no início de cada sessão.
 > **Sistema de Segmentação e Perfilamento do Comportamento do Cliente** · Equipe Omega · Go 1.22+
-> Versão da Spec: **v1.0** · Fase atual: **Core** (27/10–10/11)
+> Versão da Spec: **v1.0** · Fase atual: **Support** (09–13/11) · escopo fecha em **19/11** · evento final **24/11**
 
 ## 1. O que é o projeto
 

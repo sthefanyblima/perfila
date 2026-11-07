@@ -2,20 +2,23 @@
 
 **Sistema de Segmentação e Perfilamento do Comportamento do Cliente** · Equipe Omega · Go
 
+**Equipe:** Alexia Rodrigues, Carla Evellyn, Davi Silva, Jhenyffer Kyria, Leila Biggi, Lara Nogueira e Sthefany Barboza.
+
 O Perfila transforma eventos de comportamento (navegação, compra, interação) em um **perfil** do cliente, atribui um **segmento** por critérios declarativos e gera uma **recomendação** de produto — sempre condicionado ao **consentimento LGPD**.
 
 Desenvolvido com **Spec-Driven Development** (a especificação é a fonte da verdade e o agente de IA implementa) e **Behavior-Driven Development** (cenários Gherkin executáveis provam o comportamento).
 
-## Estado (03/11/2026) — fase Core concluída
+## Estado (07/11/2026) — fase Core concluída
 
 | Marco | Período | Estado |
 |---|---|---|
 | Arquivos `.md` (CLAUDE.md + UML1..UML8) | 20/10–27/10 | ✅ |
-| **Core** (domínio + aplicação) — 50% | 27/10–10/11 | ✅ 73 cenários verdes · cobertura 92,5% |
-| Apresentação de andamento (relatório parcial) | 10/11 | `docs/RELATORIO_PARCIAL.md` |
-| Support (API, middlewares, CMD) — 25% | 10/11–17/11 | ⬜ |
-| Generic (PostgreSQL, Docker/Nginx, auth) — 25% | 17/11–24/11 | ⬜ |
-| Apresentação final | 26/11 | ⬜ |
+| **Core** (domínio + aplicação) — 50% | 27/10–08/11 | ✅ 73 cenários verdes · cobertura 92,5% |
+| 1ª chamada de acompanhamento (relatório parcial) | 09–11/11 | `docs/RELATORIO_PARCIAL.md` |
+| Support (API, middlewares, CMD) — 25% | 09–13/11 | ⬜ |
+| Generic (PostgreSQL, Docker/Nginx, auth) — 25% | 16–19/11 | ⬜ |
+| Fechamento do escopo | 19/11 | ⬜ |
+| Ensaio · evento final | 23/11 · 24/11 | ⬜ |
 
 ## Como rodar
 

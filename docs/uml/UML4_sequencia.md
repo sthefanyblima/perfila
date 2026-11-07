@@ -67,7 +67,7 @@ sequenceDiagram
 ## Estado de implementação
 
 - **Core (pronto):** casos de uso e serviços; o fluxo completo roda em memória com `make demo`.
-- **Support (10/11–17/11):** handler `POST /processamento`, middlewares e DTOs (`features/api.feature`).
+- **Support (09–13/11):** handler `POST /processamento`, middlewares e DTOs (`features/api.feature`).
 
 ## Rastreabilidade
 

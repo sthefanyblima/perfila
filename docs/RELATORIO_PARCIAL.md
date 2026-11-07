@@ -1,9 +1,9 @@
 # Relatório Parcial — Perfila
 
 **Sistema de Segmentação e Perfilamento do Comportamento do Cliente**  
-Equipe Omega · GoLang & CLP · Apresentação de andamento: **10/11/2026**
+Equipe Omega · GoLang & CLP · 1ª chamada de acompanhamento: **09–11/11/2026**
 
-Integrantes: _(preencher)_
+**Equipe:** Alexia Rodrigues, Carla Evellyn, Davi Silva, Jhenyffer Kyria, Leila Biggi, Lara Nogueira e Sthefany Barboza.
 
 ## 1. Objetivo
 
@@ -11,14 +11,15 @@ Construir, em Go, um sistema que coleta eventos de comportamento do cliente, cal
 
 ## 2. Roadmap e situação
 
-| Período | Marco | Peso | Situação em 03/11 |
+| Período | Marco | Peso | Situação em 07/11 |
 |---|---|---|---|
 | 20/10–27/10 | Arquivos `.md`: `CLAUDE.md` + `UML1.md`…`UML8.md`, SDD e BDD | — | Concluído |
-| 27/10–10/11 | **Core**: domínio + aplicação | 50% | **Concluído** |
-| 10/11 | Apresentação de andamento | — | Este relatório |
-| 10/11–17/11 | Support: API HTTP, middlewares, CMD, gateways | 25% | A iniciar |
-| 17/11–24/11 | Generic: PostgreSQL, autenticação, Docker/Nginx | 25% | A iniciar |
-| 26/11 | Apresentação final | — | — |
+| 27/10–08/11 | **Core**: domínio + aplicação | 50% | **Concluído** |
+| 09–11/11 | 1ª chamada de acompanhamento | — | Este relatório |
+| 09–13/11 | Support: API HTTP, middlewares, CMD, gateways | 25% | Em andamento |
+| 16–19/11 | Generic: PostgreSQL, autenticação, Docker/Nginx | 25% | A iniciar |
+| 19/11 | Fechamento do escopo (depois, só correções) | — | — |
+| 23/11 · 24/11 | Ensaio · evento final | — | — |
 
 Classificação DDD usada para dividir o trabalho:
 
@@ -86,9 +87,11 @@ Principais decisões de modelagem mantidas: consentimento com 3 estados em vez d
 
 | Risco | Mitigação |
 |---|---|
-| Imagens dos diagramas ainda divergem da Spec v1.0 | Corrigir até 26/11 (lista em D-xx) |
+| Imagens dos diagramas ainda divergem da Spec v1.0 | Corrigir até 19/11 (lista em D-xx) |
 | Perguntas Q-01 a Q-06 sem resposta | Cada uma tem padrão implementado e dono |
 | PostgreSQL pode divergir dos fakes | Suíte de contrato única rodando contra os dois (T-19) |
 
-**Support (10/11–17/11):** handlers e rotas (`net/http` 1.22), middlewares Bearer e LGPD, mapeamento erro → HTTP, CMD `omega-server` com `serve` e `expirar-recomendacoes`. Portão: `api.feature` (12 cenários) verde.
-**Generic (17/11–24/11):** migrações e 7 repositórios PostgreSQL, Docker multiestágio, Nginx com 2 réplicas, checklist LGPD. Portão: `implantacao.feature` verde.
+**Support (09–13/11):** handlers e rotas (`net/http` 1.22), middlewares Bearer e LGPD, mapeamento erro → HTTP, CMD `omega-server` com `serve` e `expirar-recomendacoes`. Portão: `api.feature` (12 cenários) verde.
+**Generic (16–19/11):** migrações e 7 repositórios PostgreSQL, Docker multiestágio, Nginx com 2 réplicas, checklist LGPD. Portão: `implantacao.feature` verde. Se a semana apertar, as duas réplicas saem do MVP (decisão até 17/11).
+
+**19/11:** escopo fecha. **23/11:** ensaio. **24/11:** evento final.

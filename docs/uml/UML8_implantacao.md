@@ -2,7 +2,7 @@
 
 > **Fonte:** Módulo 5 · imagem original: [`img/UML8_implantacao.png`](img/UML8_implantacao.png)
 > **Fonte da verdade para:** servidores, contêineres e configuração (Spec 3.8).
-> **Versão:** v1.0 · **Fase de implementação:** Generic (17/11–24/11) · **Decisões relacionadas:** D-16, D-21.
+> **Versão:** v1.0 · **Fase de implementação:** Generic (16–19/11) · **Decisões relacionadas:** D-16, D-21.
 
 ## Diagrama (v1.0)
 
