@@ -8,6 +8,7 @@ import (
 
 	"perfila/internal/application/usecase"
 	"perfila/internal/domain/entity"
+	"perfila/internal/domain/port"
 	"perfila/internal/shared/errs"
 )
 
@@ -22,6 +23,7 @@ type Dependencias struct {
 	Segmentar     *usecase.SegmentarClienteUseCase
 	Recomendar    *usecase.GerarRecomendacaoUseCase
 	Log           *slog.Logger
+	Clock         port.Clock // duração no log de acesso (C-07); opcional
 }
 
 type handlers struct{ d Dependencias }
@@ -45,7 +47,7 @@ func NovoRouter(d Dependencias) http.Handler {
 	mux.Handle("PUT /v1/clientes/{clienteID}/consentimento", auth(h.concederConsentimento))
 	mux.Handle("POST /v1/clientes/{clienteID}/consentimento/revogacao", auth(h.revogarConsentimento))
 	mux.Handle("GET /v1/clientes/{clienteID}/consentimento", auth(h.consultarConsentimento))
-	return Registro(d.Log, mux)
+	return Registro(d.Log, d.Clock, mux)
 }
 
 // GET /saude — usado pelo balanceador; sem autenticação.

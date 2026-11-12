@@ -119,7 +119,8 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 		Segmentar:     usecase.NovoSegmentarClienteUseCase(pre, repos.perfis, service.NovoSegmentacaoService(repos.segmentos)),
 		Recomendar: usecase.NovoGerarRecomendacaoUseCase(pre, repos.perfis, repos.segmentos,
 			service.NovoRecomendacaoService(repos.produtos, clock), repos.recomendacoes, clock, cfg.RecomendacaoValidadeDias, log),
-		Log: log,
+		Log:   log,
+		Clock: clock,
 	}
 	return aplicacao{
 		log:     log,

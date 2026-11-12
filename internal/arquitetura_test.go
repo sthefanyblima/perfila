@@ -111,6 +111,29 @@ func TestRegrasDeCodigo(t *testing.T) {
 	}
 }
 
+// C-07 em todo internal/: time.Now só em infra/relogio (o domínio e a aplicação já são
+// cobertos acima; aqui entram api e infra).
+func TestRegraDoTempo(t *testing.T) {
+	for _, arq := range arquivosGo(t, ".", false) {
+		if strings.HasPrefix(filepath.ToSlash(arq), "infra/relogio/") {
+			continue
+		}
+		fset := token.NewFileSet()
+		f, err := parser.ParseFile(fset, arq, nil, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ast.Inspect(f, func(n ast.Node) bool {
+			if x, ok := n.(*ast.SelectorExpr); ok {
+				if id, ok := x.X.(*ast.Ident); ok && id.Name == "time" && (x.Sel.Name == "Now" || x.Sel.Name == "Since") {
+					t.Errorf("C-07: %s chama time.%s em %s", arq, x.Sel.Name, fset.Position(x.Pos()))
+				}
+			}
+			return true
+		})
+	}
+}
+
 func contem(lista []string, s string) bool {
 	for _, v := range lista {
 		if v == s {
