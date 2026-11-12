@@ -76,7 +76,7 @@ Funcionalidade: Ciclo de vida do consentimento LGPD
 
   # ---- Histórico do consentimento (v1.4, Q-34, RN-10) ----
 
-  @RN-10 @Q-34 @wip
+  @RN-10 @Q-34
   Cenário: Cada concessão e revogação fica no histórico, em ordem cronológica
     Dado que o consentimento do cliente "c-001" teve os movimentos:
       | data                 | acao     | termo |
@@ -91,7 +91,7 @@ Funcionalidade: Ciclo de vida do consentimento LGPD
       | 2026-05-01T08:00:00Z | CONCESSAO | segmentacao | v2    | sistema |
     E o consentimento do cliente "c-001" está no estado "CONCEDIDO"
 
-  @RN-10 @Q-34 @wip
+  @RN-10 @Q-34
   Esquema do Cenário: O movimento registra a origem de quem pediu
     Dado que o consentimento do cliente "c-001" está no estado "NAO_CONCEDIDO"
     Quando o cliente "c-001" concede consentimento para a finalidade "segmentacao" com o termo "v1" pela origem "<origem>" com o operador "<operador>"
@@ -104,7 +104,7 @@ Funcionalidade: Ciclo de vida do consentimento LGPD
       | painel | op-01    |
       | portal |          |
 
-  @RN-10 @Q-34 @wip
+  @RN-10 @Q-34
   Cenário: Pedido do painel sem operador é recusado e nada é gravado
     Dado que o consentimento do cliente "c-001" está no estado "NAO_CONCEDIDO"
     Quando o cliente "c-001" concede consentimento para a finalidade "segmentacao" com o termo "v1" pela origem "painel" com o operador ""
@@ -112,7 +112,7 @@ Funcionalidade: Ciclo de vida do consentimento LGPD
     E o consentimento do cliente "c-001" permanece no estado "NAO_CONCEDIDO"
     E o histórico do consentimento do cliente "c-001" tem 0 movimentos
 
-  @RN-10 @Q-34 @wip
+  @RN-10 @Q-34
   Esquema do Cenário: Transição recusada não gera movimento
     Dado que o consentimento do cliente "c-001" está no estado "<estado>"
     Quando o cliente "c-001" tenta "<acao>" o consentimento
@@ -124,7 +124,7 @@ Funcionalidade: Ciclo de vida do consentimento LGPD
       | CONCEDIDO     | conceder |
       | NAO_CONCEDIDO | revogar  |
 
-  @RN-10 @Q-34 @wip
+  @RN-10 @Q-34
   Cenário: Cliente que nunca mexeu no consentimento tem histórico vazio
     Quando o histórico do consentimento do cliente "c-001" é consultado
     Então o histórico do consentimento do cliente "c-001" tem 0 movimentos

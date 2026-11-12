@@ -24,7 +24,8 @@ func NovoGerenciarConsentimentoUseCase(clientes port.ClienteRepository, consenti
 	return &GerenciarConsentimentoUseCase{clientes: clientes, consentimentos: consentimentos, clock: clock}
 }
 
-// Conceder cria o registro se não existir, aplica a transição e persiste. Spec: UC-08.
+// Conceder cria o registro se não existir, aplica a transição e grava registro e movimento
+// CONCESSAO juntos. Spec: UC-08, RN-10.
 func (uc *GerenciarConsentimentoUseCase) Conceder(ctx context.Context, clienteID uuid.UUID, finalidade, versaoTermo string) error {
 	c, err := uc.carregar(ctx, clienteID)
 	if err != nil {
@@ -33,10 +34,11 @@ func (uc *GerenciarConsentimentoUseCase) Conceder(ctx context.Context, clienteID
 	if err := c.Conceder(finalidade, versaoTermo, uc.clock.Agora()); err != nil {
 		return err
 	}
-	return uc.consentimentos.Salvar(ctx, c)
+	return uc.registrar(ctx, c, entity.MovimentoConcessao)
 }
 
-// Revogar aplica CONCEDIDO → REVOGADO e persiste. Spec: UC-08 RN-03.
+// Revogar aplica CONCEDIDO → REVOGADO e grava registro e movimento REVOGACAO juntos.
+// Spec: UC-08, RN-03, RN-10.
 func (uc *GerenciarConsentimentoUseCase) Revogar(ctx context.Context, clienteID uuid.UUID) error {
 	c, err := uc.carregar(ctx, clienteID)
 	if err != nil {
@@ -45,7 +47,25 @@ func (uc *GerenciarConsentimentoUseCase) Revogar(ctx context.Context, clienteID 
 	if err := c.Revogar(uc.clock.Agora()); err != nil {
 		return err
 	}
-	return uc.consentimentos.Salvar(ctx, c)
+	return uc.registrar(ctx, c, entity.MovimentoRevogacao)
+}
+
+// Historico [ADIÇÃO] devolve os movimentos do cliente em ordem cronológica. Spec: UC-08, RN-10.
+func (uc *GerenciarConsentimentoUseCase) Historico(ctx context.Context, clienteID uuid.UUID) ([]entity.MovimentoConsentimento, error) {
+	if _, err := uc.clientes.BuscarPorID(ctx, clienteID); err != nil {
+		return nil, err
+	}
+	return uc.consentimentos.ListarMovimentos(ctx, clienteID)
+}
+
+// registrar monta o movimento com a origem do contexto; se ela for inválida, nada é gravado.
+func (uc *GerenciarConsentimentoUseCase) registrar(ctx context.Context, c entity.ConsentimentoLGPD, tipo entity.TipoMovimento) error {
+	origem, operador := origemDe(ctx)
+	m, err := entity.NovoMovimento(uuid.New(), c, tipo, origem, operador)
+	if err != nil {
+		return err
+	}
+	return uc.consentimentos.Registrar(ctx, c, m)
 }
 
 // Consultar [ADIÇÃO]: sem registro, devolve um consentimento sintético em NAO_CONCEDIDO.
