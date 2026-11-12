@@ -46,6 +46,7 @@ type Mundo struct {
 	// recomendação gerada antes da ação do cenário (Q-18)
 	recomendacaoAnteriorID uuid.UUID
 	processamento          usecase.ResultadoProcessamento
+	leitura                estadoLeitura
 
 	api estadoAPI
 }
@@ -81,7 +82,13 @@ type casos struct {
 	segmentar     *usecase.SegmentarClienteUseCase
 	recomendar    *usecase.GerarRecomendacaoUseCase
 	processar     *usecase.ProcessarClienteUseCase
-	expirar       *usecase.ExpirarRecomendacoesUseCase
+
+	listarClientes     *usecase.ListarClientesUseCase
+	consultarCliente   *usecase.ConsultarClienteUseCase
+	consultarResultado *usecase.ConsultarResultadoUseCase
+	listarSegmentos    *usecase.ListarSegmentosUseCase
+	listarCatalogo     *usecase.ListarCatalogoUseCase
+	expirar            *usecase.ExpirarRecomendacoesUseCase
 }
 
 func (m *Mundo) uc() casos {
@@ -99,6 +106,11 @@ func (m *Mundo) uc() casos {
 		expirar: usecase.NovoExpirarRecomendacoesUseCase(m.recomendacoes, m.clock),
 	}
 	c.processar = usecase.NovoProcessarClienteUseCase(c.coletar, c.gerarPerfil, c.segmentar, c.recomendar)
+	c.listarClientes = usecase.NovoListarClientesUseCase(m.clientes, m.consentimentos, m.perfis, m.segmentos)
+	c.consultarCliente = usecase.NovoConsultarClienteUseCase(m.clientes, c.consentimento)
+	c.consultarResultado = usecase.NovoConsultarResultadoUseCase(pre, m.eventos, m.perfis, m.segmentos, m.recomendacoes, m.produtos)
+	c.listarSegmentos = usecase.NovoListarSegmentosUseCase(m.segmentos)
+	c.listarCatalogo = usecase.NovoListarCatalogoUseCase(m.produtos)
 	return c
 }
 
