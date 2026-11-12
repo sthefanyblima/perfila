@@ -2,6 +2,8 @@ package steps
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/cucumber/godog"
 
@@ -121,4 +123,26 @@ func linhasPorColuna(t *godog.Table) []map[string]string {
 		out = append(out, l)
 	}
 	return out
+}
+
+var reMarco = regexp.MustCompile(`(?s)data-teste="marco">(.*?)</li>`)
+
+// Passos @web do histórico: a linha do tempo da aba Consentimento. Spec: 3.7.1, Q-34.
+func registrarPassosHistoricoWeb(sc *godog.ScenarioContext, m *Mundo) {
+	sc.Step(`^a linha do tempo do consentimento mostra, do mais recente para o mais antigo:$`, func(t *godog.Table) error {
+		marcos := reMarco.FindAllStringSubmatch(m.web.pagina, -1)
+		linhas := linhasPorColuna(t)
+		if len(marcos) != len(linhas) {
+			return fmt.Errorf("a linha do tempo tem %d marcos; esperado %d", len(marcos), len(linhas))
+		}
+		for i, l := range linhas {
+			if !strings.Contains(marcos[i][1], "<strong>"+l["titulo"]+"</strong>") || !strings.Contains(marcos[i][1], l["detalhe"]) {
+				return fmt.Errorf("marco %d: %s; esperado %q com %q", i+1, marcos[i][1], l["titulo"], l["detalhe"])
+			}
+		}
+		return nil
+	})
+	sc.Step(`^a página não mostra o aviso "([^"]*)"$`, func(a string) error {
+		return m.paginaTemMarcador(`data-teste="aviso-`+a+`"`, false)
+	})
 }

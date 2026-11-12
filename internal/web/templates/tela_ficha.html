@@ -197,13 +197,14 @@
     <div class="pf-panel__body">
       <ol class="pf-marcos">
         {{range .LinhaConsentimento}}
-        <li class="pf-marco pf-marco--{{.Icone}}">
+        <li class="pf-marco pf-marco--{{.Icone}}" data-teste="marco">
           <span class="pf-marco__ico" aria-hidden="true">{{icone .Icone}}</span>
           <div><strong>{{.Titulo}}</strong><br><span class="pf-muted pf-small">{{.Detalhe}}</span></div>
           <span class="pf-marco__data pf-num">{{dataHora .Data}}</span>
         </li>
         {{end}}
       </ol>
+      {{if .PelasDatas}}<p class="pf-muted pf-small" data-teste="aviso-linha-pelas-datas">Linha montada pelas datas do registro. Os movimentos anteriores a ela não foram guardados.</p>{{end}}
     </div>
   </section>
 {{end}}

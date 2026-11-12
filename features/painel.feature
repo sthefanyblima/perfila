@@ -208,14 +208,14 @@ Funcionalidade: Painel web do operador
 
   # ---- Histórico do consentimento (v1.4, Q-34, RN-10) ----
 
-  @UC-08 @RN-10 @Q-34 @wip
+  @UC-08 @RN-10 @Q-34
   Cenário: A linha do tempo mostra cada movimento com o termo e a origem
-    Dado que o operador entrou no painel
-    E que o consentimento do cliente "c-001" teve os movimentos:
+    Dado que o consentimento do cliente "c-001" teve os movimentos:
       | data                 | acao     | termo | origem | operador |
       | 2026-03-11T10:00:00Z | conceder | v1    | api    |          |
       | 2026-04-01T09:00:00Z | revogar  |       | api    |          |
       | 2026-05-01T08:00:00Z | conceder | v2    | painel | op-01    |
+    E que o operador entrou no painel
     Quando a página "/painel/clientes/c-001/consentimento" é aberta
     Então a linha do tempo do consentimento mostra, do mais recente para o mais antigo:
       | titulo                            | detalhe                        |
@@ -225,7 +225,7 @@ Funcionalidade: Painel web do operador
       | Cadastro                          |                                |
     E a página não mostra o aviso "linha-pelas-datas"
 
-  @UC-08 @RN-10 @Q-34 @wip
+  @UC-08 @RN-10 @Q-34
   Esquema do Cenário: Conceder e revogar pelo painel registram o operador da sessão
     Dado que o operador entrou no painel
     E que o consentimento do cliente "c-001" está no estado "<estado>"
@@ -237,7 +237,7 @@ Funcionalidade: Painel web do operador
       | NAO_CONCEDIDO | conceder | CONCESSAO |
       | CONCEDIDO     | revogar  | REVOGACAO |
 
-  @UC-08 @RN-10 @Q-34 @wip
+  @UC-08 @RN-10 @Q-34
   Cenário: Cliente sem movimentos continua com a linha montada pelas datas
     Dado que o operador entrou no painel
     E que o consentimento do cliente "c-001" está no estado "REVOGADO"

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"perfila/internal/application/usecase"
 	"perfila/internal/domain/entity"
 	"perfila/internal/shared/errs"
 )
@@ -114,6 +115,7 @@ func (p *painel) alterarConsentimento(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	f := formConsentimento{Finalidade: strings.TrimSpace(r.PostFormValue("finalidade")), VersaoTermo: strings.TrimSpace(r.PostFormValue("versaoTermo"))}
+	ctx := usecase.ComOrigem(r.Context(), entity.OrigemPainel, sessaoDe(r).Operador) // RN-10: quem fez, pelo painel
 	var err error
 	if acao == "conceder" {
 		if f.Finalidade == "" {
@@ -123,10 +125,10 @@ func (p *painel) alterarConsentimento(w http.ResponseWriter, r *http.Request) {
 			f.ErroVersao = "Informe a versão do termo que o titular aceitou."
 		}
 		if f.ErroFinalidade == "" && f.ErroVersao == "" {
-			err = p.d.Consentimento.Conceder(r.Context(), id, f.Finalidade, f.VersaoTermo)
+			err = p.d.Consentimento.Conceder(ctx, id, f.Finalidade, f.VersaoTermo)
 		}
 	} else {
-		err = p.d.Consentimento.Revogar(r.Context(), id)
+		err = p.d.Consentimento.Revogar(ctx, id)
 	}
 	if err == nil && f.ErroFinalidade == "" && f.ErroVersao == "" {
 		p.acao(r, acao+"_consentimento", id.String())
