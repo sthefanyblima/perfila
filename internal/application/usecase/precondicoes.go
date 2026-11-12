@@ -35,12 +35,33 @@ func (p Precondicoes) Verificar(ctx context.Context, clienteID uuid.UUID) (entit
 	if !c.Ativo {
 		return entity.Cliente{}, fmt.Errorf("%w: %s", errs.ErrClienteInativo, clienteID)
 	}
-	ok, err := p.validador.ConsentimentoValido(ctx, clienteID)
+	if err := p.consentimento(ctx, clienteID); err != nil {
+		return entity.Cliente{}, err
+	}
+	return c, nil
+}
+
+// VerificarLeitura é RN-01 sem a exigência de cliente ativo: cliente inativo com consentimento
+// válido pode ter o histórico consultado, só para leitura (Q-31). Nada de comportamento é lido
+// sem consentimento (C-03).
+func (p Precondicoes) VerificarLeitura(ctx context.Context, clienteID uuid.UUID) (entity.Cliente, error) {
+	c, err := p.clientes.BuscarPorID(ctx, clienteID)
 	if err != nil {
 		return entity.Cliente{}, err
 	}
-	if !ok {
-		return entity.Cliente{}, fmt.Errorf("%w: %s", errs.ErrConsentimentoInvalido, clienteID)
+	if err := p.consentimento(ctx, clienteID); err != nil {
+		return entity.Cliente{}, err
 	}
 	return c, nil
+}
+
+func (p Precondicoes) consentimento(ctx context.Context, clienteID uuid.UUID) error {
+	ok, err := p.validador.ConsentimentoValido(ctx, clienteID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf("%w: %s", errs.ErrConsentimentoInvalido, clienteID)
+	}
+	return nil
 }

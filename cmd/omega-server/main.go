@@ -3,6 +3,7 @@
 //	omega-server [-config config.env] serve                  sobe a API HTTP (Spec 3.7)
 //	omega-server [-config config.env] expirar-recomendacoes  expira recomendações vencidas (RN-08)
 //	omega-server hash-senha                                  lê a senha do operador e imprime o bcrypt (Q-28)
+//	omega-server [-config config.env] carregar-exemplos      cria os clientes de exemplo se não houver nenhum (Q-30)
 //
 // Raiz de composição (C-08). DATABASE_URL preenchida = PostgreSQL, com as migrações aplicadas
 // ao subir (T-19, Q-07, Q-09); vazia = repositórios em memória com dados sintéticos (D-23),
@@ -44,7 +45,7 @@ func main() {
 	}
 }
 
-const uso = "uso: omega-server [-config config.env] serve|expirar-recomendacoes|hash-senha"
+const uso = "uso: omega-server [-config config.env] serve|expirar-recomendacoes|carregar-exemplos|hash-senha"
 
 func executar(args []string, getenv func(string) string, saida io.Writer) error {
 	fs := flag.NewFlagSet("omega-server", flag.ContinueOnError)
@@ -70,7 +71,14 @@ func executar(args []string, getenv func(string) string, saida io.Writer) error 
 
 	switch fs.Arg(0) {
 	case "serve":
+		if cfg.ModoMemoria() { // no modo memória, os exemplos sempre entram (Q-30)
+			if err := carregarExemplos(ctx, app); err != nil {
+				return err
+			}
+		}
 		return servir(ctx, cfg, app)
+	case "carregar-exemplos":
+		return carregarExemplos(ctx, app)
 	case "expirar-recomendacoes":
 		n, err := app.expirar.Executar(ctx)
 		if err != nil {
@@ -101,12 +109,22 @@ func hashSenha(entrada io.Reader, saida io.Writer) error {
 	return err
 }
 
+func carregarExemplos(ctx context.Context, app aplicacao) error {
+	n, err := app.exemplos.carregar(ctx)
+	if err != nil {
+		return err
+	}
+	app.log.Info("exemplos_carregados", "quantidade", n)
+	return nil
+}
+
 // aplicacao é o grafo de dependências montado uma vez.
 type aplicacao struct {
-	log     *slog.Logger
-	handler http.Handler
-	expirar *usecase.ExpirarRecomendacoesUseCase
-	fechar  func()
+	log      *slog.Logger
+	handler  http.Handler
+	expirar  *usecase.ExpirarRecomendacoesUseCase
+	exemplos exemplos
+	fechar   func()
 }
 
 // repositorios agrupa as implementações dos ports de persistência de um backend.
@@ -184,10 +202,11 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 		log.Warn("painel_desligado", "detalhe", "defina PAINEL_SENHA_HASH e PAINEL_CHAVE_SESSAO para ligar o painel (Q-29)")
 	}
 	return aplicacao{
-		log:     log,
-		handler: mux,
-		expirar: expirar,
-		fechar:  repos.fechar,
+		log:      log,
+		handler:  mux,
+		expirar:  expirar,
+		exemplos: exemplos{repos: repos, clock: clock, metaEventos: cfg.EngajamentoMetaEventos, validadeDias: cfg.RecomendacaoValidadeDias},
+		fechar:   repos.fechar,
 	}, nil
 }
 

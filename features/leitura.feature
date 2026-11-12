@@ -86,6 +86,15 @@ Funcionalidade: Leitura dos dados para o painel do operador
       | NAO_CONCEDIDO |
       | REVOGADO      |
 
+  @RN-01 @Q-31
+  Cenário: Cliente inativo com consentimento tem o histórico só para leitura
+    Dado que existe o cliente "c-001" ativo com eventos de compra na categoria "livros"
+    E que o consentimento do cliente "c-001" está no estado "CONCEDIDO"
+    E que o cliente "c-001" está inativo
+    Quando o resultado do cliente "c-001" é consultado
+    Então a consulta não falha
+    E o resultado traz 3 eventos, sem perfil e sem recomendações
+
   @RN-01
   Cenário: O resultado de um cliente ainda não processado traz só os eventos
     Dado que existe o cliente "c-001" ativo com eventos de compra na categoria "livros"

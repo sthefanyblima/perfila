@@ -50,6 +50,15 @@
     }
   });
 
+  // Filtro de consentimento: aplica ao escolher, sem precisar clicar em Buscar (o botão continua
+  // valendo sem JavaScript). requestSubmit passa pelo htmx, que troca só a área do painel.
+  document.addEventListener("change", function (ev) {
+    var campo = ev.target.closest("[data-filtrar]");
+    if (campo && campo.form) {
+      if (typeof campo.form.requestSubmit === "function") { campo.form.requestSubmit(); } else { campo.form.submit(); }
+    }
+  });
+
   function toast(msg) {
     var area = document.querySelector(".pf-toasts");
     if (!area) { return; }
@@ -76,9 +85,10 @@
 
   function preparar(raiz) {
     raiz.querySelectorAll(".pf-toast").forEach(agendar);
-    raiz.querySelectorAll("[data-copiar][hidden]").forEach(function (b) {
-      if (navigator.clipboard) { b.hidden = false; }
-    });
+    // O botão de copiar já chega visível (não pisca); só some se o navegador não puder copiar.
+    if (!navigator.clipboard) {
+      raiz.querySelectorAll("[data-copiar]").forEach(function (b) { b.hidden = true; });
+    }
     // Remove ?aviso= da barra de endereço para o toast não voltar ao recarregar.
     if (window.history && location.search.indexOf("aviso=") >= 0) {
       var u = new URL(location.href);

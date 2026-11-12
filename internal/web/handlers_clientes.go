@@ -93,7 +93,7 @@ type dadosNovo struct {
 
 // GET /painel/clientes/novo — formulário de uma coluna (UC-09).
 func (p *painel) telaNovoCliente(w http.ResponseWriter, r *http.Request) {
-	p.render(w, r, http.StatusOK, "novo", pagina{Titulo: "Cadastrar cliente", Nav: "novo", Dados: dadosNovo{}})
+	p.render(w, r, http.StatusOK, "novo", pagina{Titulo: "Cadastrar cliente", Nav: "clientes", Dados: dadosNovo{}})
 }
 
 // POST /painel/clientes — UC-09; no sucesso, vai para a ficha (PRG). Spec: 3.7.1.
@@ -106,7 +106,7 @@ func (p *painel) cadastrar(w http.ResponseWriter, r *http.Request) {
 		d.ErroEmail = "Informe o e-mail do cliente."
 	}
 	if d.ErroNome != "" || d.ErroEmail != "" {
-		p.render(w, r, http.StatusUnprocessableEntity, "novo", pagina{Titulo: "Cadastrar cliente", Nav: "novo", Dados: d})
+		p.render(w, r, http.StatusUnprocessableEntity, "novo", pagina{Titulo: "Cadastrar cliente", Nav: "clientes", Dados: d})
 		return
 	}
 	c, err := p.d.Cadastrar.Executar(r.Context(), d.Nome, d.Email)
@@ -114,7 +114,7 @@ func (p *painel) cadastrar(w http.ResponseWriter, r *http.Request) {
 		titulo, texto := mensagem(err, "")
 		d.Erro = &alerta{Tom: "critical", Titulo: titulo, Texto: texto, Agora: true, RequestID: r.Header.Get("X-Request-ID")}
 		p.logarFalha(r, err)
-		p.render(w, r, statusDe(err), "novo", pagina{Titulo: "Cadastrar cliente", Nav: "novo", Dados: d})
+		p.render(w, r, statusDe(err), "novo", pagina{Titulo: "Cadastrar cliente", Nav: "clientes", Dados: d})
 		return
 	}
 	p.acao(r, "cadastrar_cliente", c.ID.String())

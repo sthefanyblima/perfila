@@ -17,7 +17,7 @@
   </div>
   <div class="pf-field pf-field--estreito">
     <label class="pf-field__label" for="consentimento">Consentimento</label>
-    <select class="pf-select" id="consentimento" name="consentimento">
+    <select class="pf-select" id="consentimento" name="consentimento" data-filtrar>
       {{range .Filtros}}<option value="{{.Valor}}"{{if .Atual}} selected{{end}}>{{.Rotulo}}</option>{{end}}
     </select>
   </div>
@@ -63,8 +63,7 @@
 {{else}}
 <div class="pf-panel"><div class="pf-empty" data-teste="vazio-clientes">
   <h2 class="pf-empty__title">Nenhum cliente cadastrado</h2>
-  <p class="pf-empty__text">Os clientes aparecem aqui com o estado do consentimento e o segmento atual.</p>
-  <a class="pf-btn pf-btn--primary" href="/painel/clientes/novo">Cadastrar cliente</a>
+  <p class="pf-empty__text">Os clientes aparecem aqui com o estado do consentimento e o segmento atual. Use "Cadastrar cliente" para incluir o primeiro.</p>
 </div></div>
 {{end}}
 {{end}}{{end}}

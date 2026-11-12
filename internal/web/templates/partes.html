@@ -6,7 +6,6 @@
   <div class="pf-nav__group">
     <span class="pf-nav__heading">Clientes</span>
     <a class="pf-nav__link" href="/painel/clientes"{{if eq .Nav "clientes"}} aria-current="page"{{end}}>Clientes</a>
-    <a class="pf-nav__link" href="/painel/clientes/novo"{{if eq .Nav "novo"}} aria-current="page"{{end}}>Cadastrar cliente</a>
   </div>
   <div class="pf-nav__group">
     <span class="pf-nav__heading">Configuração</span>
@@ -31,7 +30,7 @@
 
 {{define "tag"}}<span class="pf-tag pf-tag--{{tom .}}{{if or (eq . "EXPIRADA") (eq . "INATIVO")}} pf-tag--solid{{end}}">{{icone (iconeEstado .)}}{{if eq . "INATIVO"}}Inativo{{else}}{{rotulo .}}{{end}}</span>{{end}}
 
-{{define "uuid"}}<span class="pf-uuid" title="{{.}}"><span>{{uuidCurto .}}</span><button type="button" class="pf-uuid__copy" data-copiar="{{.}}" aria-label="Copiar o ID {{.}}" hidden>{{icone "copiar"}}</button></span>{{end}}
+{{define "uuid"}}<span class="pf-uuid" title="{{.}}"><span>{{uuidCurto .}}</span><button type="button" class="pf-uuid__copy" data-copiar="{{.}}" aria-label="Copiar o ID {{.}}">{{icone "copiar"}}</button></span>{{end}}
 
 {{define "alerta"}}
 <div class="pf-alert pf-alert--{{.Tom}}"{{if .Teste}} data-teste="aviso-{{.Teste}}"{{end}}{{if .Agora}} role="alert"{{end}}>

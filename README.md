@@ -56,6 +56,7 @@ make implantar         # gera segredos (1ª vez) e sobe nginx + app1 + app2 + db
 make demo-implantacao  # roteiro da API pelo Nginx em HTTPS, gravando no PostgreSQL
 make bdd-implantacao   # 4 cenários @implantacao (inclui parar uma réplica e o painel pelo Nginx)
 make expirar           # administrador: expira recomendações vencidas
+make exemplos          # carrega os 14 clientes de exemplo (só com o banco sem clientes)
 make derrubar          # derruba (os dados ficam no volume omega_db)
 ```
 
@@ -107,6 +108,8 @@ Interface web em `/painel`, servida pelo próprio `omega-server`, seguindo o des
 | Segmentos e Catálogo | somente leitura |
 | Operação | saúde do banco e expiração de recomendações vencidas |
 
+Demonstração (Q-30, Q-32): 7 segmentos (vip, premium, fiel, engajado, explorador, ocasional, padrao), catálogo de 7 categorias e 14 clientes com história ao longo de meses: Ana (premium, com recomendações expiradas), Bruno (engajado), Carla e Davi (ocasional; Davi sem produto elegível), Elisa (nunca concedeu), Fábio (revogou), Gabi (inativa, histórico só leitura), Heitor (vip), Isabela (fiel), João (explorador), Karina (revogou e concedeu de novo, termo v2), Lucas (ainda não processado), Marina (só recomendação expirada) e Nina (padrão). No `make serve` eles entram sozinhos; na implantação, com `make exemplos`.
+
 Sessão assinada sem estado (funciona com as duas réplicas), CSRF em todo envio, 5 tentativas de entrada por IP em 5 minutos, CSP `'self'`. Funciona sem JavaScript (formulários com redirecionamento e páginas de confirmação); com JavaScript, troca só a área do painel e usa diálogos nativos.
 
 ## LGPD
@@ -124,7 +127,7 @@ docs/design/                design system Perfila Console (princípios, telas, t
 docs/                       checklist LGPD · roteiro de demonstração · relatório parcial · auditoria
 docs/pdf/                   os documentos em PDF para entrega (Spec, Plano, Tarefas e BDD v1.2, decisões, checklist, roteiro)
 features/                   cenários Gherkin + passos godog
-cmd/omega-server            binário do UML8 (serve, expirar-recomendacoes, hash-senha) — raiz de composição
+cmd/omega-server            binário do UML8 (serve, expirar-recomendacoes, hash-senha, carregar-exemplos) — raiz de composição
 cmd/perfila-demo            demonstração do core em memória
 internal/domain/            entity · port · service
 internal/application/       usecase
