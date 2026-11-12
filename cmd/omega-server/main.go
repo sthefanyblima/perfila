@@ -2,6 +2,7 @@
 //
 //	omega-server [-config config.env] serve                  sobe a API HTTP (Spec 3.7)
 //	omega-server [-config config.env] expirar-recomendacoes  expira recomendações vencidas (RN-08)
+//	omega-server hash-senha                                  lê a senha do operador e imprime o bcrypt (Q-28)
 //
 // Raiz de composição (C-08). DATABASE_URL preenchida = PostgreSQL, com as migrações aplicadas
 // ao subir (T-19, Q-07, Q-09); vazia = repositórios em memória com dados sintéticos (D-23),
@@ -9,6 +10,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"flag"
@@ -18,8 +20,11 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 
 	"perfila/internal/api"
 	"perfila/internal/application/usecase"
@@ -29,6 +34,7 @@ import (
 	"perfila/internal/infra/memoria"
 	"perfila/internal/infra/relogio"
 	"perfila/internal/infra/repository/pg"
+	"perfila/internal/web"
 )
 
 func main() {
@@ -38,7 +44,7 @@ func main() {
 	}
 }
 
-const uso = "uso: omega-server [-config config.env] serve|expirar-recomendacoes"
+const uso = "uso: omega-server [-config config.env] serve|expirar-recomendacoes|hash-senha"
 
 func executar(args []string, getenv func(string) string, saida io.Writer) error {
 	fs := flag.NewFlagSet("omega-server", flag.ContinueOnError)
@@ -46,6 +52,9 @@ func executar(args []string, getenv func(string) string, saida io.Writer) error 
 	caminho := fs.String("config", "", "arquivo KEY=VALUE (o ambiente prevalece)")
 	if err := fs.Parse(args); err != nil || fs.NArg() != 1 {
 		return errors.New(uso)
+	}
+	if fs.Arg(0) == "hash-senha" { // não precisa de configuração (Q-28)
+		return hashSenha(os.Stdin, saida)
 	}
 	cfg, err := config.Carregar(*caminho, getenv)
 	if err != nil {
@@ -73,6 +82,25 @@ func executar(args []string, getenv func(string) string, saida io.Writer) error 
 	return errors.New(uso)
 }
 
+// hashSenha lê a senha da primeira linha da entrada e imprime o hash bcrypt para
+// PAINEL_SENHA_HASH (Q-28). A senha nunca é impressa nem registrada.
+func hashSenha(entrada io.Reader, saida io.Writer) error {
+	linha, err := bufio.NewReader(entrada).ReadString('\n')
+	if err != nil && !errors.Is(err, io.EOF) {
+		return err
+	}
+	senha := strings.TrimRight(linha, "\r\n")
+	if len(senha) < 8 {
+		return errors.New("hash-senha: a senha precisa de pelo menos 8 caracteres")
+	}
+	h, err := bcrypt.GenerateFromPassword([]byte(senha), 12)
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintln(saida, string(h))
+	return err
+}
+
 // aplicacao é o grafo de dependências montado uma vez.
 type aplicacao struct {
 	log     *slog.Logger
@@ -91,6 +119,7 @@ type repositorios struct {
 	consentimentos port.ConsentimentoRepository
 	produtos       port.ProdutoRepository
 	saude          func(ctx context.Context) error // nil no modo memória (Q-19)
+	migracoes      string                          // versão do esquema, para a tela de Operação
 	fechar         func()
 }
 
@@ -110,24 +139,54 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 	clock := relogio.Sistema{}
 	pre := usecase.NovasPrecondicoes(repos.clientes, service.NovoValidadorLGPD(repos.consentimentos))
 	coletar := usecase.NovoColetarDadosUseCase(pre, repos.eventos, clock)
+	processar := usecase.NovoProcessarClienteUseCase(coletar,
+		usecase.NovoGerarPerfilUseCase(pre, coletar, service.NovoPerfilamentoService(clock, cfg.EngajamentoMetaEventos), repos.perfis),
+		usecase.NovoSegmentarClienteUseCase(pre, repos.perfis, service.NovoSegmentacaoService(repos.segmentos)),
+		usecase.NovoGerarRecomendacaoUseCase(pre, repos.perfis, repos.segmentos,
+			service.NovoRecomendacaoService(repos.produtos, clock), repos.recomendacoes, clock, cfg.RecomendacaoValidadeDias, log))
+	cadastrar := usecase.NovoCadastrarClienteUseCase(repos.clientes, clock)
+	consentimento := usecase.NovoGerenciarConsentimentoUseCase(repos.clientes, repos.consentimentos, clock)
+	expirar := usecase.NovoExpirarRecomendacoesUseCase(repos.recomendacoes, clock)
 	deps := api.Dependencias{
 		AuthToken:     cfg.AuthToken,
 		Precondicoes:  pre,
-		Cadastrar:     usecase.NovoCadastrarClienteUseCase(repos.clientes, clock),
-		Consentimento: usecase.NovoGerenciarConsentimentoUseCase(repos.clientes, repos.consentimentos, clock),
+		Cadastrar:     cadastrar,
+		Consentimento: consentimento,
 		Coletar:       coletar,
-		GerarPerfil:   usecase.NovoGerarPerfilUseCase(pre, coletar, service.NovoPerfilamentoService(clock, cfg.EngajamentoMetaEventos), repos.perfis),
-		Segmentar:     usecase.NovoSegmentarClienteUseCase(pre, repos.perfis, service.NovoSegmentacaoService(repos.segmentos)),
-		Recomendar: usecase.NovoGerarRecomendacaoUseCase(pre, repos.perfis, repos.segmentos,
-			service.NovoRecomendacaoService(repos.produtos, clock), repos.recomendacoes, clock, cfg.RecomendacaoValidadeDias, log),
-		Log:   log,
-		Clock: clock,
-		Saude: repos.saude,
+		Processar:     processar,
+		Log:           log,
+		Clock:         clock,
+		Saude:         repos.saude,
+	}
+	mux := http.NewServeMux()
+	mux.Handle("/", api.NovoRouter(deps))
+	if cfg.PainelLigado() {
+		painel, err := web.NovoRouter(web.Dependencias{
+			Usuario: cfg.PainelUsuario, SenhaHash: []byte(cfg.PainelSenhaHash), ChaveSessao: cfg.PainelChaveSessao,
+			Finalidade: cfg.PainelFinalidade, VersaoTermo: cfg.PainelVersaoTermo,
+			Cadastrar: cadastrar, Consentimento: consentimento, Coletar: coletar, Processar: processar,
+			ListarClientes:     usecase.NovoListarClientesUseCase(repos.clientes, repos.consentimentos, repos.perfis, repos.segmentos),
+			ConsultarCliente:   usecase.NovoConsultarClienteUseCase(repos.clientes, consentimento),
+			ConsultarResultado: usecase.NovoConsultarResultadoUseCase(pre, repos.eventos, repos.perfis, repos.segmentos, repos.recomendacoes, repos.produtos),
+			ListarSegmentos:    usecase.NovoListarSegmentosUseCase(repos.segmentos),
+			ListarCatalogo:     usecase.NovoListarCatalogoUseCase(repos.produtos),
+			Expirar:            expirar,
+			MetaEventos:        cfg.EngajamentoMetaEventos,
+			Clock:              clock, Log: log, Saude: repos.saude, Migracoes: repos.migracoes,
+		})
+		if err != nil {
+			repos.fechar()
+			return aplicacao{}, err
+		}
+		mux.Handle("/painel/", painel)
+		mux.Handle("/painel", http.RedirectHandler("/painel/clientes", http.StatusSeeOther))
+	} else {
+		log.Warn("painel_desligado", "detalhe", "defina PAINEL_SENHA_HASH e PAINEL_CHAVE_SESSAO para ligar o painel (Q-29)")
 	}
 	return aplicacao{
 		log:     log,
-		handler: api.NovoRouter(deps),
-		expirar: usecase.NovoExpirarRecomendacoesUseCase(repos.recomendacoes, clock),
+		handler: mux,
+		expirar: expirar,
 		fechar:  repos.fechar,
 	}, nil
 }
@@ -171,6 +230,7 @@ func repositoriosPostgres(ctx context.Context, url string, log *slog.Logger) (re
 		consentimentos: pg.NovoPgConsentimentoRepository(db),
 		produtos:       pg.NovoPgProdutoRepository(db),
 		saude:          db.PingContext,
+		migracoes:      pg.UltimaMigracao(),
 		fechar:         func() { db.Close() },
 	}, nil
 }

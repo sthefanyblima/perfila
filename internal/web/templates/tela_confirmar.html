@@ -1,0 +1,6 @@
+{{define "conteudo"}}{{with .Dados}}
+{{template "ficha-cabecalho" (fichaComCSRF . $.CSRF)}}
+<section class="pf-confirm" data-teste="confirmar-{{.Confirmar}}">
+  {{template "form-consentimento" (formConsentimento . $.CSRF .Confirmar false)}}
+</section>
+{{end}}{{end}}

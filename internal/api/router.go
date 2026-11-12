@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -11,7 +10,6 @@ import (
 	"perfila/internal/application/usecase"
 	"perfila/internal/domain/entity"
 	"perfila/internal/domain/port"
-	"perfila/internal/shared/errs"
 )
 
 // Dependencias reúne o que a API precisa; montada só na raiz de composição (C-08).
@@ -21,9 +19,7 @@ type Dependencias struct {
 	Cadastrar     *usecase.CadastrarClienteUseCase
 	Consentimento *usecase.GerenciarConsentimentoUseCase
 	Coletar       *usecase.ColetarDadosUseCase
-	GerarPerfil   *usecase.GerarPerfilUseCase
-	Segmentar     *usecase.SegmentarClienteUseCase
-	Recomendar    *usecase.GerarRecomendacaoUseCase
+	Processar     *usecase.ProcessarClienteUseCase // RN-09 (Q-26)
 	Log           *slog.Logger
 	Clock         port.Clock // duração no log de acesso (C-07); opcional
 	// Saude confere as dependências (o banco, no modo PostgreSQL); nil = sempre saudável (Q-19).
@@ -85,37 +81,22 @@ func (h handlers) cadastrarCliente(w http.ResponseWriter, r *http.Request) {
 	escreverJSON(w, http.StatusCreated, clienteDTO(c))
 }
 
-// POST /v1/clientes/{clienteID}/processamento — RN-09: UC-02 («include» UC-01), UC-03 e UC-04,
-// numa única resposta (sequência, passo 23). Erro interrompe; ErrSemProdutoElegivel não.
+// POST /v1/clientes/{clienteID}/processamento — RN-09: ProcessarClienteUseCase (UC-01 a UC-04)
+// numa única resposta (sequência, passo 23). Erro interrompe; ErrSemProdutoElegivel não (Q-26).
 func (h handlers) processar(w http.ResponseWriter, r *http.Request) {
 	id, err := clienteIDDaRota(r)
 	if err != nil {
 		escreverErro(w, r, h.d.Log, err)
 		return
 	}
-	ctx := r.Context()
-	perfil, err := h.d.GerarPerfil.Executar(ctx, id)
+	res, err := h.d.Processar.Executar(r.Context(), id)
 	if err != nil {
 		escreverErro(w, r, h.d.Log, err)
 		return
 	}
-	seg, err := h.d.Segmentar.Executar(ctx, id)
-	if err != nil {
-		escreverErro(w, r, h.d.Log, err)
-		return
-	}
-	id2 := seg.ID
-	perfil.SegmentoID = &id2
-	resp := ProcessamentoResponse{Perfil: perfilDTO(perfil), Segmento: segmentoDTO(seg)}
-	rec, err := h.d.Recomendar.Executar(ctx, id)
-	switch {
-	case err == nil:
-		resp.Recomendacao = recomendacaoDTO(rec)
-	case errors.Is(err, errs.ErrSemProdutoElegivel):
-		resp.Recomendacao = nil
-	default:
-		escreverErro(w, r, h.d.Log, err)
-		return
+	resp := ProcessamentoResponse{Perfil: perfilDTO(res.Perfil), Segmento: segmentoDTO(res.Segmento)}
+	if res.Recomendacao != nil {
+		resp.Recomendacao = recomendacaoDTO(*res.Recomendacao)
 	}
 	escreverJSON(w, http.StatusOK, resp)
 }

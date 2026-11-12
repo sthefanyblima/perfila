@@ -92,6 +92,17 @@ func Migrar(ctx context.Context, db *sql.DB) ([]string, error) {
 	return aplicadas, nil
 }
 
+// UltimaMigracao devolve a versão mais recente embutida no binário: o esquema depois de Migrar.
+// O painel a mostra na tela de Operação (Spec 3.7.1).
+func UltimaMigracao() string {
+	arquivos, _ := fs.Glob(migracoes, "migracoes/*.sql")
+	if len(arquivos) == 0 {
+		return ""
+	}
+	sort.Strings(arquivos)
+	return strings.TrimSuffix(strings.TrimPrefix(arquivos[len(arquivos)-1], "migracoes/"), ".sql")
+}
+
 func aplicar(ctx context.Context, conn *sql.Conn, versao, sqlTexto string) error {
 	tx, err := conn.BeginTx(ctx, nil)
 	if err != nil {

@@ -1,0 +1,70 @@
+{{define "conteudo"}}{{with .Dados}}
+<header class="pf-header">
+  <div class="pf-header__row">
+    <div>
+      <h1 class="pf-header__title">Clientes</h1>
+      <p class="pf-header__meta">Cadastro, consentimento e segmento de cada cliente. O e-mail completo aparece só na ficha.</p>
+    </div>
+    <div class="pf-header__actions"><a class="pf-btn pf-btn--primary" href="/painel/clientes/novo">{{icone "mais"}} Cadastrar cliente</a></div>
+  </div>
+</header>
+
+<form class="pf-filters" method="get" action="/painel/clientes" role="search" aria-label="Buscar clientes">
+  <div class="pf-field">
+    <label class="pf-field__label" for="q">Buscar por nome ou ID</label>
+    <input class="pf-input" id="q" name="q" value="{{.Busca}}" minlength="2" placeholder="Ex.: Joana ou 6200ae2f-…" aria-describedby="q-dica">
+    <span class="pf-field__hint" id="q-dica">{{if .BuscaCurta}}Digite pelo menos 2 caracteres para buscar pelo nome.{{else}}A partir de 2 caracteres; aceita o ID completo colado.{{end}}</span>
+  </div>
+  <div class="pf-field pf-field--estreito">
+    <label class="pf-field__label" for="consentimento">Consentimento</label>
+    <select class="pf-select" id="consentimento" name="consentimento">
+      {{range .Filtros}}<option value="{{.Valor}}"{{if .Atual}} selected{{end}}>{{.Rotulo}}</option>{{end}}
+    </select>
+  </div>
+  <div class="pf-filters__acoes">
+    <button type="submit" class="pf-btn">{{icone "busca"}} Buscar</button>
+    {{if .FiltroAtivo}}<a class="pf-btn pf-btn--quiet" href="/painel/clientes">Limpar busca</a>{{end}}
+  </div>
+</form>
+
+{{if .Lista.Linhas}}
+<div class="pf-tablewrap">
+  <table class="pf-table" data-teste="lista-clientes">
+    <caption class="pf-sr">Clientes, do cadastro mais recente para o mais antigo</caption>
+    <thead><tr>
+      <th scope="col">Cliente</th><th scope="col">E-mail</th><th scope="col">Consentimento</th><th scope="col">Segmento</th><th scope="col">Cadastro</th>
+    </tr></thead>
+    <tbody>
+    {{range .Lista.Linhas}}
+      <tr data-href="/painel/clientes/{{.Cliente.ID}}" data-teste="linha-cliente">
+        <td><span class="pf-cell-main"><a href="/painel/clientes/{{.Cliente.ID}}">{{.Cliente.Nome}}</a></span>{{template "uuid" .Cliente.ID}}</td>
+        <td>{{mascara .Cliente.Email}}</td>
+        <td>{{template "tag" (estado .Consentimento)}}{{if not .Cliente.Ativo}} {{template "tag" "INATIVO"}}{{end}}</td>
+        <td>{{if .Segmento}}<span class="pf-tag pf-tag--accent">{{.Segmento}}</span>{{else}}<span class="pf-muted">—</span>{{end}}</td>
+        <td class="pf-num">{{data .Cliente.DataCadastro}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  <div class="pf-table__foot">
+    <span class="pf-num">{{.Inicio}}–{{.Fim}} de {{.Lista.Total}}</span>
+    <span class="pf-row">
+      {{if .Anterior}}<a class="pf-btn pf-btn--sm" href="{{.Anterior}}" rel="prev">Anterior</a>{{else}}<span class="pf-btn pf-btn--sm" aria-disabled="true">Anterior</span>{{end}}
+      {{if .Proxima}}<a class="pf-btn pf-btn--sm" href="{{.Proxima}}" rel="next">Próxima</a>{{else}}<span class="pf-btn pf-btn--sm" aria-disabled="true">Próxima</span>{{end}}
+    </span>
+  </div>
+</div>
+{{else if .FiltroAtivo}}
+<div class="pf-panel"><div class="pf-empty" data-teste="vazio-busca">
+  <h2 class="pf-empty__title">Nenhum cliente encontrado{{if .Busca}} para "{{.Busca}}"{{end}}</h2>
+  <p class="pf-empty__text">Confira a grafia, busque pelo ID completo ou troque o filtro de consentimento.</p>
+  <a class="pf-btn" href="/painel/clientes">Limpar busca</a>
+</div></div>
+{{else}}
+<div class="pf-panel"><div class="pf-empty" data-teste="vazio-clientes">
+  <h2 class="pf-empty__title">Nenhum cliente cadastrado</h2>
+  <p class="pf-empty__text">Os clientes aparecem aqui com o estado do consentimento e o segmento atual.</p>
+  <a class="pf-btn pf-btn--primary" href="/painel/clientes/novo">Cadastrar cliente</a>
+</div></div>
+{{end}}
+{{end}}{{end}}

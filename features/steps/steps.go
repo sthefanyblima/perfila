@@ -19,6 +19,9 @@ const num = `(-?\d+(?:\.\d+)?)`
 func InitializeScenario(sc *godog.ScenarioContext) {
 	m := novoMundo()
 	registrarPassosAPI(sc, m)
+	registrarPassosProcessamento(sc, m)
+	registrarPassosLeitura(sc, m)
+	registrarPassosWeb(sc, m)
 	registrarPassosImplantacao(sc)
 	registrarPassosConfiguracao(sc, m)
 

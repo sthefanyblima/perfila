@@ -107,6 +107,49 @@ func testarCliente(t *testing.T, r Repositorios) {
 	obtido, err = r.Clientes.BuscarPorID(ctx, c.ID)
 	ok(t, err)
 	igual(t, "cliente atualizado", obtido, c)
+	testarListarClientes(t, r, c)
+}
+
+// Spec: Q-23 — busca por nome (sem maiúsculas nem acentos) ou ID exato, paginação e ordem.
+func testarListarClientes(t *testing.T, r Repositorios, existente entity.Cliente) {
+	ctx := context.Background()
+	novo := func(nome string, dias int) entity.Cliente {
+		c := entity.Cliente{ID: uuid.New(), Nome: nome, Email: "c-100@exemplo.test", DataCadastro: agora.AddDate(0, 0, dias), Ativo: true}
+		ok(t, r.Clientes.Salvar(ctx, c))
+		return c
+	}
+	joana := novo("Joana Sintética", 1)
+	ines := novo("INÊS SINTÉTICA", 2)
+	novo("Pedro 100% Sintético", 3)
+	todos, total, err := r.Clientes.Listar(ctx, port.FiltroClientes{})
+	ok(t, err)
+	igual(t, "total sem filtro", total, 4)
+	igual(t, "mais recente primeiro", todos[1].ID, ines.ID)
+	igual(t, "mais antigo por último", todos[3].ID, existente.ID)
+
+	pagina, total, err := r.Clientes.Listar(ctx, port.FiltroClientes{Deslocamento: 1, Limite: 2})
+	ok(t, err)
+	igual(t, "total paginado", total, 4)
+	igual(t, "página", []uuid.UUID{pagina[0].ID, pagina[1].ID}, []uuid.UUID{ines.ID, joana.ID})
+
+	achados, total, err := r.Clientes.Listar(ctx, port.FiltroClientes{Busca: "sintetica"})
+	ok(t, err)
+	igual(t, "busca sem acento", total, 2)
+	igual(t, "ordem da busca", []uuid.UUID{achados[0].ID, achados[1].ID}, []uuid.UUID{ines.ID, joana.ID})
+
+	_, total, err = r.Clientes.Listar(ctx, port.FiltroClientes{Busca: "%"})
+	ok(t, err)
+	igual(t, "% é literal", total, 1)
+
+	porID, total, err := r.Clientes.Listar(ctx, port.FiltroClientes{Busca: " " + joana.ID.String() + " "})
+	ok(t, err)
+	igual(t, "busca por ID", total, 1)
+	igual(t, "cliente por ID", porID[0], joana)
+
+	vazio, total, err := r.Clientes.Listar(ctx, port.FiltroClientes{Busca: "inexistente"})
+	ok(t, err)
+	igual(t, "sem resultado", total, 0)
+	igual(t, "lista vazia", len(vazio), 0)
 }
 
 // Spec: UC-01, RN-04, D-05.
@@ -225,6 +268,17 @@ func testarRecomendacao(t *testing.T, r Repositorios) {
 			t.Fatalf("ativa inesperada: %+v", a)
 		}
 	}
+
+	// Q-23: histórico completo do cliente, a mais recente primeiro.
+	historico, err := r.Recomendacoes.ListarPorCliente(ctx, c.ID)
+	ok(t, err)
+	igual(t, "histórico do cliente", len(historico), 4)
+	for i := 1; i < len(historico); i++ {
+		if historico[i].DataGeracao.After(historico[i-1].DataGeracao) {
+			t.Fatalf("histórico fora de ordem: %v antes de %v", historico[i-1].DataGeracao, historico[i].DataGeracao)
+		}
+	}
+	igual(t, "mais recente primeiro", historico[0].Validade, ptr(agora.Add(time.Second)))
 }
 
 func porIDRec(rs []entity.RecomendacaoProduto) []entity.RecomendacaoProduto {
@@ -278,4 +332,13 @@ func testarProduto(t *testing.T, r Repositorios) {
 	vazio, err := r.Produtos.ListarAtivosPorCategoria(ctx, "inexistente")
 	ok(t, err)
 	igual(t, "categoria sem produtos", len(vazio), 0)
+
+	// Q-23: catálogo completo, inativos incluídos, por categoria e nome.
+	todos, err := r.Produtos.ListarTodos(ctx)
+	ok(t, err)
+	nomes := []string{}
+	for _, p := range todos {
+		nomes = append(nomes, p.Categoria+"/"+p.Nome)
+	}
+	igual(t, "catálogo completo", nomes, []string{"games/Jogo X", "livros/Livro A", "livros/Livro B", "livros/Livro C"})
 }

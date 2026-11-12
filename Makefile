@@ -44,8 +44,13 @@ demo: ## fluxo do diagrama de sequência em memória
 build: ## binário estático do UML8
 	CGO_ENABLED=0 $(GO) build -o bin/omega-server ./cmd/omega-server
 
-serve: ## API em modo memória na porta 8080 (token: dev-token)
-	AUTH_TOKEN=$${AUTH_TOKEN:-dev-token} ENGAJAMENTO_META_EVENTOS=$${ENGAJAMENTO_META_EVENTOS:-10} $(GO) run ./cmd/omega-server serve
+# Credenciais de desenvolvimento do painel (Q-29): operador / dev-senha. Nunca use fora da máquina local.
+PAINEL_DEV_HASH = $$2a$$12$$XwydlCAe/Yz4gKKJFY8Dkem4QwOLLvhPfraOmQ3mvP9/CvqoKS3Am
+PAINEL_DEV_CHAVE = 00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff
+
+serve: ## API e painel em modo memória na porta 8080 (token: dev-token; painel: operador / dev-senha)
+	AUTH_TOKEN=$${AUTH_TOKEN:-dev-token} ENGAJAMENTO_META_EVENTOS=$${ENGAJAMENTO_META_EVENTOS:-10} \
+	PAINEL_SENHA_HASH='$(PAINEL_DEV_HASH)' PAINEL_CHAVE_SESSAO=$(PAINEL_DEV_CHAVE) $(GO) run ./cmd/omega-server serve
 
 COMPOSE = docker compose -f deploy/docker-compose.yml
 

@@ -6,6 +6,7 @@ package config
 
 import (
 	"bufio"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
@@ -21,7 +22,17 @@ type Config struct {
 	RecomendacaoValidadeDias int
 	EngajamentoMetaEventos   int
 	LogLevel                 string
+
+	// Painel web do operador (Spec 3.8, Q-22, Q-25, Q-29).
+	PainelUsuario     string
+	PainelSenhaHash   string // bcrypt; vazia = painel desligado
+	PainelChaveSessao []byte // 32 bytes (64 dígitos hexadecimais); vazia = painel desligado
+	PainelFinalidade  string
+	PainelVersaoTermo string
 }
+
+// PainelLigado informa se o painel /painel deve ser montado (Q-29).
+func (c Config) PainelLigado() bool { return c.PainelSenhaHash != "" && len(c.PainelChaveSessao) > 0 }
 
 // ModoMemoria informa se o servidor roda sem PostgreSQL (D-23).
 func (c Config) ModoMemoria() bool { return c.DatabaseURL == "" }
@@ -67,6 +78,7 @@ func Carregar(path string, getenv func(string) string) (Config, error) {
 	if c.LogLevel == "" {
 		c.LogLevel = "info"
 	}
+	problemas = append(problemas, c.lerPainel(valor)...)
 	if c.AuthToken == "" {
 		problemas = append(problemas, "AUTH_TOKEN é obrigatória")
 	}
@@ -79,6 +91,37 @@ func Carregar(path string, getenv func(string) string) (Config, error) {
 		return Config{}, errors.New("configuração inválida: " + strings.Join(problemas, "; "))
 	}
 	return c, nil
+}
+
+// lerPainel lê PAINEL_*: hash e chave andam juntos (Q-29); a chave tem 32 bytes em hexadecimal.
+// Os valores nunca entram nas mensagens de erro.
+func (c *Config) lerPainel(valor func(string) string) []string {
+	padrao := func(k, p string) string {
+		if v := valor(k); v != "" {
+			return v
+		}
+		return p
+	}
+	c.PainelUsuario = padrao("PAINEL_USUARIO", "operador")
+	c.PainelFinalidade = padrao("PAINEL_FINALIDADE", "segmentacao")
+	c.PainelVersaoTermo = padrao("PAINEL_VERSAO_TERMO", "v1")
+	c.PainelSenhaHash = valor("PAINEL_SENHA_HASH")
+	chave := valor("PAINEL_CHAVE_SESSAO")
+	var problemas []string
+	if (c.PainelSenhaHash == "") != (chave == "") {
+		return append(problemas, "PAINEL_SENHA_HASH e PAINEL_CHAVE_SESSAO devem ser definidas juntas (ou nenhuma, painel desligado)")
+	}
+	if chave != "" {
+		b, err := hex.DecodeString(chave)
+		if err != nil || len(b) != 32 {
+			problemas = append(problemas, "PAINEL_CHAVE_SESSAO deve ter 64 dígitos hexadecimais (32 bytes)")
+		}
+		c.PainelChaveSessao = b
+	}
+	if c.PainelSenhaHash != "" && !strings.HasPrefix(c.PainelSenhaHash, "$2") {
+		problemas = append(problemas, "PAINEL_SENHA_HASH deve ser um hash bcrypt (gere com: omega-server hash-senha)")
+	}
+	return problemas
 }
 
 func lerArquivo(path string) (map[string]string, error) {

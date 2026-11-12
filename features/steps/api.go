@@ -76,9 +76,7 @@ func (m *Mundo) roteador() http.Handler {
 		Cadastrar:     c.cadastrar,
 		Consentimento: c.consentimento,
 		Coletar:       c.coletar,
-		GerarPerfil:   c.gerarPerfil,
-		Segmentar:     c.segmentar,
-		Recomendar:    c.recomendar,
+		Processar:     c.processar,
 		Clock:         m.clock,
 	})
 }

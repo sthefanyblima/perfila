@@ -58,6 +58,21 @@ Legenda de status: ✅ concluída · 🟡 parcial · ⬜ a fazer. "Prova" é o q
 Filtro padrão do BDD: `~@slow && ~@wip`; `@implantacao` roda em `make bdd-implantacao` e no job `implantacao` do CI (Q-13).
 Corte planejado das réplicas: **não foi necessário** (T-24 concluída em 11/11 com duas réplicas).
 
+## Painel web (12–19/11) — Spec v1.3
+
+Interface do operador a partir do design system "Perfila Console" (`docs/design/`), com os ajustes da Q-27. Decisões Q-20 a Q-29.
+
+| ID | Tarefa | Depende de | Prova | Status |
+|---|---|---|---|---|
+| T-31 | Spec v1.3: Q-20 a Q-29, casos de uso do painel, ports novos, rotas 3.7.1, configuração `PAINEL_*`, UML7 e UML8 em texto, `features/painel.feature` (`@web`, vermelha) | T-30 | Spec, UML e feature revisados | ✅ |
+| T-32 | `ProcessarClienteUseCase` (RN-09 com estado por etapa) em `application/usecase`; a API passa a usá-lo | T-31 | `@api` verde; cenários `@aplicacao` do processamento | ✅ `processamento.feature` (4 cenários) |
+| T-33 | `ClienteRepository.Listar`, `RecomendacaoRepository.ListarPorCliente`, `ProdutoRepository.ListarTodos` na memória e no PostgreSQL; migração 004 | T-31 | contrato nos dois backends | ✅ busca, paginação, histórico e catálogo no contrato (memória e PostgreSQL 16) |
+| T-34 | Casos de uso de leitura: `ListarClientes`, `ConsultarCliente`, `ConsultarResultado` (RN-01), `ListarSegmentos`, `ListarCatalogo` | T-33 | cenários `@aplicacao` | ✅ `leitura.feature` (17 cenários) |
+| T-35 | `internal/web` base: rotas, sessão HMAC, CSRF, limite de tentativas, cabeçalhos e CSP, Entrar, layout, static embutido, regra "web" no teste de arquitetura, `PAINEL_*`, `hash-senha`, montagem no `omega-server` | T-34 | cenários `@web` de sessão e segurança | ✅ 9 cenários `@web`; testes de sessão, limitador e formatos |
+| T-36 | Telas Clientes (busca, filtro, paginação) e Cadastrar cliente | T-35 | cenários `@web` de cadastro e busca | ✅ 4 cenários `@web` |
+| T-37 | Ficha do cliente: cabeçalho com consentimento, Visão geral (etapas, perfil, segmento, recomendação), Eventos e Consentimento, com diálogos; sem JavaScript (PRG) e com htmx | T-36 | cenários `@web` de consentimento, processamento e eventos | ✅ 12 cenários `@web`; fluxo A conferido no navegador. T-35 a T-37 num só commit: as telas dividem layout, partes e funções de template |
+| T-38 | Segmentos, Catálogo e Operação; `@implantacao` confere `/painel/entrar` pelo Nginx; README, roteiro e checklist LGPD; acessibilidade | T-37 | `make bdd-implantacao`; fluxos A a E no navegador | ✅ 4 cenários `@implantacao` contra a implantação no Docker; contraste AA de todos os pares de cor nos dois temas (mínimo 5,3:1); README, roteiro e checklist LGPD (L-21 a L-27) |
+
 ## Fechamento
 
 | Data | Marco |

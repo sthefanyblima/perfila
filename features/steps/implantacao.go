@@ -30,6 +30,7 @@ type estadoImplantacao struct {
 	erroConexaoBD    error
 	portaBDPublicada string
 	tentouConectar   bool
+	painel           *http.Response
 }
 
 func registrarPassosImplantacao(sc *godog.ScenarioContext) {
@@ -41,6 +42,8 @@ func registrarPassosImplantacao(sc *godog.ScenarioContext) {
 	sc.Step(`^que uma das réplicas é parada$`, e.pararReplica)
 	sc.Step(`^o dispositivo do cliente tenta conectar ao banco na porta (\d+)$`, e.conectarBanco)
 	sc.Step(`^a conexão é recusada$`, e.conexaoRecusada)
+	sc.Step(`^o dispositivo do cliente abre "([^"]*)" pelo balanceador$`, e.abrirPainel)
+	sc.Step(`^a página do painel responde 200 com os cabeçalhos de segurança$`, e.painelSeguro)
 
 	// B-13: a réplica parada volta ao fim do cenário, para o próximo começar do Contexto.
 	sc.After(func(ctx context.Context, _ *godog.Scenario, err error) (context.Context, error) {
@@ -179,6 +182,34 @@ func (e *estadoImplantacao) conectarBanco(porta int) error {
 		saida = ""
 	}
 	e.portaBDPublicada = saida
+	return nil
+}
+
+// abrirPainel pede uma página do painel pelo Nginx (Spec 3.7.1, T-38).
+func (e *estadoImplantacao) abrirPainel(caminho string) error {
+	resp, err := clienteDispositivo.Get(e.balanceador.JoinPath(caminho).String())
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	e.painel = resp
+	return nil
+}
+
+func (e *estadoImplantacao) painelSeguro() error {
+	r := e.painel
+	if r == nil || r.StatusCode != http.StatusOK || r.TLS == nil {
+		return fmt.Errorf("painel pelo balanceador: %v", r)
+	}
+	for k, quer := range map[string]string{
+		"Content-Security-Policy": "default-src 'self'", "X-Content-Type-Options": "nosniff",
+		"X-Frame-Options": "DENY", "Referrer-Policy": "same-origin", "Cache-Control": "no-store",
+		"Strict-Transport-Security": "max-age=",
+	} {
+		if !strings.Contains(r.Header.Get(k), quer) {
+			return fmt.Errorf("cabeçalho %s: esperado %q, obtido %q", k, quer, r.Header.Get(k))
+		}
+	}
 	return nil
 }
 

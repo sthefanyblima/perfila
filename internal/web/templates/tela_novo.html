@@ -1,0 +1,28 @@
+{{define "conteudo"}}{{with .Dados}}
+<header class="pf-header">
+  <ol class="pf-crumbs"><li><a href="/painel/clientes">Clientes</a></li><li aria-current="page">Cadastrar cliente</li></ol>
+  <div class="pf-header__row"><h1 class="pf-header__title">Cadastrar cliente</h1></div>
+</header>
+<section class="pf-panel" aria-labelledby="titulo-dados">
+  <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-dados">Dados do cadastro</h2></div>
+  <form class="pf-panel__body pf-form" method="post" action="/painel/clientes" data-teste="form-cadastro">
+    {{template "csrf" $.CSRF}}
+    {{with .Erro}}{{template "alerta" .}}{{end}}
+    <p class="pf-muted">O cliente nasce sem consentimento: só nome e e-mail ficam guardados até o titular autorizar o uso dos dados.</p>
+    <div class="pf-field">
+      <label class="pf-field__label" for="nome">Nome completo</label>
+      <input class="pf-input" id="nome" name="nome" value="{{.Nome}}" required autocomplete="off"{{if .ErroNome}} aria-invalid="true" aria-describedby="nome-erro"{{end}}>
+      {{if .ErroNome}}<span class="pf-field__error" id="nome-erro" aria-live="assertive">{{icone "barra"}}{{.ErroNome}}</span>{{end}}
+    </div>
+    <div class="pf-field">
+      <label class="pf-field__label" for="email">E-mail</label>
+      <input class="pf-input" id="email" name="email" type="email" value="{{.Email}}" required autocomplete="off"{{if .ErroEmail}} aria-invalid="true" aria-describedby="email-erro"{{end}}>
+      {{if .ErroEmail}}<span class="pf-field__error" id="email-erro" aria-live="assertive">{{icone "barra"}}{{.ErroEmail}}</span>{{end}}
+    </div>
+    <div class="pf-form__foot">
+      <button type="submit" class="pf-btn pf-btn--primary">Cadastrar cliente</button>
+      <a class="pf-btn pf-btn--quiet" href="/painel/clientes">Cancelar</a>
+    </div>
+  </form>
+</section>
+{{end}}{{end}}

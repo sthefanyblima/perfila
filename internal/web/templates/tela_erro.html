@@ -1,0 +1,10 @@
+{{define "conteudo"}}{{with .Dados}}
+<header class="pf-header">
+  <div class="pf-header__row"><h1 class="pf-header__title">{{.Titulo}}</h1></div>
+</header>
+<div class="pf-alert pf-alert--critical" role="alert" data-teste="aviso-erro">
+  <span class="pf-alert__badge" aria-hidden="true">{{icone "barra"}}</span>
+  <div><p class="pf-alert__text">{{.Texto}}</p></div>
+  <a class="pf-btn pf-btn--sm pf-alert__acao" href="/painel/clientes">Voltar para clientes</a>
+</div>
+{{end}}{{end}}

@@ -1,0 +1,194 @@
+{{define "conteudo"}}{{with .Dados}}
+{{template "ficha-cabecalho" (fichaComCSRF . $.CSRF)}}
+
+{{if eq .Aba "visao"}}
+  {{if .Bloqueio}}
+    {{template "alerta" .Bloqueio}}
+  {{else}}
+    {{with .Falha}}{{template "alerta" .}}{{end}}
+    <section class="pf-panel" aria-labelledby="titulo-processamento" id="painel-processamento" data-teste="painel-processamento">
+      <div class="pf-panel__head">
+        <h2 class="pf-panel__title" id="titulo-processamento">Processamento</h2>
+        <form method="post" action="/painel/clientes/{{.Cliente.ID}}/processamento">
+          {{template "csrf" $.CSRF}}
+          <button type="submit" class="pf-btn pf-btn--primary" data-teste="acao-processar">{{icone "processar"}} Processar agora</button>
+        </form>
+      </div>
+      <div class="pf-panel__body">
+        <ol class="pf-pipe" aria-label="Etapas do processamento">
+          {{range .Etapas}}
+          <li class="pf-pipe__step pf-pipe__step--{{.Estado}}" data-teste="etapa" data-estado="{{.Estado}}">
+            <span class="pf-pipe__n">ETAPA {{.N}}</span>
+            <span class="pf-pipe__head">{{if eq .Estado "concluida"}}{{icone "ok"}}{{else if eq .Estado "atencao"}}{{icone "atencao"}}{{else if eq .Estado "falhou"}}{{icone "falha"}}{{else}}{{icone "pendente"}}{{end}}{{.Rotulo}}</span>
+            <span class="pf-sr">{{if eq .Estado "concluida"}}concluída{{else if eq .Estado "atencao"}}concluída com atenção{{else if eq .Estado "falhou"}}falhou{{else}}pendente{{end}}</span>
+            <span class="pf-pipe__res">{{if .Resumo}}{{.Resumo}}{{else if eq .Estado "pendente"}}Ainda não executada{{end}}</span>
+          </li>
+          {{end}}
+        </ol>
+        {{if not .Processado}}<p class="pf-muted" data-teste="nao-processado">Este cliente ainda não foi processado. Registre os eventos e use "Processar agora".</p>{{end}}
+      </div>
+    </section>
+
+    {{if .Processado}}{{with .Resultado}}
+    <div class="pf-grid-2">
+      <section class="pf-panel pf-panel--dados" aria-labelledby="titulo-perfil" data-teste="painel-perfil">
+        <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-perfil">Perfil</h2></div>
+        <div class="pf-panel__body">
+          <dl class="pf-kv">
+            <dt>Compras</dt><dd class="pf-kv__destaque">{{.Perfil.FrequenciaCompras}}</dd>
+            <dt>Ticket médio</dt><dd class="pf-kv__destaque">{{dinheiro .Perfil.TicketMedio}}</dd>
+            <dt>Categoria preferida</dt><dd>{{if .Perfil.CategoriaPreferida}}{{.Perfil.CategoriaPreferida}}{{else}}—{{end}}</dd>
+            <dt>Engajamento</dt>
+            <dd>
+              <div class="pf-score" role="meter" aria-valuemin="0" aria-valuemax="1" aria-valuenow="{{.Perfil.ScoreEngajamento}}" aria-label="Score de engajamento">
+                <div class="pf-score__top"><span>Score</span><span class="pf-score__valor">{{decimal .Perfil.ScoreEngajamento 2}}</span></div>
+                <svg class="pf-score__svg" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true">
+                  <rect class="pf-score__track" x="0.5" y="0.5" width="99" height="9" rx="4"/>
+                  <rect class="pf-score__fill" x="0.5" y="0.5" width="{{porcento .Perfil.ScoreEngajamento}}" height="9" rx="4"/>
+                </svg>
+                <span class="pf-score__note">{{$.Dados.EventosScore}}</span>
+              </div>
+            </dd>
+          </dl>
+        </div>
+      </section>
+
+      <section class="pf-panel pf-panel--dados" aria-labelledby="titulo-segmento" data-teste="painel-segmento">
+        <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-segmento">Segmento</h2>{{with .Segmento}}<span class="pf-tag pf-tag--accent">{{.Nome}}</span>{{end}}</div>
+        <div class="pf-panel__body">
+          {{with .Segmento}}
+            <p>{{if .Descricao}}{{.Descricao}}{{else}}Sem descrição.{{end}}</p>
+            <div class="pf-stack">
+              <span class="pf-label">Por que este segmento</span>
+              {{if $.Dados.Condicoes}}
+              <div class="pf-crit" title="{{.Criterio}}">
+                {{range $i, $c := $.Dados.Condicoes}}{{if $i}}<span class="pf-crit__and">E</span>{{end}}
+                <span class="pf-crit__cond {{if $c.Atendida}}pf-crit__cond--met{{else}}pf-crit__cond--unmet{{end}}" title="{{$c.Original}}">{{if $c.Atendida}}{{icone "ok"}}{{else}}{{icone "tracejado"}}{{end}}{{$c.Campo}} {{$c.Operador}} {{$c.Numero}}<span class="pf-sr">{{if $c.Atendida}}, atendida{{else}}, não atendida{{end}}</span></span>
+                {{end}}
+              </div>
+              {{else}}<span class="pf-crit__always">Critério vazio: casa sempre</span>{{end}}
+            </div>
+          {{else}}
+            <p class="pf-muted">Ainda sem segmento. Processe o cliente para segmentá-lo.</p>
+          {{end}}
+        </div>
+      </section>
+    </div>
+
+    <section class="pf-panel pf-panel--dados" aria-labelledby="titulo-recomendacao" data-teste="painel-recomendacao">
+      <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-recomendacao">Recomendação</h2>{{with $.Dados.Recomendacao}}{{template "tag" (estado .Status)}}{{end}}</div>
+      <div class="pf-panel__body">
+        {{with $.Dados.Recomendacao}}
+        <dl class="pf-kv">
+          <dt>Produto</dt><dd class="pf-kv__destaque">{{$.Dados.NomeProduto .ProdutoID}}</dd>
+          <dt>Motivo</dt><dd>{{motivo .Motivo}}</dd>
+          <dt>Ativada em</dt><dd class="pf-num">{{dataHoraPtr .DataAtivacao}}</dd>
+          <dt>Válida até</dt><dd class="pf-num">{{dataHoraPtr .Validade}}</dd>
+        </dl>
+        {{else}}
+        {{template "alerta" (alertaAtencao "Sem recomendação ativa" (index $.Dados.Etapas 3).Resumo)}}
+        {{end}}
+        {{if $.Dados.Historico}}
+        <details class="pf-historico">
+          <summary>Histórico ({{len $.Dados.Historico}})</summary>
+          <div class="pf-tablewrap"><table class="pf-table">
+            <thead><tr><th scope="col">Produto</th><th scope="col">Estado</th><th scope="col">Gerada em</th><th scope="col">Expirada em</th></tr></thead>
+            <tbody>{{range $.Dados.Historico}}<tr><td>{{$.Dados.NomeProduto .ProdutoID}}</td><td>{{template "tag" (estado .Status)}}</td><td class="pf-num">{{dataHora .DataGeracao}}</td><td class="pf-num">{{dataHoraPtr .DataExpiracao}}</td></tr>{{end}}</tbody>
+          </table></div>
+        </details>
+        {{end}}
+      </div>
+    </section>
+    {{end}}{{end}}
+  {{end}}
+
+{{else if eq .Aba "eventos"}}
+  {{with .Bloqueio}}{{template "alerta" .}}{{end}}
+  {{with .Falha}}{{template "alerta" .}}{{end}}
+  <section class="pf-panel" aria-labelledby="titulo-registrar">
+    <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-registrar">Registrar evento</h2></div>
+    <form class="pf-panel__body" method="post" action="/painel/clientes/{{.Cliente.ID}}/eventos" data-teste="form-evento">
+      {{template "csrf" $.CSRF}}
+      <fieldset class="pf-fieldset"{{if not .Valido}} disabled aria-describedby="motivo-evento"{{end}}>
+        <legend class="pf-sr">Dados do evento</legend>
+        <div class="pf-grid-form">
+          <div class="pf-field">
+            <label class="pf-field__label" for="tipo">Tipo</label>
+            <select class="pf-select" id="tipo" name="tipo" required{{with index .Evento.Erros "tipo"}} aria-invalid="true" aria-describedby="tipo-erro"{{end}}>
+              {{range $v := lista "compra" "navegacao" "interacao"}}<option value="{{$v}}"{{if eq $v $.Dados.Evento.Tipo}} selected{{end}}>{{rotulo $v}}</option>{{end}}
+            </select>
+            {{with index .Evento.Erros "tipo"}}<span class="pf-field__error" id="tipo-erro" aria-live="assertive">{{icone "barra"}}{{.}}</span>{{end}}
+          </div>
+          <div class="pf-field">
+            <label class="pf-field__label" for="valor">Valor (R$)</label>
+            <input class="pf-input pf-num" id="valor" name="valor" type="number" min="0" max="1000000" step="0.01" inputmode="decimal" value="{{.Evento.Valor}}" aria-describedby="valor-dica{{with index .Evento.Erros "valor"}} valor-erro{{end}}"{{with index .Evento.Erros "valor"}} aria-invalid="true"{{end}}>
+            <span class="pf-field__hint" id="valor-dica">Em reais. Compras precisam de valor maior que zero.</span>
+            {{with index .Evento.Erros "valor"}}<span class="pf-field__error" id="valor-erro" aria-live="assertive">{{icone "barra"}}{{.}}</span>{{end}}
+          </div>
+          <div class="pf-field">
+            <label class="pf-field__label" for="categoria">Categoria</label>
+            <input class="pf-input" id="categoria" name="categoria" value="{{.Evento.Categoria}}" placeholder="livros" aria-describedby="categoria-dica">
+            <span class="pf-field__hint" id="categoria-dica">Opcional. Define a categoria preferida.</span>
+          </div>
+          <div class="pf-field">
+            <label class="pf-field__label" for="origem">Origem</label>
+            <input class="pf-input" id="origem" name="origem" value="{{.Evento.Origem}}" placeholder="loja on-line" required{{with index .Evento.Erros "origem"}} aria-invalid="true" aria-describedby="origem-erro"{{end}}>
+            {{with index .Evento.Erros "origem"}}<span class="pf-field__error" id="origem-erro" aria-live="assertive">{{icone "barra"}}{{.}}</span>{{end}}
+          </div>
+          <div class="pf-field">
+            <label class="pf-field__label" for="quando">Data e hora</label>
+            <input class="pf-input pf-num" id="quando" name="quando" type="datetime-local" value="{{.Evento.Quando}}" required{{with index .Evento.Erros "quando"}} aria-invalid="true" aria-describedby="quando-erro"{{end}}>
+            {{with index .Evento.Erros "quando"}}<span class="pf-field__error" id="quando-erro" aria-live="assertive">{{icone "barra"}}{{.}}</span>{{end}}
+          </div>
+        </div>
+        <div class="pf-form__foot">
+          <button type="submit" class="pf-btn pf-btn--primary">Registrar evento</button>
+          {{if not .Valido}}<span class="pf-btn-motivo" id="motivo-evento">Conceda o consentimento para registrar eventos.</span>{{end}}
+        </div>
+      </fieldset>
+    </form>
+  </section>
+  {{if .Valido}}
+  <section class="pf-panel" aria-labelledby="titulo-linha" id="linha-do-tempo" data-teste="painel-eventos">
+    <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-linha">Eventos registrados</h2><span class="pf-muted pf-small">Do mais recente para o mais antigo</span></div>
+    <div class="pf-panel__body">
+      {{if .Eventos}}
+      <ol class="pf-timeline">
+        {{range .Eventos}}
+        <li class="pf-timeline__item">
+          <span class="pf-timeline__when">{{dataHora .Timestamp}}</span>
+          <span class="pf-timeline__dot pf-timeline__dot--{{estado .Tipo}}" aria-hidden="true"></span>
+          <span class="pf-timeline__what"><strong>{{rotulo (estado .Tipo)}}</strong>{{if .Categoria}} · {{.Categoria}}{{end}}<br><span class="pf-timeline__sub">{{.Origem}}</span></span>
+          <span class="pf-timeline__value">{{if eq (estado .Tipo) "compra"}}{{dinheiro .Valor}}{{end}}</span>
+        </li>
+        {{end}}
+      </ol>
+      {{if .MaisEventos}}<p class="pf-muted pf-small">Mostrando os 50 eventos mais recentes.</p>{{end}}
+      {{else}}
+      <div class="pf-empty"><h3 class="pf-empty__title">Nenhum evento registrado</h3><p class="pf-empty__text">Os eventos de navegação, compra e interação aparecem aqui e alimentam o perfil.</p></div>
+      {{end}}
+    </div>
+  </section>
+  {{end}}
+
+{{else}}
+  <section class="pf-panel" aria-labelledby="titulo-consentimento" data-teste="consentimento-completo">
+    <div class="pf-panel__head">
+      <h2 class="pf-panel__title" id="titulo-consentimento">Registro do consentimento</h2>
+      <div class="pf-consent__actions">{{template "acao-consentimento" .}}</div>
+    </div>
+    <div class="pf-panel__body">
+    <dl class="pf-kv">
+      <dt>Finalidade</dt><dd>{{if .Consentimento.Finalidade}}{{.Consentimento.Finalidade}}{{else}}—{{end}}</dd>
+      <dt>Versão do termo</dt><dd>{{if .Consentimento.VersaoTermo}}{{.Consentimento.VersaoTermo}}{{else}}—{{end}}</dd>
+      <dt>Data do consentimento</dt><dd class="pf-num">{{dataHora .Consentimento.DataConsentimento}}</dd>
+      <dt>Data da revogação</dt><dd class="pf-num">{{dataHoraPtr .Consentimento.DataRevogacao}}</dd>
+      <dt>Última atualização</dt><dd class="pf-num">{{if eq (estado .Consentimento.Status) "NAO_CONCEDIDO"}}—{{else}}{{dataHora .Consentimento.DataAtualizacao}}{{end}}</dd>
+    </dl>
+    <p class="pf-muted pf-small">A data da revogação continua registrada depois de uma nova concessão, como prova do histórico.</p>
+    </div>
+  </section>
+{{end}}
+
+{{template "dialogos-consentimento" (fichaComCSRF . $.CSRF)}}
+{{end}}{{end}}

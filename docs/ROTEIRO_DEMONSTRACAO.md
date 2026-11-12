@@ -1,6 +1,6 @@
 # Roteiro de demonstração — evento final (24/11)
 
-Perfila · Equipe Omega · ensaio em 23/11 · duração alvo: **12 minutos**
+Perfila · Equipe Omega · ensaio em 23/11 · duração alvo: **15 minutos**
 
 Cada passo traz o comando, o que aparece na tela e o que falar. Os comandos usam `make`; no Windows sem `make` nem Go, use os equivalentes da seção 4.
 
@@ -21,12 +21,13 @@ Para recomeçar do zero (banco vazio): `docker compose -f deploy/docker-compose.
 | # | Tempo | Comando | O que aparece | O que falar |
 |---|---|---|---|---|
 | 1 | 1 min | — (mostrar `docs/uml/img/v1/UML4_sequencia.png` e `UML8_implantacao.png`) | Diagramas corrigidos | Problema: perfilar e segmentar clientes **só com consentimento LGPD**. Os 8 diagramas viraram texto (`docs/uml/`) e Spec (`specs/spec.md`), que guiou o agente de IA (SDD) |
-| 2 | 2 min | `make verify` | gofmt, vet, testes, **107 cenários BDD verdes** e teste de arquitetura | O BDD é o critério de aceite executável. O teste de arquitetura falha se alguém quebrar a Clean Architecture (C-01, C-07) |
+| 2 | 2 min | `make verify` | gofmt, vet, testes, **154 cenários BDD verdes** e teste de arquitetura | O BDD é o critério de aceite executável. O teste de arquitetura falha se alguém quebrar a Clean Architecture (C-01, C-07) |
 | 3 | 1 min | `make demo` | Fluxo da sequência em memória, passo a passo | UC-01 → UC-02 → UC-03 → UC-04, como no UML4; sem consentimento, nada roda |
 | 4 | 1 min | `docker compose -f deploy/docker-compose.yml ps` | `nginx`, `app1`, `app2`, `db`; **só o Nginx publica porta** (8443) | É o UML8: balanceador com TLS, duas réplicas do `omega-server`, PostgreSQL `omega_db` numa rede interna |
 | 5 | 3 min | `make demo-implantacao` | Cadastro → **403 sem consentimento** → concessão → eventos → processamento (segmento `premium`, recomendação `ATIVA`) → revogação → **403** | Tudo passa pelo Nginx em HTTPS e grava no PostgreSQL. A revogação tem efeito imediato (RN-03) |
+| 5b | 3 min | Abrir `https://localhost:8443/painel` (usuário `operador`; senha: `grep PAINEL_SENHA deploy/.env`) | Fluxo A: Cadastrar cliente → selo **Não concedido** e aviso de bloqueio → Conceder (diálogo) → Eventos: 3 compras em livros → Processar agora → 4 etapas concluídas, perfil, segmento com critérios e recomendação. Fluxo B: Revogar (foco em Cancelar) → selo **Revogado** e painéis bloqueados | A mesma regra da API, agora para quem opera: o consentimento aparece antes de tudo e a interface nem oferece o que o domínio recusaria. Tudo pelo Nginx, nas duas réplicas (sessão assinada) |
 | 6 | 1 min | `for i in 1 2 3 4; do curl -s --cacert bin/omega.crt -o /dev/null -D - https://localhost:8443/saude \| grep -i x-omega-replica; done` | Endereços das duas réplicas se alternando | O balanceador distribui a carga; o cabeçalho mostra quem atendeu (Q-11) |
-| 7 | 2 min | `make bdd-implantacao` | 3 cenários: tráfego pelo balanceador, **queda de uma réplica sem interrupção**, banco inacessível | O cenário 2 para a `app2` de verdade e confere 20 respostas 200; depois a religa |
+| 7 | 2 min | `make bdd-implantacao` | 4 cenários (inclui o painel com os cabeçalhos de segurança): tráfego pelo balanceador, **queda de uma réplica sem interrupção**, banco inacessível | O cenário 2 para a `app2` de verdade e confere 20 respostas 200; depois a religa |
 | 8 | 30 s | `make expirar` | `recomendacoes_expiradas` com a quantidade | Subcomando do administrador do UML8 (RN-08) |
 | 9 | 30 s | `docker compose -f deploy/docker-compose.yml logs --tail 5 nginx app1` | Logs só com IDs, sem nome, e-mail nem IP | C-09 e `docs/CHECKLIST_LGPD.md`: cada requisito LGPD com sua evidência e o que ficou para depois |
 
@@ -51,6 +52,7 @@ No Git Bash, a partir da raiz do repositório. O `MSYS_NO_PATHCONV=1` impede que
 | `make demo` | mesmo comando, trocando `make verify` por `make demo` |
 | `make implantar` | `sh scripts/preparar-implantacao.sh && docker compose -f deploy/docker-compose.yml up -d --build --wait` |
 | `make demo-implantacao` | `mkdir -p bin && docker compose -f deploy/docker-compose.yml cp nginx:/etc/nginx/certs/omega.crt bin/omega.crt && PERFILA_CA=bin/omega.crt bash scripts/demo-api.sh https://localhost:8443 "$(sed -n 's/^AUTH_TOKEN=//p' deploy/config.env)"` |
-| `make bdd-implantacao` | precisa de Go no Windows: `cd features && BDD_TAGS=@implantacao go test -count=1 .` |
+| `make bdd-implantacao` | compile o binário de testes para Windows no contêiner: `MSYS_NO_PATHCONV=1 docker run --rm -v "$(pwd -W)":/src -w /src -e GOOS=windows -e CGO_ENABLED=0 golang:1.22 go test -c -o bin/features.test.exe ./features` e rode `cd features && BDD_TAGS=@implantacao ../bin/features.test.exe -test.count=1` |
+| `make serve` (painel em memória) | `MSYS_NO_PATHCONV=1 docker run --rm -p 8080:8080 -v "$(pwd -W)":/src -w /src golang:1.22 make serve` e abra `http://localhost:8080/painel` (operador / dev-senha) |
 | `make expirar` | `MSYS_NO_PATHCONV=1 docker compose -f deploy/docker-compose.yml exec app1 omega-server -config /etc/omega/config.env expirar-recomendacoes` |
 | `make derrubar` | `docker compose -f deploy/docker-compose.yml down` |

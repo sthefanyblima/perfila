@@ -1,6 +1,6 @@
 # Checklist LGPD e auditoria de logs (T-25)
 
-Perfila · Equipe Omega · 11/11/2026 · Spec v1.2
+Perfila · Equipe Omega · 12/11/2026 · Spec v1.3 (com o painel web, seção 4b)
 
 Interpretação técnica da equipe sobre a Lei 13.709/2018, **não é parecer jurídico** (CLAUDE.md, seção 4). Cada item aponta a evidência que o prova: um cenário BDD, um teste automático ou um arquivo de configuração. ✅ atendido no MVP · ⚠️ atendido com limitação · ⬜ fora do MVP (requisito futuro).
 
@@ -44,6 +44,18 @@ Interpretação técnica da equipe sobre a Lei 13.709/2018, **não é parecer ju
 | L-19 | Acesso, correção, portabilidade e eliminação dos dados | `Cliente.AtualizarDados` existe no domínio, mas não há rota; não há exportação nem eliminação | ⬜ |
 | L-20 | Retenção e eliminação após revogação | Dados já persistidos permanecem (RN-03); política fora do MVP (D-13) | ⬜ |
 
+## 4b. Painel web do operador (Spec 3.7.1, v1.3)
+
+| # | Requisito | Como o Perfila atende | Evidência | |
+|---|---|---|---|---|
+| L-21 | Sem consentimento, o painel não mostra nem lê dados de comportamento | A ficha mostra só cadastro e consentimento; `ConsultarResultadoUseCase` aplica RN-01 antes de ler eventos, perfil, segmento e recomendação (C-03, Q-21) | `painel.feature` (`@lgpd`: ficha e registro de evento sem consentimento), `leitura.feature` | ✅ |
+| L-22 | Mostrar o mínimo de dado pessoal | Lista com e-mail mascarado (`c***@exemplo.test`) e ID truncado; e-mail completo só na ficha | `TestFormatos`; tela Clientes | ✅ |
+| L-23 | Acesso ao painel autenticado | Operador por configuração com senha em bcrypt, sessão assinada (HMAC-SHA256) com 8 h, 5 tentativas por IP em 5 minutos (Q-22); senha e chave geradas fora do git (Q-28) | `painel.feature` (sem sessão, senha errada, tentativas, sessão vencida); `TestSessao`, `TestLimitador` | ⚠️ operador único e limite por réplica; perfis de acesso fora do MVP |
+| L-24 | Logs do painel sem dado pessoal | Registra método, caminho (só UUIDs), status e, nas ações, operador, ação e `clienteId`; nunca nome, e-mail, senha nem o termo de busca (Q-24). O IP do `X-Real-IP` só alimenta o limite de tentativas, em memória | cenário "Os logs do painel não contêm nome, e-mail nem o termo de busca" | ✅ |
+| L-25 | Nenhuma requisição a terceiros com o IP de quem opera | Fontes IBM Plex, CSS e htmx servidos pelo próprio binário; CSP `default-src 'self'` | cenário `@web` e `@implantacao` dos cabeçalhos de segurança | ✅ |
+| L-26 | Proteção contra envio forjado e enquadramento | CSRF em todo POST, cookies `HttpOnly`, `Secure`, `SameSite=Strict`; `frame-ancestors 'none'` e `X-Frame-Options: DENY` | cenário "Envio sem o token CSRF é recusado" | ✅ |
+| L-27 | Atos com efeito jurídico deliberados | Conceder e revogar passam por confirmação que diz o efeito (diálogo ou página própria); em revogar, o foco inicial fica em Cancelar | cenário "Revogar exige confirmação" | ✅ |
+
 ## 5. Auditoria de logs (C-09)
 
 Todos os eventos de log do sistema, conferidos no código em 11/11/2026 (`grep` por chamadas de `slog` em `cmd/` e `internal/`):
@@ -56,6 +68,10 @@ Todos os eventos de log do sistema, conferidos no código em 11/11/2026 (`grep` 
 | `servidor_no_ar`, `encerrando`, `modo_memoria` | `cmd/omega-server` | porta, aviso fixo | Não |
 | `postgres_conectado` | `cmd/omega-server` | versões de migração aplicadas | Não. A URL do banco não é registrada |
 | `recomendacoes_expiradas` | subcomando `expirar-recomendacoes` | quantidade | Não |
+| `painel_http` | `web.registro` | método, caminho (só UUIDs), status | Não. Sem query string (termo de busca) |
+| `painel_acao` | handlers do painel | operador, ação, `clienteId` | Não. O operador é o login da equipe, não o titular |
+| `painel_erro_interno`, `painel_template` | painel (só falhas 500) | caminho, mensagem do erro | Não |
+| `painel_desligado` | `cmd/omega-server` | aviso fixo | Não |
 | acesso do Nginx | `deploy/nginx/nginx.conf` (`log_format omega`) | horário, método, caminho sem query string, status, tempo, réplica, id da requisição | Não. **Sem IP do cliente** (IP é dado pessoal, Q-14) |
 | PostgreSQL | configuração padrão da imagem | erros, sem texto de parâmetros | Não |
 
