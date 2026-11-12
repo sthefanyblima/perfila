@@ -106,7 +106,7 @@ body.pf {
 
 /* SideNav ------------------------------------------------------------ */
 .pf-nav { position: sticky; top: 0; height: 100vh; overflow-y: auto; background: var(--nav-bg); color: var(--nav-ink); display: flex; flex-direction: column; gap: var(--space-6); padding: var(--space-6) var(--space-3) var(--space-4); }
-.pf .pf-nav__brand { text-decoration: none; }
+.pf .pf-nav__brand { text-decoration: none; color: var(--nav-ink); }
 .pf-nav__brand { font: 600 18px/24px var(--font-display); padding: 0 var(--space-3); display: flex; gap: var(--space-2); align-items: center; color: var(--nav-ink); letter-spacing: 0.01em; }
 .pf-nav__marca { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: var(--radius-2); background: var(--accent); color: #FFFFFF; font: 600 15px/1 var(--font-display); }
 .pf-nav__env { font: 400 11px/14px var(--font-mono); color: var(--nav-muted); }
@@ -118,8 +118,8 @@ body.pf {
 .pf-nav__foot { margin-top: auto; border-top: 1px solid var(--nav-line); padding: var(--space-4) var(--space-3) 0; display: grid; gap: var(--space-2); font-size: 12px; }
 .pf-nav__op { display: flex; align-items: center; gap: var(--space-2); color: var(--nav-ink); }
 .pf-nav__avatar { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--nav-hover); border: 1px solid var(--nav-line); font-weight: 600; text-transform: uppercase; }
-.pf-nav .pf-btn--quiet { color: var(--nav-ink); justify-content: flex-start; padding: 0 var(--space-2); }
-.pf-nav .pf-btn--quiet:hover { background: var(--nav-hover); color: var(--nav-ink); }
+.pf .pf-nav .pf-btn--quiet { color: var(--nav-ink); justify-content: flex-start; padding: 0 var(--space-2); }
+.pf .pf-nav .pf-btn--quiet:hover { background: var(--nav-hover); color: var(--nav-ink); }
 
 /* Button ------------------------------------------------------------- */
 .pf-btn {
