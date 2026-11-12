@@ -2,7 +2,7 @@
 
 Registro exigido por C-12. Mudança aprovada entra primeiro na Spec, depois nas features, depois no código.
 
-**Estado em 07/11/2026:** nenhuma pergunta aberta. Q-01 a Q-06 foram decididas; as decisões estão abaixo e refletidas na Spec v1.1.
+**Estado em 11/11/2026:** nenhuma pergunta aberta. Q-01 a Q-06 foram decididas (Spec v1.1); Q-07 a Q-10 surgiram ao iniciar a T-19 e foram decididas (Spec v1.2).
 
 ## Decididas
 
@@ -14,6 +14,10 @@ Registro exigido por C-12. Mudança aprovada entra primeiro na Spec, depois nas 
 | Q-04 | Atores de UC-08 e "Agente Inteligente" no UML1 | **Confirmados**: UC-08 com Cliente (titular) e Administrador; Agente Inteligente como ator de automação de UC-03/UC-04; UC-09 com Cliente | Mantém o que o diagrama original já tinha (Administrador) e torna explícita a automação | Já no Mermaid do UML1 e na imagem `docs/uml/img/v1/UML1_casos_de_uso.png` |
 | Q-05 | A regra de recomendação (primeiro produto ativo da categoria, por nome) vai para a apresentação final? | **Sim, mantida no MVP** | "Mais vendido" exige saber o produto de cada compra, e o evento não tem `produtoId` no modelo; a regra atual é determinística e testável. Evolução fica pós-MVP | Nenhuma mudança de código |
 | Q-06 | `PUT /consentimento` com consentimento já CONCEDIDO: 409 ou 200 idempotente? | **409 `transicao_invalida`**, como na máquina de estados | Mantém um único comportamento entre domínio e API (UML5); o cliente consulta `GET /consentimento` antes. Trocar a versão do termo exige revogar e conceder de novo, o que deixa o histórico explícito | Nenhuma mudança de código |
+| Q-07 | A Spec 3.8 e o UML8 dizem que `DATABASE_URL` é obrigatória a partir da fase Generic, mas a D-23, o `make serve` e o BDD dependem do modo memória. Qual vale? | **Vazia continua = modo memória** (desenvolvimento, BDD e demo local); **preenchida = PostgreSQL**. A implantação do UML8 (compose) sempre a define | Mantém o BDD e a demo rápidos e sem banco (C-10: testes unitários sem rede nem banco) e deixa a implantação fiel ao UML8 | Spec 3.8, D-23 e UML8 ajustados; `omega-server` passa a montar os `Pg*Repository` quando há URL |
+| Q-08 | No PostgreSQL, de onde vêm os segmentos `premium`/`engajado` e o catálogo de produtos? Não há rota para cadastrá-los (gestão pela API está fora do MVP) | **Migração própria de dados sintéticos** (`002_dados_demonstracao.sql`), com os mesmos IDs do modo memória. O `padrao` fica na migração inicial, como manda a Spec | "Segmentos entram por migração" (Spec 1); o catálogo segue o mesmo caminho por não ter outro. IDs iguais deixam memória e banco com o mesmo comportamento observável | Duas migrações; `memoria.CarregarDemonstracao` e a 002 mantêm os mesmos dados (um teste compara). Aceito no MVP: todo banco migrado recebe os dados sintéticos; fora do MVP, a 002 vira opcional |
+| Q-09 | Com duas réplicas (UML8), quem aplica as migrações? | **O próprio `omega-server` ao subir**, sob `pg_advisory_lock`, registrando cada versão em `schema_migracoes` | Evita um terceiro artefato ou subcomando fora do UML8; a trava impede que as duas réplicas migrem ao mesmo tempo e a tabela torna a operação idempotente | Nenhum subcomando novo |
+| Q-10 | Qual driver para "`database/sql` com driver compatível"? | **`github.com/jackc/pgx/v5/stdlib`** | Driver PostgreSQL mais mantido em Go, usado pela interface padrão `database/sql` exigida pela Spec; só `infra/repository/pg` o importa (teste de arquitetura passa a cobrir `infra`) | Nova dependência só na infraestrutura. Versão fixada em **v5.6.0** (com `golang.org/x/crypto v0.17.0`), a mais recente compatível com o Go 1.22 do CI; subir exige Go ≥ 1.23 no CI |
 
 ## Decisões de modelagem (T-04)
 
