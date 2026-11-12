@@ -1,0 +1,27 @@
+{{define "conteudo"}}{{with .Dados}}
+<div class="pf-entrar">
+  <section class="pf-entrar__card" aria-labelledby="titulo-entrar">
+    <div class="pf-entrar__topo">
+      <span class="pf-entrar__marca">Perfila <span class="pf-label">console</span></span>
+      <h1 id="titulo-entrar" class="pf-dialog__title">Entrar</h1>
+      <p class="pf-muted">Painel de operação: cadastro, consentimento LGPD e processamento de clientes.</p>
+    </div>
+    <form class="pf-entrar__corpo" method="post" action="/painel/entrar" hx-boost="false" data-teste="form-entrar">
+      <input type="hidden" name="_csrf" value="{{.Token}}">
+      <input type="hidden" name="volta" value="{{.Volta}}">
+      {{if .Expirou}}{{template "alerta" (alertaInfo "Sessão expirada" "Sua sessão expirou. Entre de novo para continuar.")}}{{end}}
+      {{if .Erro}}<div class="pf-alert pf-alert--critical" role="alert" data-teste="erro-entrar">{{icone "barra"}}<div><p class="pf-alert__text">{{.Erro}}</p></div></div>{{end}}
+      <div class="pf-field">
+        <label class="pf-field__label" for="usuario">Usuário</label>
+        <input class="pf-input" id="usuario" name="usuario" value="{{.Usuario}}" autocomplete="username" required autofocus>
+      </div>
+      <div class="pf-field">
+        <label class="pf-field__label" for="senha">Senha</label>
+        <input class="pf-input" id="senha" name="senha" type="password" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="pf-btn pf-btn--primary">Entrar</button>
+    </form>
+    <p class="pf-entrar__nota">Acesso restrito à equipe de operação. As ações ficam registradas com o seu usuário.</p>
+  </section>
+</div>
+{{end}}{{end}}

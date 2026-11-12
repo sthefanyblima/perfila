@@ -1,0 +1,28 @@
+{{define "conteudo"}}
+<header class="pf-header">
+  <ol class="pf-crumbs"><li>Configuração</li><li aria-current="page">Catálogo</li></ol>
+  <div class="pf-header__row"><h1 class="pf-header__title">Catálogo</h1></div>
+</header>
+{{template "alerta" (alertaInfo "Como a recomendação escolhe" "A recomendação escolhe o primeiro produto ativo da categoria preferida, por ordem alfabética. Produtos inativos nunca são recomendados.")}}
+{{if .Dados}}
+<div class="pf-tablewrap">
+  <table class="pf-table" data-teste="lista-catalogo">
+    <thead><tr><th scope="col">Produto</th><th scope="col" class="pf-r">Preço</th><th scope="col">Situação</th></tr></thead>
+    <tbody>
+    {{range .Dados}}
+      <tr class="pf-table__grupo"><th scope="rowgroup" colspan="3">{{.Categoria}} <span class="pf-muted pf-small">· {{len .Produtos}}</span></th></tr>
+      {{range .Produtos}}
+      <tr>
+        <td>{{.Nome}}</td>
+        <td class="pf-r pf-num">{{dinheiro .Preco}}</td>
+        <td>{{if .Ativo}}<span class="pf-tag pf-tag--ok">{{icone "ok"}}Ativo</span>{{else}}{{template "tag" "INATIVO"}}{{end}}</td>
+      </tr>
+      {{end}}
+    {{end}}
+    </tbody>
+  </table>
+</div>
+{{else}}
+<div class="pf-panel"><div class="pf-empty"><h2 class="pf-empty__title">Catálogo vazio</h2><p class="pf-empty__text">Os produtos entram por migração. Sem produtos ativos, nenhuma recomendação é gerada.</p></div></div>
+{{end}}
+{{end}}

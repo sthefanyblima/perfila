@@ -47,6 +47,7 @@ type Mundo struct {
 	recomendacaoAnteriorID uuid.UUID
 	processamento          usecase.ResultadoProcessamento
 	leitura                estadoLeitura
+	web                    estadoWeb
 
 	api estadoAPI
 }

@@ -1,5 +1,5 @@
 # language: pt
-@web @wip
+@web
 Funcionalidade: Painel web do operador
   A pessoa operadora cadastra clientes, registra o consentimento, lança eventos e acompanha o
   processamento pelo painel, sempre condicionado ao consentimento LGPD (Spec 3.7.1, Q-20 a Q-29)

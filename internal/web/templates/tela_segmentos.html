@@ -1,0 +1,30 @@
+{{define "conteudo"}}
+<header class="pf-header">
+  <ol class="pf-crumbs"><li>Configuração</li><li aria-current="page">Segmentos</li></ol>
+  <div class="pf-header__row"><h1 class="pf-header__title">Segmentos</h1></div>
+</header>
+{{template "alerta" (alertaInfo "Somente leitura" "Segmentos entram por migração; para alterar, fale com a equipe técnica. A segmentação avalia em ordem de prioridade e o primeiro critério que casa vence.")}}
+{{if .Dados}}
+<div class="pf-tablewrap">
+  <table class="pf-table" data-teste="lista-segmentos">
+    <thead><tr><th scope="col" class="pf-r">Prioridade</th><th scope="col">Nome</th><th scope="col">Descrição</th><th scope="col">Critério</th></tr></thead>
+    <tbody>
+    {{range .Dados}}{{$seg := .}}
+      <tr>
+        <td class="pf-r pf-num">{{.Prioridade}}</td>
+        <td><span class="pf-tag pf-tag--accent">{{.Nome}}</span></td>
+        <td>{{if .Descricao}}{{.Descricao}}{{else}}<span class="pf-muted">—</span>{{end}}</td>
+        <td>
+          {{with condicoes .Criterio nil}}
+          <div class="pf-crit" title="{{$seg.Criterio}}">{{range $i, $c := .}}{{if $i}}<span class="pf-crit__and">E</span>{{end}}<span class="pf-crit__cond" title="{{$c.Original}}">{{$c.Campo}} {{$c.Operador}} {{$c.Numero}}</span>{{end}}</div>
+          {{else}}<span class="pf-crit__always">Critério vazio: casa sempre</span>{{end}}
+        </td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+{{else}}
+<div class="pf-panel"><div class="pf-empty"><h2 class="pf-empty__title">Nenhum segmento ativo</h2><p class="pf-empty__text">Sem o segmento padrão, a segmentação falha por configuração. Fale com a equipe técnica.</p></div></div>
+{{end}}
+{{end}}

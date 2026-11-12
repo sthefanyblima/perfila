@@ -113,9 +113,9 @@ As features vivem em `features/` e são a versão executável deste documento. E
 | `implantacao.feature` | UML8 | `@implantacao @slow` | 3 | Generic ✅ (T-24) |
 | `processamento.feature` | RN-09, Q-26 | `@aplicacao` | 4 | Painel web ✅ (T-32) |
 | `leitura.feature` | RN-01, Q-21, Q-23 | `@aplicacao` | 17 | Painel web ✅ (T-34) |
-| `painel.feature` | 3.7.1, UC-01, UC-08, UC-09, RN-01, RN-09, Q-21 a Q-24 | `@web` | 25 | Painel web (T-31 a T-38) |
+| `painel.feature` | 3.7.1, UC-01, UC-08, UC-09, RN-01, RN-09, Q-21 a Q-24 | `@web` | 26 | Painel web ✅ (T-35 a T-38) |
 
-Total no `make verify`: **107 cenários, 725 passos, todos verdes**; mais 3 cenários `@implantacao` (11 passos) em `make bdd-implantacao`.
+Total no `make verify`: **154 cenários, todos verdes** (107 até a v1.2, mais 47 do painel); mais 3 cenários `@implantacao` (11 passos) em `make bdd-implantacao`.
 
 ### 6.1 Mudanças da v1.0 nas features (aprovadas junto com a Spec v1.0, B-14)
 

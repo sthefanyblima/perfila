@@ -58,3 +58,28 @@ func TestCarregarArquivo(t *testing.T) {
 		t.Fatal("linha sem '=' deveria falhar")
 	}
 }
+
+// Spec: 3.8, Q-29 — painel desligado sem PAINEL_*; hash e chave juntos; chave de 32 bytes.
+func TestCarregarPainel(t *testing.T) {
+	chave := strings.Repeat("ab", 32)
+	c, err := Carregar("", env(map[string]string{"AUTH_TOKEN": "t"}))
+	if err != nil || c.PainelLigado() || c.PainelUsuario != "operador" || c.PainelFinalidade != "segmentacao" || c.PainelVersaoTermo != "v1" {
+		t.Fatalf("padrões do painel: %+v (%v)", c, err)
+	}
+	c, err = Carregar("", env(map[string]string{"AUTH_TOKEN": "t", "PAINEL_SENHA_HASH": "$2a$10$x", "PAINEL_CHAVE_SESSAO": chave}))
+	if err != nil || !c.PainelLigado() || len(c.PainelChaveSessao) != 32 {
+		t.Fatalf("painel ligado: %+v (%v)", c, err)
+	}
+	casos := []map[string]string{
+		{"AUTH_TOKEN": "t", "PAINEL_SENHA_HASH": "$2a$10$x"},
+		{"AUTH_TOKEN": "t", "PAINEL_CHAVE_SESSAO": chave},
+		{"AUTH_TOKEN": "t", "PAINEL_SENHA_HASH": "$2a$10$x", "PAINEL_CHAVE_SESSAO": "curta"},
+		{"AUTH_TOKEN": "t", "PAINEL_SENHA_HASH": "senha-em-claro", "PAINEL_CHAVE_SESSAO": chave},
+	}
+	for _, e := range casos {
+		_, err := Carregar("", env(e))
+		if err == nil || !strings.Contains(err.Error(), "PAINEL_") || strings.Contains(err.Error(), "senha-em-claro") {
+			t.Errorf("%v: esperava erro de PAINEL_* sem o valor, obtido %v", e, err)
+		}
+	}
+}

@@ -68,9 +68,9 @@ Interface do operador a partir do design system "Perfila Console" (`docs/design/
 | T-32 | `ProcessarClienteUseCase` (RN-09 com estado por etapa) em `application/usecase`; a API passa a usá-lo | T-31 | `@api` verde; cenários `@aplicacao` do processamento | ✅ `processamento.feature` (4 cenários) |
 | T-33 | `ClienteRepository.Listar`, `RecomendacaoRepository.ListarPorCliente`, `ProdutoRepository.ListarTodos` na memória e no PostgreSQL; migração 004 | T-31 | contrato nos dois backends | ✅ busca, paginação, histórico e catálogo no contrato (memória e PostgreSQL 16) |
 | T-34 | Casos de uso de leitura: `ListarClientes`, `ConsultarCliente`, `ConsultarResultado` (RN-01), `ListarSegmentos`, `ListarCatalogo` | T-33 | cenários `@aplicacao` | ✅ `leitura.feature` (17 cenários) |
-| T-35 | `internal/web` base: rotas, sessão HMAC, CSRF, limite de tentativas, cabeçalhos e CSP, Entrar, layout, static embutido, regra "web" no teste de arquitetura, `PAINEL_*`, `hash-senha`, montagem no `omega-server` | T-34 | cenários `@web` de sessão e segurança | ⬜ |
-| T-36 | Telas Clientes (busca, filtro, paginação) e Cadastrar cliente | T-35 | cenários `@web` de cadastro e busca | ⬜ |
-| T-37 | Ficha do cliente: cabeçalho com consentimento, Visão geral (etapas, perfil, segmento, recomendação), Eventos e Consentimento, com diálogos; sem JavaScript (PRG) e com htmx | T-36 | cenários `@web` de consentimento, processamento e eventos | ⬜ |
+| T-35 | `internal/web` base: rotas, sessão HMAC, CSRF, limite de tentativas, cabeçalhos e CSP, Entrar, layout, static embutido, regra "web" no teste de arquitetura, `PAINEL_*`, `hash-senha`, montagem no `omega-server` | T-34 | cenários `@web` de sessão e segurança | ✅ 9 cenários `@web`; testes de sessão, limitador e formatos |
+| T-36 | Telas Clientes (busca, filtro, paginação) e Cadastrar cliente | T-35 | cenários `@web` de cadastro e busca | ✅ 4 cenários `@web` |
+| T-37 | Ficha do cliente: cabeçalho com consentimento, Visão geral (etapas, perfil, segmento, recomendação), Eventos e Consentimento, com diálogos; sem JavaScript (PRG) e com htmx | T-36 | cenários `@web` de consentimento, processamento e eventos | ✅ 12 cenários `@web`; fluxo A conferido no navegador. T-35 a T-37 num só commit: as telas dividem layout, partes e funções de template |
 | T-38 | Segmentos, Catálogo e Operação; `@implantacao` confere `/painel/entrar` pelo Nginx; README, roteiro e checklist LGPD; acessibilidade | T-37 | `make bdd-implantacao`; fluxos A a E no navegador | ⬜ |
 
 ## Fechamento

@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"perfila/internal/infra/config"
 )
 
@@ -114,5 +116,20 @@ func TestArgumentosEConfig(t *testing.T) {
 	soToken := func(k string) string { return map[string]string{"AUTH_TOKEN": "x"}[k] }
 	if err := executar([]string{"expirar-recomendacoes"}, soToken, io.Discard); err != nil {
 		t.Fatalf("expirar-recomendacoes: %v", err)
+	}
+}
+
+// Spec: Q-28 — hash-senha imprime um bcrypt que confere com a senha e nunca a senha.
+func TestHashSenha(t *testing.T) {
+	var saida strings.Builder
+	if err := hashSenha(strings.NewReader("senha-sintetica-1\n"), &saida); err != nil {
+		t.Fatal(err)
+	}
+	h := strings.TrimSpace(saida.String())
+	if strings.Contains(h, "senha-sintetica-1") || bcrypt.CompareHashAndPassword([]byte(h), []byte("senha-sintetica-1")) != nil {
+		t.Fatalf("hash inválido: %q", h)
+	}
+	if err := hashSenha(strings.NewReader("curta\n"), io.Discard); err == nil {
+		t.Fatal("senha curta deveria falhar")
 	}
 }

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="htmx-config" content='{"includeIndicatorStyles":false,"allowEval":false,"allowScriptTags":false,"historyCacheSize":0,"responseHandling":[{"code":"204","swap":false},{"code":"[2345]..","swap":true}]}'>
+<title>{{.Titulo}} · Perfila</title>
+<link rel="stylesheet" href="{{estatico "perfila.css"}}">
+<script src="{{estatico "htmx-2.0.3.min.js"}}" defer></script>
+<script src="{{estatico "painel.js"}}" defer></script>
+</head>
+<body class="pf"{{if .CSRF}} hx-headers='{"X-CSRF-Token": "{{.CSRF}}"}'{{end}} hx-boost="true" hx-target="#app" hx-select="#app" hx-swap="outerHTML show:window:top">
+<a class="pf-skip" href="#principal">Pular para o conteúdo</a>
+<div id="app" class="pf-app{{if not .Operador}} pf-app--solo{{end}}">
+{{- if .Operador}}
+  <header class="pf-topbar">
+    <span class="pf-nav__brand">Perfila</span>
+    <button type="button" class="pf-btn pf-btn--sm" data-menu aria-expanded="false" aria-controls="navegacao">{{icone "menu"}} Menu</button>
+  </header>
+  {{template "nav" .}}
+{{- end}}
+  <main id="principal" class="{{if .Operador}}pf-main{{else}}pf-solo{{end}}" tabindex="-1">
+    {{template "conteudo" .}}
+  </main>
+  <div class="pf-toasts" role="status" aria-live="polite">
+    {{- if .Aviso}}
+    <div class="pf-toast" data-teste="toast">{{icone "ok"}}<span>{{.Aviso}}</span><button type="button" class="pf-toast__close" aria-label="Fechar aviso">{{icone "fechar"}}</button></div>
+    {{- end}}
+  </div>
+</div>
+</body>
+</html>

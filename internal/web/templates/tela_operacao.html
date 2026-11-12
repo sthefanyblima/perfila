@@ -1,0 +1,47 @@
+{{define "conteudo"}}{{with .Dados}}
+<header class="pf-header">
+  <ol class="pf-crumbs"><li>Operação</li><li aria-current="page">Saúde e expiração</li></ol>
+  <div class="pf-header__row"><h1 class="pf-header__title">Operação</h1></div>
+</header>
+<div class="pf-grid-2">
+  <section class="pf-panel" aria-labelledby="titulo-saude" data-teste="painel-saude">
+    <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-saude">Saúde</h2>
+      {{if .BancoOK}}<span class="pf-tag pf-tag--ok">{{icone "ok"}}Banco no ar</span>{{else}}<span class="pf-tag pf-tag--critical">{{icone "barra"}}Banco fora do ar</span>{{end}}
+    </div>
+    <div class="pf-panel__body">
+      {{if not .BancoOK}}<div class="pf-alert pf-alert--critical" role="alert">{{icone "barra"}}<div><p class="pf-alert__title">O banco de dados não está respondendo</p><p class="pf-alert__text">Nada foi alterado. Tente de novo em instantes.</p></div><a class="pf-btn pf-btn--sm pf-alert__acao" href="/painel/operacao">Tentar de novo</a></div>{{end}}
+      <dl class="pf-kv">
+        <dt>Armazenamento</dt><dd>{{if .ModoMemoria}}Memória (dados sintéticos, apagados ao reiniciar){{else}}PostgreSQL <span class="pf-mono">omega_db</span>{{end}}</dd>
+        <dt>Migrações</dt><dd class="pf-mono">{{if .Migracoes}}{{.Migracoes}}{{else}}—{{end}}</dd>
+      </dl>
+    </div>
+  </section>
+
+  <section class="pf-panel" aria-labelledby="titulo-expirar">
+    <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-expirar">Expirar recomendações vencidas</h2></div>
+    <div class="pf-panel__body">
+      <p>Recomendações ativas com validade vencida passam a Expirada e deixam de ser exibidas. É o mesmo efeito do comando <span class="pf-mono">expirar-recomendacoes</span>.</p>
+      {{if .Confirmar}}
+      <div class="pf-confirm" data-teste="confirmar-expirar">{{template "form-expirar" $.CSRF}}</div>
+      {{else}}
+      <div><a class="pf-btn pf-btn--primary" href="/painel/operacao/expirar" data-dialogo="dlg-expirar" hx-boost="false">Expirar agora</a></div>
+      {{end}}
+    </div>
+  </section>
+</div>
+{{if not .Confirmar}}<dialog class="pf-dialog" id="dlg-expirar" aria-labelledby="titulo-dlg-expirar">{{template "form-expirar" $.CSRF}}</dialog>{{end}}
+{{end}}{{end}}
+
+{{define "form-expirar"}}
+<form method="post" action="/painel/operacao/expirar">
+  {{template "csrf" .}}
+  <div class="pf-dialog__body">
+    <h2 class="pf-dialog__title" id="titulo-dlg-expirar">Expirar recomendações vencidas</h2>
+    <p>Recomendações ativas com validade até agora passam a Expirada e deixam de ser exibidas.</p>
+  </div>
+  <div class="pf-dialog__foot">
+    <a class="pf-btn" href="/painel/operacao" data-fechar-dialogo>Cancelar</a>
+    <button type="submit" class="pf-btn pf-btn--primary">Expirar agora</button>
+  </div>
+</form>
+{{end}}

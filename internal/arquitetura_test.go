@@ -22,14 +22,17 @@ type regra struct {
 }
 
 var regras = []regra{
-	{"domain", []string{modulo + "api", modulo + "application", modulo + "infra", "net/http", "database/sql"},
+	{"domain", []string{modulo + "api", modulo + "web", modulo + "application", modulo + "infra", "net/http", "database/sql"},
 		[]string{"github.com/google/uuid"}},
-	{"application", []string{modulo + "api", modulo + "infra", "net/http", "database/sql"},
+	{"application", []string{modulo + "api", modulo + "web", modulo + "infra", "net/http", "database/sql"},
 		[]string{"github.com/google/uuid"}},
-	{"shared", []string{modulo + "api", modulo + "application", modulo + "infra", modulo + "domain"}, nil},
-	{"api", []string{modulo + "infra", "database/sql"}, []string{"github.com/google/uuid"}},
+	{"shared", []string{modulo + "api", modulo + "web", modulo + "application", modulo + "infra", modulo + "domain"}, nil},
+	{"api", []string{modulo + "infra", modulo + "web", "database/sql"}, []string{"github.com/google/uuid"}},
+	// web é um adaptador de apresentação como api (Q-20): nunca infra, banco nem a própria api.
+	{"web", []string{modulo + "infra", modulo + "api", "database/sql"},
+		[]string{"github.com/google/uuid", "golang.org/x/crypto/bcrypt"}},
 	// infra → domain (C-01, C-02); o driver PostgreSQL só entra aqui (Q-10).
-	{"infra", []string{modulo + "api", modulo + "application"},
+	{"infra", []string{modulo + "api", modulo + "web", modulo + "application"},
 		[]string{"github.com/google/uuid", "github.com/jackc/pgx/v5/stdlib"}},
 }
 
