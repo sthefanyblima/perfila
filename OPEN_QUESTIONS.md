@@ -2,7 +2,7 @@
 
 Registro exigido por C-12. Mudança aprovada entra primeiro na Spec, depois nas features, depois no código.
 
-**Estado em 11/11/2026:** nenhuma pergunta aberta. Q-01 a Q-06 foram decididas (Spec v1.1); Q-07 a Q-10 surgiram ao iniciar a T-19 e foram decididas (Spec v1.2).
+**Estado em 11/11/2026:** nenhuma pergunta aberta. Q-01 a Q-06 foram decididas (Spec v1.1); Q-07 a Q-10 surgiram na T-19 e Q-11 a Q-14 na T-24; todas decididas (Spec v1.2).
 
 ## Decididas
 
@@ -18,6 +18,10 @@ Registro exigido por C-12. Mudança aprovada entra primeiro na Spec, depois nas 
 | Q-08 | No PostgreSQL, de onde vêm os segmentos `premium`/`engajado` e o catálogo de produtos? Não há rota para cadastrá-los (gestão pela API está fora do MVP) | **Migração própria de dados sintéticos** (`002_dados_demonstracao.sql`), com os mesmos IDs do modo memória. O `padrao` fica na migração inicial, como manda a Spec | "Segmentos entram por migração" (Spec 1); o catálogo segue o mesmo caminho por não ter outro. IDs iguais deixam memória e banco com o mesmo comportamento observável | Duas migrações; `memoria.CarregarDemonstracao` e a 002 mantêm os mesmos dados (um teste compara). Aceito no MVP: todo banco migrado recebe os dados sintéticos; fora do MVP, a 002 vira opcional |
 | Q-09 | Com duas réplicas (UML8), quem aplica as migrações? | **O próprio `omega-server` ao subir**, sob `pg_advisory_lock`, registrando cada versão em `schema_migracoes` | Evita um terceiro artefato ou subcomando fora do UML8; a trava impede que as duas réplicas migrem ao mesmo tempo e a tabela torna a operação idempotente | Nenhum subcomando novo |
 | Q-10 | Qual driver para "`database/sql` com driver compatível"? | **`github.com/jackc/pgx/v5/stdlib`** | Driver PostgreSQL mais mantido em Go, usado pela interface padrão `database/sql` exigida pela Spec; só `infra/repository/pg` o importa (teste de arquitetura passa a cobrir `infra`) | Nova dependência só na infraestrutura. Versão fixada em **v5.6.0** (com `golang.org/x/crypto v0.17.0`), a mais recente compatível com o Go 1.22 do CI; subir exige Go ≥ 1.23 no CI |
+| Q-11 | O cenário "as duas réplicas atenderam" precisa saber qual réplica respondeu, mas a API não expõe isso | **O Nginx devolve o cabeçalho `X-Omega-Replica` com o endereço da réplica** (`$upstream_addr`) | Fica na infraestrutura (UML8): nenhuma rota, campo ou DTO novo na API (C-04) | Só `nginx.conf` |
+| Q-12 | TLS no Nginx (Spec 3.8) sem certificado da equipe | **Certificado autoassinado gerado na primeira subida**, num volume; um certificado real pode ser montado no mesmo caminho. Só a porta HTTPS é publicada (`PERFILA_PORTA_HTTPS`, padrão 8443) | Demonstração reproduzível em qualquer máquina, sem segredo no repositório; "única porta de entrada" do UML8 | `deploy/nginx/` |
+| Q-13 | `@implantacao` sobe contêineres: entra no `make verify`? | **Não.** O filtro padrão passa a ser `~@slow && ~@wip`; `@implantacao` roda em `make bdd-implantacao` e num job próprio do CI | Mantém o portão de toda tarefa rápido e sem Docker; o plano já previa job separado | `features/bdd_test.go`, `Makefile`, CI |
+| Q-14 | Senha do banco e `AUTH_TOKEN` da implantação | **Gerados aleatoriamente** por `scripts/preparar-implantacao.sh` em `deploy/.env` e `deploy/config.env` (ignorados pelo git); a `DATABASE_URL` é montada pelo compose. Logs do Nginx sem IP do cliente e sem query string | Nenhum segredo versionado; IP é dado pessoal na LGPD, então os logs seguem C-09 também no balanceador | `deploy/`, `scripts/` |
 
 ## Decisões de modelagem (T-04)
 
