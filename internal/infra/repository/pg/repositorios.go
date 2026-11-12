@@ -350,9 +350,65 @@ func NovoPgConsentimentoRepository(db *sql.DB) *PgConsentimentoRepository {
 	return &PgConsentimentoRepository{db}
 }
 
+// executor é o que *sql.DB e *sql.Tx têm em comum para gravar.
+type executor interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+}
+
 // Salvar faz upsert por ClienteID e preserva o ID original.
 func (r *PgConsentimentoRepository) Salvar(ctx context.Context, c entity.ConsentimentoLGPD) error {
-	_, err := r.db.ExecContext(ctx, `
+	return salvarConsentimento(ctx, r.db, c)
+}
+
+// Registrar faz o upsert do registro e a inclusão do movimento numa transação. Spec: RN-10, Q-34.
+func (r *PgConsentimentoRepository) Registrar(ctx context.Context, c entity.ConsentimentoLGPD, m entity.MovimentoConsentimento) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("pg: abrindo transação do consentimento do cliente %s: %w", c.ClienteID, err)
+	}
+	defer tx.Rollback() //nolint:errcheck // sem efeito depois do Commit
+	if err := salvarConsentimento(ctx, tx, c); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO movimentos_consentimento (id, cliente_id, tipo, finalidade, versao_termo, data, origem, operador)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+		m.ID, m.ClienteID, string(m.Tipo), m.Finalidade, m.VersaoTermo, m.Data.UTC(), string(m.Origem), m.Operador); err != nil {
+		return fmt.Errorf("pg: gravando movimento do consentimento do cliente %s: %w", m.ClienteID, err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("pg: confirmando consentimento do cliente %s: %w", c.ClienteID, err)
+	}
+	return nil
+}
+
+// ListarMovimentos devolve os movimentos em ordem cronológica, com a ordem de gravação no empate.
+func (r *PgConsentimentoRepository) ListarMovimentos(ctx context.Context, clienteID uuid.UUID) ([]entity.MovimentoConsentimento, error) {
+	linhas, err := r.db.QueryContext(ctx, `
+		SELECT id, cliente_id, tipo, finalidade, versao_termo, data, origem, operador
+		FROM movimentos_consentimento WHERE cliente_id = $1 ORDER BY data, ordem`, clienteID)
+	if err != nil {
+		return nil, fmt.Errorf("pg: listando movimentos do cliente %s: %w", clienteID, err)
+	}
+	defer linhas.Close()
+	out := []entity.MovimentoConsentimento{}
+	for linhas.Next() {
+		var m entity.MovimentoConsentimento
+		var tipo, origem string
+		if err := linhas.Scan(&m.ID, &m.ClienteID, &tipo, &m.Finalidade, &m.VersaoTermo, &m.Data, &origem, &m.Operador); err != nil {
+			return nil, fmt.Errorf("pg: lendo movimento do cliente %s: %w", clienteID, err)
+		}
+		m.Tipo, m.Origem, m.Data = entity.TipoMovimento(tipo), entity.OrigemMovimento(origem), m.Data.UTC()
+		out = append(out, m)
+	}
+	if err := linhas.Err(); err != nil {
+		return nil, fmt.Errorf("pg: listando movimentos do cliente %s: %w", clienteID, err)
+	}
+	return out, nil
+}
+
+func salvarConsentimento(ctx context.Context, ex executor, c entity.ConsentimentoLGPD) error {
+	_, err := ex.ExecContext(ctx, `
 		INSERT INTO consentimentos_lgpd (id, cliente_id, status, finalidade, versao_termo,
 			data_consentimento, data_revogacao, data_atualizacao)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
