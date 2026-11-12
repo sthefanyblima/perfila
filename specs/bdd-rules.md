@@ -24,7 +24,7 @@ Na Spec, cada regra de negócio descreve o comportamento em prosa. No BDD, a mes
 | B-08 | **Dados sintéticos.** IDs como `c-001`, valores inventados. Nunca dados pessoais reais. |
 | B-09 | **Formato dos parâmetros.** Texto entre aspas duplas, números sem aspas, datas em ISO 8601 UTC. |
 | B-10 | **Cobertura mínima.** Cada RN, cada transição de estado (válida e inválida) e cada erro do catálogo da Spec 3.5 tem pelo menos um cenário. Cada UC tem fluxo feliz e pelo menos uma falha. Todo UC que processa dado pessoal tem cenário de consentimento inválido (`@lgpd`). |
-| B-11 | **Tags obrigatórias.** Pelo menos um `@UC-xx` ou `@RN-xx`, **exatamente uma** camada por cenário (`@dominio`, `@aplicacao`, `@api` ou `@implantacao`, herdada da feature ou declarada no cenário) e `@lgpd` quando aplicável. `@wip` nunca vai para a branch principal; `@slow` marca cenários que sobem contêineres. |
+| B-11 | **Tags obrigatórias.** Pelo menos um `@UC-xx` ou `@RN-xx`, **exatamente uma** camada por cenário (`@dominio`, `@aplicacao`, `@api`, `@web` ou `@implantacao`, herdada da feature ou declarada no cenário) e `@lgpd` quando aplicável. `@wip` nunca vai para a branch principal; `@slow` marca cenários que sobem contêineres. |
 | B-12 | **Passos finos.** Os step definitions só traduzem texto em chamadas e asserções; nenhuma regra de negócio dentro de um passo. Reutilizar passos existentes antes de criar novos. |
 | B-13 | **Independência.** Nenhum cenário depende de outro; o estado inicial vem sempre do Dado. |
 | B-14 | **Cenário vermelho é defeito.** Mudar um cenário exige mudar a Spec no mesmo PR, com aprovação do Guardião do BDD. O agente de IA nunca edita `.feature` para fazê-lo passar (C-12). |
@@ -51,6 +51,7 @@ Na Spec, cada regra de negócio descreve o comportamento em prosa. No BDD, a mes
 | `@dominio` | Entidades e serviços puros, com relógio fixo | Nenhuma | Milissegundos |
 | `@aplicacao` | Casos de uso com ports em memória (fakes) | Fakes em memória | Milissegundos |
 | `@api` | Handlers e middlewares via `httptest` | Fakes em memória | Milissegundos |
+| `@web` | Painel do operador via `httptest` (status, redirecionamentos e marcadores `data-teste` no HTML), sem navegador | Fakes em memória | Milissegundos |
 | (contrato, fora do BDD) | Os mesmos testes de contrato dos ports contra fake e PostgreSQL | PostgreSQL em contêiner | Segundos |
 | `@implantacao` `@slow` | Nginx, duas réplicas e banco reais | Docker Compose | Minutos |
 
@@ -110,6 +111,7 @@ As features vivem em `features/` e são a versão executável deste documento. E
 | `cliente.feature` | UC-09 (D-22) | `@aplicacao` | 6 | Core ✅ |
 | `api.feature` | UC-01..04, UC-08, UC-09, RN-09 | `@api` | 21 | Support ✅ (+1 Q-19) |
 | `implantacao.feature` | UML8 | `@implantacao @slow` | 3 | Generic ✅ (T-24) |
+| `painel.feature` | 3.7.1, UC-01, UC-08, UC-09, RN-01, RN-09, Q-21 a Q-24 | `@web` | 25 | Painel web (T-31 a T-38) |
 
 Total no `make verify`: **107 cenários, 725 passos, todos verdes**; mais 3 cenários `@implantacao` (11 passos) em `make bdd-implantacao`.
 
