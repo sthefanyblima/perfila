@@ -19,6 +19,8 @@ const num = `(-?\d+(?:\.\d+)?)`
 func InitializeScenario(sc *godog.ScenarioContext) {
 	m := novoMundo()
 	registrarPassosAPI(sc, m)
+	registrarPassosImplantacao(sc)
+	registrarPassosConfiguracao(sc, m)
 
 	// ---- comuns ----
 	sc.Step(`^que a data atual é "([^"]*)"$`, m.dataAtual)

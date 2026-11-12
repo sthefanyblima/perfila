@@ -42,6 +42,19 @@ Funcionalidade: Recomendação de produtos personalizados
     Então a recomendação é gravada 1 vez
     E a recomendação gravada está no estado "ATIVA"
 
+  @RN-08
+  Cenário: Uma nova recomendação substitui a ativa anterior
+    Dado que uma recomendação do cliente "c-001" já foi gerada
+    Quando a recomendação do cliente "c-001" é gerada
+    Então o cliente "c-001" tem 1 recomendação no estado "ATIVA"
+    E a recomendação anterior está no estado "EXPIRADA"
+
+  Cenário: Perfil segmentado num segmento inexistente é falha de configuração
+    Dado que o perfil do cliente "c-001" aponta para um segmento inexistente
+    Quando a recomendação do cliente "c-001" é gerada
+    Então a operação falha por erro de configuração
+    E nenhuma recomendação é gravada
+
   Cenário: Perfil ainda não segmentado não recebe recomendação
     Dado que o perfil do cliente "c-001" ainda não foi segmentado
     Quando a recomendação do cliente "c-001" é gerada

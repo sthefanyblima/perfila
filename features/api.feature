@@ -99,6 +99,7 @@ Funcionalidade: Processamento do cliente pela API
       | {"nome": "", "email": "x@exemplo.test"} |
       | {"nome": "Ana"                          |
       | {"nome": "Ana", "cpf": "000"}           |
+      | {"nome": "Ana", "email": "a@exemplo.test"} {"extra": 1} |
 
   @UC-01 @RN-04
   Cenário: Registrar um evento pela API

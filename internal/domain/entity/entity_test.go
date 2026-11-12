@@ -2,6 +2,7 @@ package entity
 
 import (
 	"errors"
+	"math"
 	"testing"
 	"time"
 
@@ -112,9 +113,23 @@ func TestEventoValidar(t *testing.T) {
 		func(e *EventoComportamental) { e.Tipo = "x" },
 		func(e *EventoComportamental) { e.Origem = " " },
 		func(e *EventoComportamental) { e.Timestamp = time.Time{} },
-		func(e *EventoComportamental) { e.Timestamp = agoraTeste.Add(time.Second) },
+		func(e *EventoComportamental) { e.Timestamp = agoraTeste.Add(ToleranciaRelogio + time.Second) }, // Q-16
 		func(e *EventoComportamental) { e.Valor = 0 },
 		func(e *EventoComportamental) { e.Tipo = TipoNavegacao; e.Valor = -1 },
+		func(e *EventoComportamental) { e.Valor = ValorMaximoEvento + 0.01 }, // Q-15
+		func(e *EventoComportamental) { e.Valor = math.Inf(1) },
+		func(e *EventoComportamental) { e.Valor = math.NaN() },
+	}
+	// Limites aceitos: tolerância de relógio e valor máximo (Q-15, Q-16).
+	for i, f := range []func(e *EventoComportamental){
+		func(e *EventoComportamental) { e.Timestamp = agoraTeste.Add(ToleranciaRelogio) },
+		func(e *EventoComportamental) { e.Valor = ValorMaximoEvento },
+	} {
+		e := base
+		f(&e)
+		if err := e.Validar(agoraTeste); err != nil {
+			t.Errorf("limite %d rejeitado: %v", i, err)
+		}
 	}
 	for i, f := range mut {
 		e := base

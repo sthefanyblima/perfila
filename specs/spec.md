@@ -2,7 +2,7 @@
 
 **Perfila — Sistema de Segmentação e Perfilamento do Comportamento do Cliente — Go**
 
-Equipe Omega · GoLang & CLP · Documento 1 de 3 · **Versão 1.1 (07/11/2026)** · Base: Módulos 1 a 5 (casos de uso, classes, pacotes, sequência, estados, componentes e implantação), transcritos em `docs/uml/UML1..UML8`
+Equipe Omega · GoLang & CLP · Documento 1 de 3 · **Versão 1.2 (11/11/2026)** · Base: Módulos 1 a 5 (casos de uso, classes, pacotes, sequência, estados, componentes e implantação), transcritos em `docs/uml/UML1..UML8`
 
 ## Como usar este documento
 
@@ -155,7 +155,7 @@ Desvios idiomáticos em relação aos diagramas (não são lacunas): `context.Co
 - **RN-01 Pré-condições comuns (UC-01 a UC-04).** Verificar nesta ordem: cliente existe (`ErrClienteNaoEncontrado`), cliente está ativo (`ErrClienteInativo`), consentimento é válido (`ErrConsentimentoInvalido`).
 - **RN-02 Consentimento válido.** Válido se e somente se Status é CONCEDIDO. A ausência de registro equivale a NAO_CONCEDIDO (D-02). A finalidade é registrada, mas no MVP não filtra o uso dos dados.
 - **RN-03 Revogação.** Tem efeito imediato: a partir dela, UC-01 a UC-04 falham com `ErrConsentimentoInvalido`. Dados já persistidos permanecem; retenção e eliminação ficam fora do MVP (D-13).
-- **RN-04 Validação de evento.** ClienteID não nulo; Tipo entre navegacao, compra e interacao; Origem não vazia; Timestamp não zero e menor ou igual a agora; Valor maior ou igual a zero; se Tipo é compra, Valor maior que zero. Qualquer violação: `ErrDadosInvalidos`.
+- **RN-04 Validação de evento.** ClienteID não nulo; Tipo entre navegacao, compra e interacao; Origem não vazia; Timestamp não zero e menor ou igual a agora mais 2 minutos de tolerância de relógio (Q-16); Valor maior ou igual a zero e no máximo 1.000.000 (Q-15); se Tipo é compra, Valor maior que zero. Qualquer violação: `ErrDadosInvalidos`.
 - **RN-05 Perfil.** Função pura dos eventos do cliente e do relógio:
     - FrequenciaCompras é o número de eventos do tipo compra.
     - TicketMedio é a média do Valor das compras (zero se não houver compras).
@@ -171,9 +171,10 @@ Desvios idiomáticos em relação aos diagramas (não são lacunas): `context.Co
     - número: decimal com ponto
     - A avaliação usa função própria, sem reflexão e sem execução dinâmica de código. Critério inválido: `ErrDadosInvalidos`. Todas as condições são validadas, mesmo depois de uma condição falsa, para que um critério mal escrito nunca passe despercebido.
     - Nenhum segmento ativo casa (só possível sem o segmento padrao): falha de configuração `ErrSemSegmentoAplicavel`, que não é erro de domínio e vira HTTP 500 (Q-02).
+    - Na segmentação (UC-03), um segmento configurado com critério inválido, e na recomendação (UC-04) um perfil apontando para segmento inexistente, também são falhas de configuração (`ErrSegmentoMalConfigurado`, HTTP 500), não erro do cliente (Q-17). A avaliação isolada de um critério continua devolvendo `ErrDadosInvalidos`.
     - O resultado é persistido em `PerfilCliente.SegmentoID` (D-06).
 - **RN-07 Recomendação (regra provisória, D-05).** Candidatos são os produtos ativos da CategoriaPreferida do perfil; escolhe-se o primeiro por Nome em ordem alfabética, com desempate por ID. Sem categoria ou sem candidatos: `ErrSemProdutoElegivel`, que não é falha (a API devolve recomendação nula). O Motivo segue o formato `segmento:<nome>;categoria:<categoria>`.
-- **RN-08 Ciclo da recomendação.** UC-04 cria e já disponibiliza: GERADA é transitória e a recomendação é persistida uma única vez, já em ATIVA. Validade é DataAtivacao mais `RECOMENDACAO_VALIDADE_DIAS` (padrão 30). Expira quando Validade é menor ou igual a agora, pelo comando `expirar-recomendacoes` (D-08).
+- **RN-08 Ciclo da recomendação.** UC-04 cria e já disponibiliza: GERADA é transitória e a recomendação é persistida uma única vez, já em ATIVA. Há no máximo uma recomendação ATIVA por cliente: antes de gravar a nova, UC-04 aplica `Expirar` às ATIVA anteriores do cliente (Q-18). Validade é DataAtivacao mais `RECOMENDACAO_VALIDADE_DIAS` (padrão 30). Expira quando Validade é menor ou igual a agora, pelo comando `expirar-recomendacoes` (D-08).
 - **RN-09 Processamento pela API.** O handler orquestra, nesta ordem, UC-01 (Executar), UC-02, UC-03 e UC-04, e devolve uma única resposta consolidada (sequência, passo 23). Erro em qualquer etapa interrompe o fluxo; o que já foi persistido permanece. `ErrSemProdutoElegivel` não interrompe.
 
 ### 3.4 Máquinas de estado
@@ -267,11 +268,12 @@ type PerfilRepository interface {
 }
 type SegmentoRepository interface {
     ListarAtivos(ctx context.Context) ([]entity.Segmento, error)            // ordem crescente de Prioridade
-    BuscarPorID(ctx context.Context, id uuid.UUID) (entity.Segmento, error) // [ADIÇÃO]
+    BuscarPorID(ctx context.Context, id uuid.UUID) (entity.Segmento, error) // [ADIÇÃO] ErrDadosInvalidos se inexistente
 }
 type RecomendacaoRepository interface {
     Salvar(ctx context.Context, r entity.RecomendacaoProduto) error // insere ou atualiza por ID
     ListarAtivasVencidas(ctx context.Context, agora time.Time) ([]entity.RecomendacaoProduto, error) // [ADIÇÃO]
+    ListarAtivasPorCliente(ctx context.Context, clienteID uuid.UUID) ([]entity.RecomendacaoProduto, error) // [ADIÇÃO] Q-18
 }
 type ConsentimentoRepository interface {
     Salvar(ctx context.Context, c entity.ConsentimentoLGPD) error // upsert por ClienteID
@@ -309,11 +311,12 @@ Proposta da equipe: os diagramas citam handlers, rotas e DTOs, mas não as defin
 | `PUT /v1/clientes/{clienteID}/consentimento` | UC-08 Conceder | finalidade e versaoTermo | 200 | Autenticação |
 | `POST /v1/clientes/{clienteID}/consentimento/revogacao` | UC-08 Revogar | — | 200 | Autenticação |
 | `GET /v1/clientes/{clienteID}/consentimento` | UC-08 Consultar | — | 200 com status e valido | Autenticação |
-| `GET /saude` | — | — | 200 | Nenhum (usado pelo balanceador) |
+| `GET /saude` | — | — | 200 com `status: ok`; 503 com `status: indisponivel` se o banco não responder (Q-19) | Nenhum (usado pelo balanceador) |
 
 - Autenticação por cabeçalho `Authorization: Bearer` com o valor de `AUTH_TOKEN` (D-16); ausente ou inválido responde 401.
 - Middleware LGPD: extrai o clienteID da rota e consulta `ValidadorLGPD`; sem consentimento válido responde 403 antes do handler. Os casos de uso repetem a checagem (C-03).
 - Erros: corpo JSON com as chaves `codigo` e `mensagem`, conforme a tabela da seção 3.5. Erros inesperados viram 500 sem detalhes internos.
+- Corpo de requisição: um único objeto JSON, sem campos desconhecidos e sem conteúdo depois dele; caso contrário, `dados_invalidos` (Q-19). Uma resposta que não puder ser serializada vira 500, nunca 200 com corpo vazio (Q-15).
 - Campos JSON em camelCase, com os mesmos nomes dos campos Go.
 
 ### 3.8 Configuração, estrutura de pastas e persistência
@@ -321,7 +324,7 @@ Proposta da equipe: os diagramas citam handlers, rotas e DTOs, mas não as defin
 | Variável | Padrão | Uso |
 |---|---|---|
 | `HTTP_PORT` | 8080 | Porta do servidor; o balanceador distribui para ela |
-| `DATABASE_URL` | vazia = modo memória (D-23) | Conexão com o PostgreSQL (porta 5432, banco omega_db); obrigatória a partir da fase Generic |
+| `DATABASE_URL` | vazia = modo memória (D-23) | Conexão com o PostgreSQL (porta 5432, banco omega_db). Preenchida: o servidor aplica as migrações ao subir e usa os `Pg*Repository`. A implantação (UML8) sempre a define; vazia só em desenvolvimento, BDD e demo local (Q-07) |
 | `AUTH_TOKEN` | obrigatória | Token Bearer (D-16) |
 | `RECOMENDACAO_VALIDADE_DIAS` | 30 | RN-08 |
 | `ENGAJAMENTO_META_EVENTOS` | 30 | RN-05 |
@@ -355,10 +358,12 @@ perfila/                          módulo Go `perfila`
 
 Persistência e implantação:
 
-- PostgreSQL via `database/sql` com driver compatível; migrações em SQL versionado; uma tabela por entidade (clientes, eventos_comportamentais, perfis_cliente, segmentos, recomendacoes_produto, consentimentos_lgpd, produtos), em snake_case.
-- Chaves UUID; timestamps em `timestamptz` (UTC); `UNIQUE(cliente_id)` em perfis_cliente e consentimentos_lgpd; `CHECK` nos enums de status; chaves estrangeiras para clientes.
-- A migração inicial cria o segmento padrao (critério vazio, Prioridade 99). Dados de teste são sintéticos.
+- PostgreSQL via `database/sql` com o driver `pgx/v5/stdlib` (Q-10); migrações em SQL versionado, embutidas no binário e aplicadas pelo `omega-server` ao subir, sob `pg_advisory_lock` e registradas em `schema_migracoes` (Q-09); uma tabela por entidade (clientes, eventos_comportamentais, perfis_cliente, segmentos, recomendacoes_produto, consentimentos_lgpd, produtos), em snake_case.
+- Chaves UUID; timestamps em `timestamptz` (UTC); `UNIQUE(cliente_id)` em perfis_cliente e consentimentos_lgpd; `CHECK` nos enums de status; chaves estrangeiras para clientes. Reforços de integridade que só repetem regras já existentes: chaves estrangeiras `perfis_cliente.segmento_id → segmentos` (D-06) e `recomendacoes_produto.produto_id → produtos` (D-05); `CHECK` de valor ≥ 0 nos eventos (RN-04), score entre 0 e 1 (RN-05) e preço ≥ 0 (`Produto.AtualizarPreco`).
+- A migração inicial cria o segmento padrao (critério vazio, Prioridade 99). Uma segunda migração carrega os segmentos e o catálogo sintéticos de demonstração, com os mesmos IDs do modo memória (Q-08). Dados de teste são sintéticos.
+- Uma suíte de contrato (`internal/infra/repository/contrato`) define o comportamento observável dos sete repositórios e roda contra os fakes em memória e contra o PostgreSQL (`PERFILA_TEST_DATABASE_URL`; sem ela, a parte PostgreSQL é pulada).
 - Binário estático `omega-server` em contêiner Docker com `config.env`; duas réplicas atrás de Nginx (TLS e proxy para a porta 8080); PostgreSQL em servidor próprio, nunca acessível do dispositivo do cliente.
+- Implantação (T-24): `deploy/docker-compose.yml` com `nginx`, `app1`, `app2` e `db`. Redes `aplicacao` (Nginx e réplicas) e `dados` (réplicas e banco, interna, sem porta publicada). Só o Nginx publica porta, a HTTPS (Q-12); ele identifica a réplica no cabeçalho `X-Omega-Replica` (Q-11), tira réplicas paradas do balanceamento e registra logs sem IP nem query string (Q-14). O administrador executa os subcomandos com `docker compose exec` (equivalente local do SSH do UML8). Segredos gerados por script, fora do git (Q-14). Cenários `@implantacao` rodam fora do `make verify` (Q-13).
 
 ### 3.9 Lacunas e inconsistências da modelagem (decisões)
 
@@ -387,7 +392,7 @@ Prioridade Alta: impede gerar código correto. Média: gera comportamento ambíg
 | D-19 | Classes | Associação "ConsentimentoLGPD 1 possui 0..1 PerfilCliente": o perfil pertence ao cliente, não ao consentimento | `Cliente 1 → 0..1 PerfilCliente` via `PerfilCliente.ClienteID` | Baixa |
 | D-20 | Estados × classes | O UML5 chama o atributo de `dataConcessao`; o UML2, de `dataConsentimento` | Vale o nome da classe: `DataConsentimento` | Baixa |
 | D-22 | Casos de uso, classes, sequência | Nenhum diagrama diz como um Cliente entra no sistema; todos os UCs exigem cliente existente | [ADIÇÃO] UC-09 `CadastrarClienteUseCase`, `NovoCliente` e `POST /v1/clientes`; acrescentar ao UML1 até 19/11 | Alta |
-| D-23 | Configuração | Até a fase Generic não há PostgreSQL, mas a API precisa rodar para demonstração | `DATABASE_URL` vazia = repositórios em memória com segmentos e catálogo sintéticos; com valor, o servidor recusa subir até T-19 | Baixa |
+| D-23 | Configuração | Até a fase Generic não há PostgreSQL, mas a API precisa rodar para demonstração | `DATABASE_URL` vazia = repositórios em memória com segmentos e catálogo sintéticos; com valor, PostgreSQL (desde a T-19, Q-07) | Baixa |
 | D-21 | Implantação | O produto foi nomeado **Perfila**, mas o UML8 usa `omega-server` e `omega_db` | Artefatos mantêm os nomes do diagrama; módulo Go e repositório usam `perfila` | Baixa |
 
 ## 4. Histórico de versões
@@ -395,5 +400,6 @@ Prioridade Alta: impede gerar código correto. Média: gera comportamento ambíg
 | Versão | Data | Mudanças |
 |---|---|---|
 | v0 | 27/10/2026 | Documento único (PDF) e depois dividido em três `.md` |
+| v1.2 | 11/11/2026 | Fase Generic (T-19): `DATABASE_URL` vazia mantém o modo memória fora da implantação (Q-07); dados de demonstração por migração (Q-08); migrações aplicadas pelo servidor com trava (Q-09); driver pgx (Q-10); suíte de contrato dos repositórios; reforços de integridade no esquema (FKs para segmentos e produtos, CHECKs de faixa); erro de `SegmentoRepository.BuscarPorID` explicitado. T-24: implantação com Nginx, duas réplicas e banco isolado (Q-11 a Q-14). Correções do mapeamento de bugs (Q-15 a Q-19): limite de Valor, tolerância de relógio, falhas de configuração como 500, uma recomendação ATIVA por cliente, `/saude` com o banco e corpo JSON único |
 | v1.1 | 07/11/2026 | UC-09 Cadastrar Cliente (D-22), `NovoCliente` e rota `POST /v1/clientes`; Support implementado (API, middlewares, CMD, gateways, configuração); D-01 a D-23 adotadas como finais; Q-01 a Q-06 decididas (Q-02 muda o erro de "nenhum segmento" para falha de configuração) |
 | **v1.0** | 03/11/2026 | Nome do produto (Perfila); Constituição movida para `CLAUDE.md`; diagramas transcritos em `docs/uml/UML1..UML8`; `ClassificaPerfil` → `ClassificarPerfil` (D-18); `NovoConsentimento`, `Precondicoes` e `ExpirarRecomendacoesUseCase` explicitados; atores de UC-08 corrigidos (D-17); D-07 e D-10 corrigidos; D-17 a D-21 novos; estrutura de pastas marcada por fase (Core, Support, Generic) |

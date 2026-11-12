@@ -79,6 +79,7 @@ func (m *Mundo) roteador() http.Handler {
 		GerarPerfil:   c.gerarPerfil,
 		Segmentar:     c.segmentar,
 		Recomendar:    c.recomendar,
+		Clock:         m.clock,
 	})
 }
 

@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 
 	"perfila/internal/application/usecase"
+	"perfila/internal/domain/port"
 	"perfila/internal/shared/errs"
 )
 
@@ -45,14 +46,21 @@ func LGPD(pre usecase.Precondicoes, log *slog.Logger, next http.Handler) http.Ha
 	})
 }
 
-// Registro loga método, caminho (que só carrega UUIDs), status e duração — nunca dados pessoais (C-09).
-func Registro(log *slog.Logger, next http.Handler) http.Handler {
+// Registro loga método, caminho (que só carrega UUIDs), status e duração — nunca dados pessoais
+// nem query string (C-09). A duração vem do Clock injetado (C-07); sem Clock, não é registrada.
+func Registro(log *slog.Logger, clock port.Clock, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		inicio := time.Now()
+		var inicio time.Time
+		if clock != nil {
+			inicio = clock.Agora()
+		}
 		rw := &statusWriter{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(rw, r)
-		log.InfoContext(r.Context(), "http", "metodo", r.Method, "caminho", r.URL.Path,
-			"status", rw.status, "duracaoMs", time.Since(inicio).Milliseconds())
+		attrs := []slog.Attr{slog.String("metodo", r.Method), slog.String("caminho", r.URL.Path), slog.Int("status", rw.status)}
+		if clock != nil {
+			attrs = append(attrs, slog.Int64("duracaoMs", clock.Agora().Sub(inicio).Milliseconds()))
+		}
+		log.LogAttrs(r.Context(), slog.LevelInfo, "http", attrs...)
 	})
 }
 

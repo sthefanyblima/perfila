@@ -40,6 +40,14 @@ Funcionalidade: Segmentação automática de clientes
     Quando o cliente "c-001" é segmentado
     Então a operação falha com o erro "perfil_nao_encontrado"
 
+  @aplicacao
+  Cenário: Segmento configurado com critério inválido é falha de configuração
+    Dado que o perfil do cliente "c-001" tem ticket médio 600, frequência de compras 4 e score de engajamento 0.2
+    E que existe o segmento ativo "quebrado" com prioridade 0 e critério "idade > 18"
+    Quando o cliente "c-001" é segmentado
+    Então a operação falha por erro de configuração
+    E o perfil do cliente "c-001" continua sem segmento
+
   @aplicacao @lgpd @RN-01
   Cenário: Sem consentimento válido o cliente não é segmentado
     Dado que o perfil do cliente "c-001" tem ticket médio 600, frequência de compras 4 e score de engajamento 0.2

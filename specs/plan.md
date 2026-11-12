@@ -2,7 +2,7 @@
 
 **Perfila — Sistema de Segmentação e Perfilamento do Comportamento do Cliente — Go**
 
-Equipe Omega · GoLang & CLP · Documento 2 de 3 · **Versão 1.0 (03/11/2026)**
+Equipe Omega · GoLang & CLP · Documento 2 de 3 · **Versão 1.2 (11/11/2026)**
 
 Este plano organiza como a equipe vai implementar o sistema com apoio de IA generativa seguindo Spec-Driven Development (SDD): a especificação é a fonte da verdade, o agente de código gera a implementação em tarefas pequenas e os cenários BDD provam que o resultado está certo. Referências: **Spec** é o Documento 1 (`specs/spec.md`), **Constituição** é o `CLAUDE.md` e **BDD** é o Documento 3 (`specs/bdd-rules.md` e `features/`). Os IDs C-xx, UC-xx, RN-xx e D-xx vêm da Spec. A lista de tarefas com status fica em `specs/tasks.md`.
 
@@ -73,9 +73,9 @@ Esforço relativo: P (pequeno), M (médio), G (grande). A ordem vai de dentro pa
 | F2 Domínio | Core | Entidades, estados e serviços | T-05 a T-12 | Features `@dominio` verdes; `domain` sem imports proibidos; cobertura ≥ 80% | G | **Concluída** |
 | F3 Aplicação | Core | Ports, fakes e casos de uso | T-13 a T-18 | Features `@aplicacao` verdes com fakes em memória | M | **Concluída** |
 | F5 Apresentação | Support | API, middlewares, CMD, gateways, configuração | T-20 a T-23 | Features `@api` verdes, incluindo o processamento ponta a ponta | M | **Concluída** (07/11, adiantada) |
-| F4 Infraestrutura | Generic | PostgreSQL e suíte de contrato | T-19 | Suíte de contrato passa com o fake em memória e com o PostgreSQL | M | 16–19/11 |
-| F6 Implantação | Generic | Contêiner, balanceador e réplicas | T-24 | Features `@implantacao` verdes (réplicas: corte planejado) | M | 16–19/11 |
-| F7 Fechamento | Generic | Conformidade, documentação e demonstração | T-25 | Checklist LGPD; README; roteiro de demonstração | P | Parcial (README e demo do core prontos) |
+| F4 Infraestrutura | Generic | PostgreSQL e suíte de contrato | T-19 | Suíte de contrato passa com o fake em memória e com o PostgreSQL | M | **Concluída** (11/11, adiantada) |
+| F6 Implantação | Generic | Contêiner, balanceador e réplicas | T-24 | Features `@implantacao` verdes (réplicas: corte planejado) | M | **Concluída** (11/11, com duas réplicas) |
+| F7 Fechamento | Generic | Conformidade, documentação e demonstração | T-25 | Checklist LGPD; README; roteiro de demonstração | P | **Concluída** (11/11) |
 
 A API (F5) vem antes do PostgreSQL (F4) porque roda sobre os fakes em memória: a fase Support entrega o fluxo HTTP completo sem depender de banco, e a Generic só troca a infraestrutura.
 

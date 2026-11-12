@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 
@@ -26,9 +27,15 @@ func statusPorCodigo(codigo string) int {
 }
 
 func escreverJSON(w http.ResponseWriter, status int, corpo any) {
+	// Serializa antes de escrever o status: uma falha vira 500, nunca 200 com corpo vazio (Q-15).
+	b, err := json.Marshal(corpo)
+	if err != nil {
+		status = http.StatusInternalServerError
+		b = []byte(`{"codigo":"erro_interno","mensagem":"erro inesperado"}`)
+	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(corpo)
+	_, _ = w.Write(append(b, '\n'))
 }
 
 // escreverErro responde {codigo, mensagem}; erros inesperados viram 500 sem detalhes internos.
@@ -51,6 +58,10 @@ func lerJSON(r *http.Request, destino any) error {
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(destino); err != nil {
 		return fmt.Errorf("%w: corpo JSON inválido", errs.ErrDadosInvalidos)
+	}
+	// Um único objeto: conteúdo depois dele torna o corpo ambíguo (Q-19).
+	if _, err := dec.Token(); !errors.Is(err, io.EOF) {
+		return fmt.Errorf("%w: conteúdo depois do objeto JSON", errs.ErrDadosInvalidos)
 	}
 	return nil
 }

@@ -1,13 +1,16 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"io"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"perfila/internal/application/usecase"
 	"perfila/internal/domain/entity"
+	"perfila/internal/domain/port"
 	"perfila/internal/shared/errs"
 )
 
@@ -22,6 +25,9 @@ type Dependencias struct {
 	Segmentar     *usecase.SegmentarClienteUseCase
 	Recomendar    *usecase.GerarRecomendacaoUseCase
 	Log           *slog.Logger
+	Clock         port.Clock // duração no log de acesso (C-07); opcional
+	// Saude confere as dependências (o banco, no modo PostgreSQL); nil = sempre saudável (Q-19).
+	Saude func(ctx context.Context) error
 }
 
 type handlers struct{ d Dependencias }
@@ -45,11 +51,21 @@ func NovoRouter(d Dependencias) http.Handler {
 	mux.Handle("PUT /v1/clientes/{clienteID}/consentimento", auth(h.concederConsentimento))
 	mux.Handle("POST /v1/clientes/{clienteID}/consentimento/revogacao", auth(h.revogarConsentimento))
 	mux.Handle("GET /v1/clientes/{clienteID}/consentimento", auth(h.consultarConsentimento))
-	return Registro(d.Log, mux)
+	return Registro(d.Log, d.Clock, mux)
 }
 
-// GET /saude — usado pelo balanceador; sem autenticação.
-func (h handlers) saude(w http.ResponseWriter, _ *http.Request) {
+// GET /saude — usado pelo balanceador e pelo healthcheck; sem autenticação.
+// 503 se o banco não responder em 2 s (Q-19). A causa vai só para o log.
+func (h handlers) saude(w http.ResponseWriter, r *http.Request) {
+	if h.d.Saude != nil {
+		ctx, cancelar := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancelar()
+		if err := h.d.Saude(ctx); err != nil {
+			h.d.Log.WarnContext(r.Context(), "saude_indisponivel", "erro", err.Error())
+			escreverJSON(w, http.StatusServiceUnavailable, map[string]string{"status": "indisponivel"})
+			return
+		}
+	}
 	escreverJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 

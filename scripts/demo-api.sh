@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
-# Demonstração da API (fase Support) contra um omega-server rodando: make serve
+# Demonstração da API contra um omega-server rodando: make serve (memória) ou, pela
+# implantação do UML8, make demo-implantacao (Nginx com TLS + PostgreSQL).
 # Uso: scripts/demo-api.sh [URL] [TOKEN]
+# PERFILA_CA: certificado a confiar (o da implantação é autoassinado, Q-12).
 set -euo pipefail
 URL="${1:-http://localhost:8080}"
 TOKEN="${2:-dev-token}"
-H=(-sS -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json")
+TLS=()
+if [ -n "${PERFILA_CA:-}" ]; then TLS=(--cacert "$PERFILA_CA"); fi
+H=(-sS ${TLS[@]+"${TLS[@]}"} -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json")
 passo() { printf '\n\033[1m[%s] %s\033[0m\n' "$1" "$2"; }
 json() { if command -v jq >/dev/null; then jq .; else cat; echo; fi; }
 
 passo "GET /saude" "sem token"
-curl -sS "$URL/saude" | json
+curl -sS ${TLS[@]+"${TLS[@]}"} "$URL/saude" | json
 
 passo "UC-09" "POST /v1/clientes"
 ID=$(curl "${H[@]}" -X POST "$URL/v1/clientes" -d '{"nome":"Cliente Sintético","email":"c-001@exemplo.test"}' \

@@ -35,13 +35,14 @@ type PerfilRepository interface {
 // SegmentoRepository. ListarAtivos devolve em ordem crescente de Prioridade (RN-06).
 type SegmentoRepository interface {
 	ListarAtivos(ctx context.Context) ([]entity.Segmento, error)
-	BuscarPorID(ctx context.Context, id uuid.UUID) (entity.Segmento, error) // [ADIÇÃO]
+	BuscarPorID(ctx context.Context, id uuid.UUID) (entity.Segmento, error) // [ADIÇÃO] errs.ErrDadosInvalidos se inexistente
 }
 
 // RecomendacaoRepository. Salvar insere ou atualiza por ID.
 type RecomendacaoRepository interface {
 	Salvar(ctx context.Context, r entity.RecomendacaoProduto) error
-	ListarAtivasVencidas(ctx context.Context, agora time.Time) ([]entity.RecomendacaoProduto, error) // [ADIÇÃO]
+	ListarAtivasVencidas(ctx context.Context, agora time.Time) ([]entity.RecomendacaoProduto, error)       // [ADIÇÃO]
+	ListarAtivasPorCliente(ctx context.Context, clienteID uuid.UUID) ([]entity.RecomendacaoProduto, error) // [ADIÇÃO] Q-18
 }
 
 // ConsentimentoRepository. Salvar faz upsert por ClienteID.

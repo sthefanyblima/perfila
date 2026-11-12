@@ -7,6 +7,20 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    # PostgreSQL para a suíte de contrato e o fluxo ponta a ponta sobre o banco (T-19).
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: omega
+          POSTGRES_PASSWORD: omega
+          POSTGRES_DB: omega_db
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U omega -d omega_db"
+          --health-interval 2s --health-timeout 5s --health-retries 20
+    env:
+      PERFILA_TEST_DATABASE_URL: postgres://omega:omega@localhost:5432/omega_db?sslmode=disable
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -14,3 +28,19 @@ jobs:
           go-version: "1.22"
       - run: make verify
       - run: make cover
+
+  # Cenários @implantacao (@slow): sobem Nginx, duas réplicas e PostgreSQL (T-24, Q-13).
+  implantacao:
+    runs-on: ubuntu-latest
+    needs: verify
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - run: make implantar
+      - run: make bdd-implantacao
+      - if: failure()
+        run: docker compose -f deploy/docker-compose.yml logs --no-color
+      - if: always()
+        run: docker compose -f deploy/docker-compose.yml down -v

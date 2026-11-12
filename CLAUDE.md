@@ -2,7 +2,7 @@
 
 > Constituição do projeto para o agente de código (Claude Code). Lida automaticamente no início de cada sessão.
 > **Sistema de Segmentação e Perfilamento do Comportamento do Cliente** · Equipe Omega · Go 1.22+
-> Versão da Spec: **v1.1** · Core e Support concluídos · próxima fase: **Generic** (16–19/11) · escopo fecha em **19/11** · evento final **24/11**
+> Versão da Spec: **v1.2** · MVP concluído (Core, Support e Generic; T-01 a T-30) · daqui até 19/11, só correções · escopo fecha em **19/11** · evento final **24/11**
 
 ## 1. O que é o projeto
 
@@ -42,6 +42,7 @@ make verify   # gofmt + go vet + testes (-race) + BDD + teste de arquitetura —
 make bdd      # só os cenários (filtro da fase em features/bdd_test.go; BDD_TAGS sobrescreve)
 make cover    # cobertura de domínio + aplicação (portão F2: >= 80%)
 make demo     # fluxo do diagrama de sequência em memória
+make implantar && make bdd-implantacao   # UML8 no Docker (Nginx + 2 réplicas + PostgreSQL) e cenários @implantacao
 ```
 
 ## 4. Constituição (regras invioláveis)
@@ -83,8 +84,9 @@ Aceite: cenários <tags> verdes; make verify verde; mudança de até ~300 linhas
 
 ## 6. Convenções rápidas
 
-- Camadas: `internal/domain/{entity,port,service}`, `internal/application/usecase`, `internal/infra/{memoria,relogio,repository/pg,external,config}`, `internal/api`, `internal/shared/errs`, `cmd/`.
+- Camadas: `internal/domain/{entity,port,service}`, `internal/application/usecase`, `internal/infra/{memoria,relogio,repository/pg,repository/contrato,external,config}`, `internal/api`, `internal/shared/errs`, `cmd/`.
 - Erro → código: `errs.Codigo(err)` devolve o código estável (`consentimento_invalido`, …) usado pela API e pelos cenários.
 - Fakes em memória (`internal/infra/memoria`) são a infraestrutura dos cenários `@dominio` e `@aplicacao` e da demo.
-- `@implantacao` fica fora do filtro do BDD até a fase Generic; `@api` já roda.
-- Sem `DATABASE_URL`, o `omega-server` usa repositórios em memória com dados sintéticos (D-23).
+- `@implantacao` (`@slow`) fica fora do `make verify` e roda com `make implantar` + `make bdd-implantacao` (Q-13); `@api` roda no verify.
+- Sem `DATABASE_URL`, o `omega-server` usa repositórios em memória com dados sintéticos (D-23); com ela, PostgreSQL com migrações aplicadas ao subir (Q-07, Q-09). A implantação sempre a define.
+- Repositório novo ou alterado: a suíte `internal/infra/repository/contrato` precisa passar nos dois backends (`make pg-teste`).

@@ -43,6 +43,8 @@ type Mundo struct {
 	segmento          entity.Segmento
 	recomendacao      entity.RecomendacaoProduto
 	temRecomendacao   bool
+	// recomendação gerada antes da ação do cenário (Q-18)
+	recomendacaoAnteriorID uuid.UUID
 
 	api estadoAPI
 }

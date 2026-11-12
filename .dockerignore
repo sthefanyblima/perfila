@@ -1,0 +1,10 @@
+.git
+.github
+bin
+docs
+features
+specs
+coverage.out
+**/*_test.go
+deploy/.env
+deploy/config.env

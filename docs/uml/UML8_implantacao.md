@@ -43,7 +43,7 @@ flowchart LR
 | Variável | Padrão | Uso |
 |---|---|---|
 | `HTTP_PORT` | 8080 | porta do servidor |
-| `DATABASE_URL` | obrigatória | PostgreSQL :5432, banco `omega_db` |
+| `DATABASE_URL` | obrigatória na implantação | PostgreSQL :5432, banco `omega_db`; vazia = modo memória, só fora da implantação (D-23, Q-07) |
 | `AUTH_TOKEN` | obrigatória | token Bearer (D-16) |
 | `RECOMENDACAO_VALIDADE_DIAS` | 30 | RN-08 |
 | `ENGAJAMENTO_META_EVENTOS` | 30 | RN-05 (deve ser > 0) |
