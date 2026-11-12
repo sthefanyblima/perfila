@@ -50,6 +50,12 @@
   --btn-bg: #E6E9ED; --btn-ink: #16191D; --btn-hover: #DADEE4;
   --danger-bg: #B42318; --danger-hover: #912018; --on-danger: #FFFFFF;
   --shadow-btn: 0 1px 2px rgba(16, 24, 40, 0.14);
+  /* Etiquetas preenchidas (cor cheia, sem borda) */
+  --tag-ok-bg: #157F3B; --tag-ok-ink: #FFFFFF;
+  --tag-warn-bg: #A15C00; --tag-warn-ink: #FFFFFF;
+  --tag-critical-bg: #B42318; --tag-critical-ink: #FFFFFF;
+  --tag-neutral-bg: #E4E7EB; --tag-neutral-ink: #3F4650;
+  --tag-accent-bg: #8A3E7A; --tag-accent-ink: #FFFFFF;
   --focus: var(--brand);
   --scrim: #16191D;
   --shadow-overlay: 0 10px 28px rgba(22, 25, 29, 0.16), 0 2px 4px rgba(22, 25, 29, 0.08);
@@ -82,6 +88,11 @@
     --btn-bg: #2E333A; --btn-ink: #E8EAED; --btn-hover: #383E46;
     --danger-bg: #C9302C; --danger-hover: #A82824; --on-danger: #FFFFFF;
     --shadow-btn: 0 1px 2px rgba(0, 0, 0, 0.45);
+    --tag-ok-bg: #22C55E; --tag-ok-ink: #0B1215;
+    --tag-warn-bg: #F59E0B; --tag-warn-ink: #16191D;
+    --tag-critical-bg: #C9302C; --tag-critical-ink: #FFFFFF;
+    --tag-neutral-bg: #343A41; --tag-neutral-ink: #D5DAE1;
+    --tag-accent-bg: #E0A3D2; --tag-accent-ink: #1C0F19;
     --scrim: #000000;
     --shadow-overlay: 0 10px 28px rgba(0, 0, 0, 0.55), 0 2px 4px rgba(0, 0, 0, 0.45);
   }
@@ -185,16 +196,15 @@ body.pf {
 .pf-tag {
   display: inline-flex; align-items: center; gap: var(--space-1);
   height: 24px; padding: 0 var(--space-2) 0 7px; border-radius: var(--radius-1);
-  font: 600 12px/16px var(--font-sans); white-space: nowrap; border: 1px solid transparent;
+  font: 600 12px/16px var(--font-sans); white-space: nowrap; border: 0;
 }
 .pf-tag .pf-ico { width: 13px; height: 13px; }
-.pf-tag--ok { color: var(--ok); background: var(--ok-tint); border-color: var(--ok-solid); }
-.pf-tag--ok .pf-ico { color: var(--ok-solid); }
-.pf-tag--warn { color: var(--warn); background: var(--warn-tint); border-color: var(--warn); }
-.pf-tag--critical { color: var(--critical); background: var(--critical-tint); border-color: var(--critical); }
-.pf-tag--neutral { color: var(--neutral); background: var(--neutral-tint); border-color: var(--line-strong); border-style: dashed; }
-.pf-tag--neutral.pf-tag--solid { border-style: solid; }
-.pf-tag--accent { color: var(--accent); background: var(--accent-tint); border-color: var(--accent); }
+.pf-tag--ok { color: var(--tag-ok-ink); background: var(--tag-ok-bg); }
+.pf-tag--ok .pf-ico__visto { stroke: var(--tag-ok-bg); }
+.pf-tag--warn { color: var(--tag-warn-ink); background: var(--tag-warn-bg); }
+.pf-tag--critical { color: var(--tag-critical-ink); background: var(--tag-critical-bg); }
+.pf-tag--neutral { color: var(--tag-neutral-ink); background: var(--tag-neutral-bg); }
+.pf-tag--accent { color: var(--tag-accent-ink); background: var(--tag-accent-bg); }
 
 /* UuidTag ------------------------------------------------------------ */
 .pf-uuid { display: inline-flex; align-items: center; gap: var(--space-1); font: 400 12px/16px var(--font-mono); color: var(--ink-muted); }
@@ -301,10 +311,10 @@ body.pf {
 .pf-crit { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
 .pf-crit__cond { display: inline-flex; align-items: center; gap: var(--space-1); height: 26px; padding: 0 var(--space-2); border: 1px solid var(--line-strong); border-radius: var(--radius-1); background: var(--surface-1); font: 400 12px/16px var(--font-mono); }
 .pf-crit__cond .pf-ico { width: 13px; height: 13px; }
-.pf-crit__cond--met { border-color: var(--ok-solid); color: var(--ok); background: var(--ok-tint); font-weight: 500; }
-.pf-crit__cond--met .pf-ico { color: var(--ok-solid); }
-.pf-crit__cond--unmet { border-style: dashed; color: var(--ink-muted); }
-.pf-crit__cond--info { border-color: var(--accent); color: var(--accent); background: var(--accent-tint); }
+.pf-crit__cond--met { border-color: var(--tag-ok-bg); color: var(--tag-ok-ink); background: var(--tag-ok-bg); font-weight: 600; }
+.pf-crit__cond--met .pf-ico__visto { stroke: var(--tag-ok-bg); }
+.pf-crit__cond--unmet { border-style: dashed; color: var(--ink-muted); background: var(--surface-2); }
+.pf-crit__cond--info { border-color: var(--tag-accent-bg); color: var(--tag-accent-ink); background: var(--tag-accent-bg); }
 .pf-crit__and { font: 600 11px/14px var(--font-sans); letter-spacing: 0.06em; color: var(--ink-muted); }
 .pf-crit__always { font-size: 12px; color: var(--ink-muted); font-style: italic; }
 
