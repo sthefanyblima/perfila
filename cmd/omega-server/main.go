@@ -202,12 +202,11 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 		log.Warn("painel_desligado", "detalhe", "defina PAINEL_SENHA_HASH e PAINEL_CHAVE_SESSAO para ligar o painel (Q-29)")
 	}
 	return aplicacao{
-		log:     log,
-		handler: mux,
-		expirar: expirar,
-		exemplos: exemplos{clientes: repos.clientes, clock: clock, metaEventos: cfg.EngajamentoMetaEventos,
-			cadastrar: cadastrar, consentimento: consentimento, coletar: coletar, processar: processar},
-		fechar: repos.fechar,
+		log:      log,
+		handler:  mux,
+		expirar:  expirar,
+		exemplos: exemplos{repos: repos, clock: clock, metaEventos: cfg.EngajamentoMetaEventos, validadeDias: cfg.RecomendacaoValidadeDias},
+		fechar:   repos.fechar,
 	}, nil
 }
 

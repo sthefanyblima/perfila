@@ -333,6 +333,18 @@ body.pf {
 .pf-timeline__sub { font-size: 12px; color: var(--ink-muted); }
 .pf-timeline__value { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
 
+/* Linha do tempo do consentimento ------------------------------------- */
+.pf-marcos { list-style: none; margin: 0; padding: 0; display: grid; }
+.pf-marco { display: grid; grid-template-columns: 28px 1fr auto; gap: var(--space-3); align-items: center; padding: var(--space-3) 0; border-bottom: 1px solid var(--line); }
+.pf-marco:last-child { border-bottom: 0; }
+.pf-marco__ico { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--tag-neutral-bg); color: var(--tag-neutral-ink); }
+.pf-marco__ico .pf-ico { width: 15px; height: 15px; }
+.pf-marco--ok .pf-marco__ico { background: var(--tag-ok-bg); color: var(--tag-ok-ink); }
+.pf-marco--ok .pf-ico circle { fill: none; }
+.pf-marco--ok .pf-ico__visto { stroke: currentColor; stroke-width: 2; }
+.pf-marco--barra .pf-marco__ico { background: var(--tag-critical-bg); color: var(--tag-critical-ink); }
+.pf-marco__data { font: 400 12px/16px var(--font-mono); color: var(--ink-muted); white-space: nowrap; }
+
 /* PipelineTrace ------------------------------------------------------ */
 .pf-pipe { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); }
 .pf-pipe__step { position: relative; display: grid; gap: 6px; align-content: start; padding: 18px var(--space-4) var(--space-4); min-width: 0; border: 1px solid var(--line); border-radius: var(--radius-2); background: var(--surface-1); overflow: hidden; }

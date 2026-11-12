@@ -183,9 +183,10 @@ func NovoConsultarResultadoUseCase(pre Precondicoes, eventos port.EventoReposito
 		recomendacoes: recomendacoes, produtos: produtos}
 }
 
-// Executar aplica RN-01 antes de ler qualquer dado de comportamento. Spec: RN-01.
+// Executar confere cliente e consentimento antes de ler qualquer dado de comportamento; cliente
+// inativo é só leitura (Q-31). Spec: RN-01, C-03.
 func (uc *ConsultarResultadoUseCase) Executar(ctx context.Context, clienteID uuid.UUID) (ResultadoCliente, error) {
-	if _, err := uc.pre.Verificar(ctx, clienteID); err != nil {
+	if _, err := uc.pre.VerificarLeitura(ctx, clienteID); err != nil {
 		return ResultadoCliente{}, err
 	}
 	var res ResultadoCliente

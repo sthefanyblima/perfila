@@ -69,7 +69,7 @@ demo-implantacao: ## roteiro da API pelo Nginx (HTTPS) gravando no PostgreSQL (m
 expirar: ## administrador: expira recomendações vencidas na réplica app1 (UML8, via exec)
 	$(COMPOSE) exec app1 omega-server -config /etc/omega/config.env expirar-recomendacoes
 
-exemplos: ## carrega os 7 clientes de exemplo na implantação, se o banco não tiver clientes (Q-30)
+exemplos: ## carrega os 14 clientes de exemplo na implantação, se o banco não tiver clientes (Q-30, Q-32)
 	$(COMPOSE) exec app1 omega-server -config /etc/omega/config.env carregar-exemplos
 
 derrubar: ## derruba a implantação (mantém os dados; apague com: $(COMPOSE) down -v)

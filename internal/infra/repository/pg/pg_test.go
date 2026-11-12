@@ -106,7 +106,7 @@ func TestMigracoes(t *testing.T) {
 		versoes = append(versoes, v)
 	}
 	linhas.Close()
-	if !reflect.DeepEqual(versoes, []string{"001_inicial", "002_dados_demonstracao", "003_recomendacoes_ativas_por_cliente", "004_listagem_de_clientes"}) {
+	if !reflect.DeepEqual(versoes, []string{"001_inicial", "002_dados_demonstracao", "003_recomendacoes_ativas_por_cliente", "004_listagem_de_clientes", "005_demonstracao_ampliada"}) {
 		t.Fatalf("migrações registradas: %v", versoes)
 	}
 	aplicadas, err := pg.Migrar(ctx, db)
@@ -128,7 +128,7 @@ func TestMigracoes(t *testing.T) {
 	if todos, err := pg.NovoPgProdutoRepository(db).ListarTodos(ctx); err != nil || !reflect.DeepEqual(todos, todosMem) {
 		t.Fatalf("catálogo completo (%v):\n obtido   %+v\n esperado %+v", err, todos, todosMem)
 	}
-	for _, categoria := range []string{"livros", "games", "eletronicos"} {
+	for _, categoria := range []string{"livros", "games", "eletronicos", "moda", "casa", "beleza", "esportes"} {
 		esperado, _ := memProd.ListarAtivosPorCategoria(ctx, categoria)
 		obtido, err := pg.NovoPgProdutoRepository(db).ListarAtivosPorCategoria(ctx, categoria)
 		sort.Slice(esperado, func(i, j int) bool { return esperado[i].Nome < esperado[j].Nome })

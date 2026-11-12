@@ -5,14 +5,17 @@
   {{if .Bloqueio}}
     {{template "alerta" .Bloqueio}}
   {{else}}
+    {{with .Inativo}}{{template "alerta" .}}{{end}}
     {{with .Falha}}{{template "alerta" .}}{{end}}
     <section class="pf-panel" aria-labelledby="titulo-processamento" id="painel-processamento" data-teste="painel-processamento">
       <div class="pf-panel__head">
         <h2 class="pf-panel__title" id="titulo-processamento">Processamento</h2>
+        {{if .PodeAgir}}
         <form method="post" action="/painel/clientes/{{.Cliente.ID}}/processamento">
           {{template "csrf" $.CSRF}}
           <button type="submit" class="pf-btn pf-btn--primary" data-teste="acao-processar">{{icone "processar"}} Processar agora</button>
         </form>
+        {{else}}<span class="pf-btn-motivo">Cadastro inativo: processamento bloqueado</span>{{end}}
       </div>
       <div class="pf-panel__body">
         <ol class="pf-pipe" aria-label="Etapas do processamento">
@@ -104,12 +107,13 @@
 
 {{else if eq .Aba "eventos"}}
   {{with .Bloqueio}}{{template "alerta" .}}{{end}}
+  {{with .Inativo}}{{template "alerta" .}}{{end}}
   {{with .Falha}}{{template "alerta" .}}{{end}}
   <section class="pf-panel" aria-labelledby="titulo-registrar">
     <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-registrar">Registrar evento</h2></div>
     <form class="pf-panel__body" method="post" action="/painel/clientes/{{.Cliente.ID}}/eventos" data-teste="form-evento">
       {{template "csrf" $.CSRF}}
-      <fieldset class="pf-fieldset"{{if not .Valido}} disabled aria-describedby="motivo-evento"{{end}}>
+      <fieldset class="pf-fieldset"{{if not .PodeAgir}} disabled aria-describedby="motivo-evento"{{end}}>
         <legend class="pf-sr">Dados do evento</legend>
         <div class="pf-grid-form">
           <div class="pf-field">
@@ -143,7 +147,7 @@
         </div>
         <div class="pf-form__foot">
           <button type="submit" class="pf-btn pf-btn--primary">Registrar evento</button>
-          {{if not .Valido}}<span class="pf-btn-motivo" id="motivo-evento">Conceda o consentimento para registrar eventos.</span>{{end}}
+          {{if not .Valido}}<span class="pf-btn-motivo" id="motivo-evento">Conceda o consentimento para registrar eventos.</span>{{else if not .Cliente.Ativo}}<span class="pf-btn-motivo" id="motivo-evento">Cadastro inativo: novos eventos bloqueados.</span>{{end}}
         </div>
       </fieldset>
     </form>
@@ -186,6 +190,20 @@
       <dt>Última atualização</dt><dd class="pf-num">{{if eq (estado .Consentimento.Status) "NAO_CONCEDIDO"}}—{{else}}{{dataHora .Consentimento.DataAtualizacao}}{{end}}</dd>
     </dl>
     <p class="pf-muted pf-small">A data da revogação continua registrada depois de uma nova concessão, como prova do histórico.</p>
+    </div>
+  </section>
+  <section class="pf-panel" aria-labelledby="titulo-linha-consentimento" data-teste="linha-consentimento">
+    <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-linha-consentimento">Linha do tempo</h2><span class="pf-muted pf-small">Do mais recente para o mais antigo</span></div>
+    <div class="pf-panel__body">
+      <ol class="pf-marcos">
+        {{range .LinhaConsentimento}}
+        <li class="pf-marco pf-marco--{{.Icone}}">
+          <span class="pf-marco__ico" aria-hidden="true">{{icone .Icone}}</span>
+          <div><strong>{{.Titulo}}</strong><br><span class="pf-muted pf-small">{{.Detalhe}}</span></div>
+          <span class="pf-marco__data pf-num">{{dataHora .Data}}</span>
+        </li>
+        {{end}}
+      </ol>
     </div>
   </section>
 {{end}}

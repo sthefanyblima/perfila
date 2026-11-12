@@ -127,6 +127,28 @@ Funcionalidade: Painel web do operador
     E a página pede a confirmação "revogar"
     E o consentimento do cliente "c-001" permanece no estado "CONCEDIDO"
 
+  @RN-01 @Q-31
+  Cenário: Cadastro inativo mostra o histórico só para leitura
+    Dado que o operador entrou no painel
+    E que o consentimento do cliente "c-001" está no estado "CONCEDIDO"
+    E que o cliente "c-001" está inativo
+    Quando a página "/painel/clientes/c-001" é aberta
+    Então a resposta tem status 200
+    E a página mostra o aviso "cadastro-inativo"
+    E a página de destino não oferece "processar"
+
+  @Q-32
+  Esquema do Cenário: Revogado e não concedido têm avisos diferentes
+    Dado que o operador entrou no painel
+    E que o consentimento do cliente "c-001" está no estado "<estado>"
+    Quando a página "/painel/clientes/c-001" é aberta
+    Então a página mostra "<texto>"
+
+    Exemplos:
+      | estado        | texto                                        |
+      | NAO_CONCEDIDO | ainda não autorizou o uso dos dados          |
+      | REVOGADO      | revogou o consentimento                      |
+
   @UC-01 @UC-02 @UC-03 @UC-04 @RN-09
   Cenário: Processar agora conclui as quatro etapas
     Dado que o operador entrou no painel

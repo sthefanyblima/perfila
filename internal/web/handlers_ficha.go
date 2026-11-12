@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -47,8 +48,9 @@ type dadosFicha struct {
 	Aba           string
 	Cliente       entity.Cliente
 	Consentimento entity.ConsentimentoLGPD
-	Valido        bool    // cliente ativo e consentimento CONCEDIDO: comportamento liberado
-	Bloqueio      *alerta // sem consentimento ou cadastro inativo
+	Valido        bool    // consentimento CONCEDIDO: comportamento pode ser lido (inativo: só leitura, Q-31)
+	Bloqueio      *alerta // sem consentimento: nada de comportamento é lido
+	Inativo       *alerta // cadastro inativo com consentimento: histórico só para leitura
 	Falha         *alerta // processamento ou registro que acabou de falhar
 
 	Resultado     *usecase.ResultadoCliente
@@ -69,6 +71,37 @@ type dadosFicha struct {
 }
 
 func (d dadosFicha) PodeConceder() bool { return d.Consentimento.Status != entity.StatusConcedido }
+
+// PodeAgir: processar e registrar eventos exigem RN-01 completa (consentimento e cliente ativo).
+func (d dadosFicha) PodeAgir() bool { return d.Valido && d.Cliente.Ativo }
+
+// marco é um ponto da linha do tempo do consentimento (aba Consentimento).
+type marco struct {
+	Data            time.Time
+	Titulo, Detalhe string
+	Icone           string
+}
+
+// LinhaConsentimento monta, a partir das datas guardadas (Q-01), o que aconteceu com o
+// consentimento, do mais recente para o mais antigo.
+func (d dadosFicha) LinhaConsentimento() []marco {
+	c := d.Consentimento
+	ms := []marco{{Data: d.Cliente.DataCadastro, Titulo: "Cadastro", Detalhe: "Nome e e-mail registrados, sem autorização de uso.", Icone: "vazado"}}
+	if !c.DataConsentimento.IsZero() {
+		m := marco{Data: c.DataConsentimento, Titulo: "Consentimento concedido", Icone: "ok",
+			Detalhe: "Finalidade " + c.Finalidade + " · termo " + c.VersaoTermo}
+		if c.DataRevogacao != nil && c.DataRevogacao.Before(c.DataConsentimento) {
+			m.Titulo = "Consentimento concedido novamente"
+		}
+		ms = append(ms, m)
+	}
+	if c.DataRevogacao != nil {
+		ms = append(ms, marco{Data: *c.DataRevogacao, Titulo: "Consentimento revogado", Icone: "barra",
+			Detalhe: "O processamento parou na hora; os dados registrados até aqui continuam guardados."})
+	}
+	sort.SliceStable(ms, func(i, j int) bool { return ms[i].Data.After(ms[j].Data) })
+	return ms
+}
 
 func (d dadosFicha) NomeProduto(id uuid.UUID) string {
 	if d.Resultado != nil {
@@ -94,15 +127,19 @@ func (p *painel) carregarFicha(w http.ResponseWriter, r *http.Request, aba strin
 	}
 	d := dadosFicha{Aba: aba, Cliente: ficha.Cliente, Consentimento: ficha.Consentimento, MetaEventos: p.d.MetaEventos,
 		Concessao: formConsentimento{Finalidade: p.d.Finalidade, VersaoTermo: p.d.VersaoTermo}}
-	d.Valido = ficha.Cliente.Ativo && ficha.Consentimento.EstaValido()
+	d.Valido = ficha.Consentimento.EstaValido()
 	if !d.Valido {
 		d.Bloqueio = p.alertaBloqueio(d)
 		return d, true
 	}
+	if !ficha.Cliente.Ativo {
+		d.Inativo = &alerta{Tom: "warn", Titulo: "Cadastro inativo", Teste: "cadastro-inativo",
+			Texto: "Processamento e novos eventos ficam bloqueados enquanto o cadastro estiver inativo. O histórico abaixo é só para consulta."}
+	}
 	res, err := p.d.ConsultarResultado.Executar(r.Context(), id)
 	if err != nil {
-		if errors.Is(err, errs.ErrConsentimentoInvalido) || errors.Is(err, errs.ErrClienteInativo) {
-			d.Valido, d.Bloqueio = false, p.alertaBloqueio(d)
+		if errors.Is(err, errs.ErrConsentimentoInvalido) {
+			d.Valido, d.Inativo, d.Bloqueio = false, nil, p.alertaBloqueio(d)
 			return d, true
 		}
 		p.falha(w, r, err, "")
@@ -112,15 +149,17 @@ func (p *painel) carregarFicha(w http.ResponseWriter, r *http.Request, aba strin
 	return d, true
 }
 
+// alertaBloqueio explica a falta de consentimento, diferente para quem nunca concedeu e para
+// quem revogou (RN-03: os dados ficam guardados, mas não podem ser usados).
 func (p *painel) alertaBloqueio(d dadosFicha) *alerta {
-	if !d.Cliente.Ativo {
-		t, x := mensagem(errs.ErrClienteInativo, "")
-		return &alerta{Tom: "critical", Titulo: t, Texto: x, Teste: "bloqueio-consentimento"}
+	c := d.Consentimento
+	if c.Status == entity.StatusRevogado && c.DataRevogacao != nil {
+		return &alerta{Tom: "critical", Titulo: "Consentimento revogado", Teste: "bloqueio-consentimento",
+			Texto: "O titular revogou o consentimento em " + dataHora(*c.DataRevogacao) + " (tinha concedido em " + dataHora(c.DataConsentimento) +
+				"). Os dados registrados até a revogação continuam guardados, mas não podem ser lidos nem processados. Só uma nova concessão os libera."}
 	}
-	a := &alerta{Tom: "critical", Titulo: "Sem consentimento válido",
-		Texto: "Os dados de comportamento deste cliente não podem ser usados. Conceda o consentimento no selo acima para liberá-los.",
-		Teste: "bloqueio-consentimento"}
-	return a
+	return &alerta{Tom: "critical", Titulo: "Sem consentimento", Teste: "bloqueio-consentimento",
+		Texto: "O titular ainda não autorizou o uso dos dados. Só o cadastro (nome e e-mail) está guardado, e nenhum evento pode ser registrado. Conceda o consentimento no selo acima."}
 }
 
 func (d *dadosFicha) preencherResultado(res usecase.ResultadoCliente) {
