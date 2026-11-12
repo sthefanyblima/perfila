@@ -2,7 +2,7 @@
 
 **Perfila — Sistema de Segmentação e Perfilamento do Comportamento do Cliente — Go**
 
-Equipe Omega · GoLang & CLP · Documento 3 de 3 · **Versão 1.0 (03/11/2026)**
+Equipe Omega · GoLang & CLP · Documento 3 de 3 · **Versão 1.2 (11/11/2026)**
 
 Este documento define como a equipe escreve e executa os critérios de aceite em Behavior-Driven Development (BDD). As features em Gherkin derivadas da modelagem ficam em `features/*.feature` (seção 6 traz o índice). Referências: **Spec** é o Documento 1 (`specs/spec.md`), **Plano** é o Documento 2 (`specs/plan.md`) e **Constituição** é o `CLAUDE.md`. Os IDs UC-xx, RN-xx, C-xx e D-xx vêm da Spec.
 

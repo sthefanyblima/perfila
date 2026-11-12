@@ -101,6 +101,7 @@ OPEN_QUESTIONS.md           decisões Q-01..Q-19, com o porquê
 specs/                      spec.md (v1.2) · plan.md (roadmap) · tasks.md · bdd-rules.md
 docs/uml/                   UML1..UML8 em texto (Mermaid) + imagens originais e corrigidas (img/v1)
 docs/                       checklist LGPD · roteiro de demonstração · relatório parcial · auditoria
+docs/pdf/                   os documentos em PDF para entrega (Spec, Plano, Tarefas e BDD v1.2, decisões, checklist, roteiro)
 features/                   cenários Gherkin + passos godog
 cmd/omega-server            binário do UML8 (serve, expirar-recomendacoes) — raiz de composição
 cmd/perfila-demo            demonstração do core em memória

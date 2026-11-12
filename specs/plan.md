@@ -2,7 +2,7 @@
 
 **Perfila — Sistema de Segmentação e Perfilamento do Comportamento do Cliente — Go**
 
-Equipe Omega · GoLang & CLP · Documento 2 de 3 · **Versão 1.0 (03/11/2026)**
+Equipe Omega · GoLang & CLP · Documento 2 de 3 · **Versão 1.2 (11/11/2026)**
 
 Este plano organiza como a equipe vai implementar o sistema com apoio de IA generativa seguindo Spec-Driven Development (SDD): a especificação é a fonte da verdade, o agente de código gera a implementação em tarefas pequenas e os cenários BDD provam que o resultado está certo. Referências: **Spec** é o Documento 1 (`specs/spec.md`), **Constituição** é o `CLAUDE.md` e **BDD** é o Documento 3 (`specs/bdd-rules.md` e `features/`). Os IDs C-xx, UC-xx, RN-xx e D-xx vêm da Spec. A lista de tarefas com status fica em `specs/tasks.md`.
 
