@@ -76,9 +76,10 @@
 
   function preparar(raiz) {
     raiz.querySelectorAll(".pf-toast").forEach(agendar);
-    raiz.querySelectorAll("[data-copiar][hidden]").forEach(function (b) {
-      if (navigator.clipboard) { b.hidden = false; }
-    });
+    // O botão de copiar já chega visível (não pisca); só some se o navegador não puder copiar.
+    if (!navigator.clipboard) {
+      raiz.querySelectorAll("[data-copiar]").forEach(function (b) { b.hidden = true; });
+    }
     // Remove ?aviso= da barra de endereço para o toast não voltar ao recarregar.
     if (window.history && location.search.indexOf("aviso=") >= 0) {
       var u = new URL(location.href);

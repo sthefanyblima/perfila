@@ -30,7 +30,7 @@
 
 {{define "tag"}}<span class="pf-tag pf-tag--{{tom .}}{{if or (eq . "EXPIRADA") (eq . "INATIVO")}} pf-tag--solid{{end}}">{{icone (iconeEstado .)}}{{if eq . "INATIVO"}}Inativo{{else}}{{rotulo .}}{{end}}</span>{{end}}
 
-{{define "uuid"}}<span class="pf-uuid" title="{{.}}"><span>{{uuidCurto .}}</span><button type="button" class="pf-uuid__copy" data-copiar="{{.}}" aria-label="Copiar o ID {{.}}" hidden>{{icone "copiar"}}</button></span>{{end}}
+{{define "uuid"}}<span class="pf-uuid" title="{{.}}"><span>{{uuidCurto .}}</span><button type="button" class="pf-uuid__copy" data-copiar="{{.}}" aria-label="Copiar o ID {{.}}">{{icone "copiar"}}</button></span>{{end}}
 
 {{define "alerta"}}
 <div class="pf-alert pf-alert--{{.Tom}}"{{if .Teste}} data-teste="aviso-{{.Teste}}"{{end}}{{if .Agora}} role="alert"{{end}}>
