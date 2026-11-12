@@ -9,9 +9,10 @@ import (
 	"perfila/features/steps"
 )
 
-// Só @implantacao fica fora até a T-24 (Docker/Nginx), quando ganha job próprio no CI.
+// @slow (os cenários @implantacao, que sobem contêineres) fica fora do make verify e roda
+// em make bdd-implantacao e num job próprio do CI (Q-13).
 // Sobrescreva com BDD_TAGS, por exemplo: BDD_TAGS="@lgpd" go test ./features/...
-const tagsPadrao = "~@implantacao && ~@wip"
+const tagsPadrao = "~@slow && ~@wip"
 
 func TestFeatures(t *testing.T) {
 	tags := os.Getenv("BDD_TAGS")

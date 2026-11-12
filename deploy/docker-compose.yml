@@ -1,0 +1,67 @@
+# Implantação do UML8 (T-24): Nginx (TLS, única porta de entrada) → duas réplicas do
+# omega-server → PostgreSQL (omega_db) numa rede interna, sem porta publicada.
+# Preparar segredos: scripts/preparar-implantacao.sh (ou make implantar).
+# Spec: 3.8, Q-11 a Q-14.
+name: perfila
+
+x-omega-server: &omega-server
+  image: perfila/omega-server:local
+  build:
+    context: ..
+    dockerfile: deploy/Dockerfile
+  volumes:
+    - ./config.env:/etc/omega/config.env:ro
+  environment:
+    # O ambiente prevalece sobre o config.env (Spec 3.8); a senha vem de deploy/.env (Q-14).
+    DATABASE_URL: postgres://omega:${OMEGA_DB_SENHA:?rode scripts/preparar-implantacao.sh}@db:5432/omega_db?sslmode=disable
+  depends_on:
+    db:
+      condition: service_healthy
+  networks: [aplicacao, dados]
+  restart: unless-stopped
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: omega_db
+      POSTGRES_USER: omega
+      POSTGRES_PASSWORD: ${OMEGA_DB_SENHA:?rode scripts/preparar-implantacao.sh}
+    volumes:
+      - omega_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U omega -d omega_db"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    networks: [dados] # sem "ports": o dispositivo do cliente nunca alcança o banco
+    restart: unless-stopped
+
+  app1:
+    <<: *omega-server
+
+  app2:
+    <<: *omega-server
+
+  nginx:
+    build: ./nginx
+    ports:
+      - "${PERFILA_PORTA_HTTPS:-8443}:443" # única porta publicada (Q-12)
+    volumes:
+      - certificados:/etc/nginx/certs
+    depends_on:
+      app1:
+        condition: service_healthy
+      app2:
+        condition: service_healthy
+    networks: [aplicacao]
+    restart: unless-stopped
+
+networks:
+  aplicacao: {}
+  dados:
+    internal: true
+
+volumes:
+  omega_db: {}
+  certificados: {}

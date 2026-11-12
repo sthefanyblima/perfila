@@ -16,7 +16,7 @@ Desenvolvido com **Spec-Driven Development** (a especificação é a fonte da ve
 | **Core** (domínio + aplicação) — 50% | 27/10–08/11 | ✅ 79 cenários verdes · cobertura 92,2% |
 | 1ª chamada de acompanhamento (relatório parcial) | 09–11/11 | `docs/RELATORIO_PARCIAL.md` |
 | Support (API, middlewares, CMD) — 25% | 09–13/11 | ✅ 20 cenários de API verdes · `make serve` |
-| Generic (PostgreSQL, Docker/Nginx, LGPD) — 25% | 16–19/11 | 🟡 T-19 PostgreSQL ✅ · T-24 e T-25 ⬜ |
+| Generic (PostgreSQL, Docker/Nginx, LGPD) — 25% | 16–19/11 | 🟡 T-19 PostgreSQL ✅ · T-24 implantação ✅ · T-25 ⬜ |
 | Fechamento do escopo | 19/11 | ⬜ |
 | Ensaio · evento final | 23/11 · 24/11 | ⬜ |
 
@@ -34,6 +34,19 @@ make cover    # cobertura de domínio + aplicação
 make contrato # suíte de contrato dos repositórios (memória; PostgreSQL se houver banco)
 make pg-teste # sobe um PostgreSQL descartável no Docker e roda make verify contra ele
 ```
+
+### Implantação (UML8)
+
+Requisitos: Docker com Compose v2.
+
+```bash
+make implantar        # gera segredos (1ª vez), sobe Nginx + app1 + app2 + PostgreSQL
+make bdd-implantacao  # 3 cenários @implantacao contra a implantação no ar
+make expirar          # administrador: expira recomendações vencidas (na réplica app1)
+make derrubar         # derruba (os dados ficam no volume omega_db)
+```
+
+A única porta publicada é a HTTPS do Nginx, `https://localhost:8443` (certificado autoassinado). O token da API fica em `deploy/config.env`, e a senha do banco em `deploy/.env`. Os dois são gerados aleatoriamente e ficam fora do git. O banco só é alcançável pelas réplicas, numa rede interna. O cabeçalho `X-Omega-Replica` mostra qual réplica atendeu.
 
 Com `DATABASE_URL` preenchida, o `omega-server` usa o PostgreSQL (`omega_db`) e aplica as migrações de `internal/infra/repository/pg/migracoes` ao subir. Vazia, roda em memória com dados sintéticos — só para desenvolvimento e demonstração local (Q-07).
 
