@@ -164,12 +164,21 @@ func (e *estadoImplantacao) conectarBanco(porta int) error {
 		conn.Close()
 	}
 	e.erroConexaoBD = err
-	// Quem publicou a porta do banco do Perfila para fora do Docker? (vazio ou ":0" = ninguém)
+	// A porta do banco do Perfila foi publicada para fora do Docker? O formato de "não publicada"
+	// varia com a versão do Compose (":0", "invalid IP:0" ou erro "no port"); vale o número final.
 	saida, err := e.dockerCompose("port", "db", fmt.Sprint(porta))
 	if err != nil {
+		if strings.Contains(err.Error(), "no port") {
+			e.portaBDPublicada = ""
+			return nil
+		}
 		return err
 	}
-	e.portaBDPublicada = strings.TrimSpace(saida)
+	saida = strings.TrimSpace(saida)
+	if hostPorta := saida[strings.LastIndex(saida, ":")+1:]; hostPorta == "" || hostPorta == "0" {
+		saida = ""
+	}
+	e.portaBDPublicada = saida
 	return nil
 }
 
@@ -177,7 +186,7 @@ func (e *estadoImplantacao) conexaoRecusada() error {
 	if !e.tentouConectar {
 		return fmt.Errorf("nenhuma tentativa de conexão")
 	}
-	if p := e.portaBDPublicada; p != "" && p != ":0" {
+	if p := e.portaBDPublicada; p != "" {
 		return fmt.Errorf("o banco da implantação está publicado em %s: alcançável pelo dispositivo do cliente", p)
 	}
 	// O banco não publica porta: a tentativa direta falha (erroConexaoBD != nil) ou, se algo
