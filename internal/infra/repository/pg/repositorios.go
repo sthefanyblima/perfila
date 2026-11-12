@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -83,6 +85,54 @@ func (r *PgClienteRepository) BuscarPorID(ctx context.Context, id uuid.UUID) (en
 	}
 	c.DataCadastro = utc(c.DataCadastro)
 	return c, nil
+}
+
+// normalizado repete memoria.NormalizarBusca em SQL (minúsculas, sem acentos); a migração 004
+// indexa a mesma expressão sobre nome. Spec: Q-23.
+const normalizado = `translate(lower(%s), 'áàâãäéèêëíìîïóòôõöúùûüçñ', 'aaaaaeeeeiiiiooooouuuucn')`
+
+// Listar aplica FiltroClientes (Q-23): ID exato quando a busca é um UUID; senão, nome contém.
+func (r *PgClienteRepository) Listar(ctx context.Context, f port.FiltroClientes) ([]entity.Cliente, int, error) {
+	busca := strings.TrimSpace(f.Busca)
+	where, args := "", []any{}
+	if id, err := uuid.Parse(busca); err == nil {
+		where, args = "WHERE id = $1", append(args, id)
+	} else if busca != "" {
+		where = "WHERE " + fmt.Sprintf(normalizado, "nome") + " LIKE '%' || " + fmt.Sprintf(normalizado, "$1::text") + " || '%'"
+		args = append(args, escaparLike(busca))
+	}
+	var total int
+	if err := r.db.QueryRowContext(ctx, `SELECT count(*) FROM clientes `+where, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("pg: contando clientes: %w", err)
+	}
+	limite := "ALL"
+	if f.Limite > 0 {
+		limite = strconv.Itoa(f.Limite)
+	}
+	linhas, err := r.db.QueryContext(ctx, `SELECT id, nome, email, data_cadastro, ativo FROM clientes `+where+
+		` ORDER BY data_cadastro DESC, id::text LIMIT `+limite+` OFFSET `+strconv.Itoa(max(f.Deslocamento, 0)), args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("pg: listando clientes: %w", err)
+	}
+	defer linhas.Close()
+	out := []entity.Cliente{}
+	for linhas.Next() {
+		var c entity.Cliente
+		if err := linhas.Scan(&c.ID, &c.Nome, &c.Email, &c.DataCadastro, &c.Ativo); err != nil {
+			return nil, 0, fmt.Errorf("pg: lendo cliente: %w", err)
+		}
+		c.DataCadastro = utc(c.DataCadastro)
+		out = append(out, c)
+	}
+	if err := linhas.Err(); err != nil {
+		return nil, 0, fmt.Errorf("pg: lendo clientes: %w", err)
+	}
+	return out, total, nil
+}
+
+// escaparLike impede que % e _ digitados virem curingas do LIKE (escape padrão: barra invertida).
+func escaparLike(s string) string {
+	return strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`).Replace(s)
 }
 
 // ---------- Evento ----------
@@ -258,6 +308,11 @@ func (r *PgRecomendacaoRepository) ListarAtivasPorCliente(ctx context.Context, c
 	return r.listar(ctx, `WHERE status = 'ATIVA' AND cliente_id = $1 ORDER BY data_geracao, id`, clienteID)
 }
 
+// ListarPorCliente devolve todas as recomendações do cliente, a mais recente primeiro (Q-23).
+func (r *PgRecomendacaoRepository) ListarPorCliente(ctx context.Context, clienteID uuid.UUID) ([]entity.RecomendacaoProduto, error) {
+	return r.listar(ctx, `WHERE cliente_id = $1 ORDER BY data_geracao DESC, id::text`, clienteID)
+}
+
 func (r *PgRecomendacaoRepository) listar(ctx context.Context, filtro string, arg any) ([]entity.RecomendacaoProduto, error) {
 	linhas, err := r.db.QueryContext(ctx, `
 		SELECT id, cliente_id, produto_id, motivo, status, data_geracao, data_ativacao, validade, data_expiracao
@@ -344,9 +399,16 @@ type PgProdutoRepository struct{ db *sql.DB }
 func NovoPgProdutoRepository(db *sql.DB) *PgProdutoRepository { return &PgProdutoRepository{db} }
 
 func (r *PgProdutoRepository) ListarAtivosPorCategoria(ctx context.Context, categoria string) ([]entity.Produto, error) {
-	linhas, err := r.db.QueryContext(ctx, `
-		SELECT id, nome, categoria, preco, ativo FROM produtos
-		WHERE ativo AND categoria = $1 ORDER BY nome, id`, categoria)
+	return r.listar(ctx, `WHERE ativo AND categoria = $1 ORDER BY nome, id`, categoria)
+}
+
+// ListarTodos devolve o catálogo completo, por Categoria, Nome e ID (Q-23).
+func (r *PgProdutoRepository) ListarTodos(ctx context.Context) ([]entity.Produto, error) {
+	return r.listar(ctx, `ORDER BY categoria, nome, id::text`)
+}
+
+func (r *PgProdutoRepository) listar(ctx context.Context, filtro string, args ...any) ([]entity.Produto, error) {
+	linhas, err := r.db.QueryContext(ctx, `SELECT id, nome, categoria, preco, ativo FROM produtos `+filtro, args...)
 	if err != nil {
 		return nil, fmt.Errorf("pg: listando produtos da categoria: %w", err)
 	}

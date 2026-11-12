@@ -7,6 +7,7 @@ package memoria
 import (
 	"context"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -54,6 +55,54 @@ func (r *ClienteRepository) BuscarPorID(_ context.Context, id uuid.UUID) (entity
 		return entity.Cliente{}, errs.ErrClienteNaoEncontrado
 	}
 	return c, nil
+}
+
+// Listar aplica FiltroClientes: ID exato quando a busca é um UUID; senão, nome contém a busca,
+// sem diferenciar maiúsculas e acentos (a mesma normalização do PostgreSQL). Spec: Q-23.
+func (r *ClienteRepository) Listar(_ context.Context, f port.FiltroClientes) ([]entity.Cliente, int, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	busca := strings.TrimSpace(f.Busca)
+	idBusca, errID := uuid.Parse(busca)
+	termo := NormalizarBusca(busca)
+	todos := []entity.Cliente{}
+	for _, c := range r.dados {
+		switch {
+		case busca == "":
+		case errID == nil:
+			if c.ID != idBusca {
+				continue
+			}
+		case !strings.Contains(NormalizarBusca(c.Nome), termo):
+			continue
+		}
+		todos = append(todos, c)
+	}
+	sort.Slice(todos, func(i, j int) bool {
+		if !todos[i].DataCadastro.Equal(todos[j].DataCadastro) {
+			return todos[i].DataCadastro.After(todos[j].DataCadastro)
+		}
+		return todos[i].ID.String() < todos[j].ID.String()
+	})
+	total := len(todos)
+	ini := min(max(f.Deslocamento, 0), total)
+	fim := total
+	if f.Limite > 0 {
+		fim = min(ini+f.Limite, total)
+	}
+	return todos[ini:fim], total, nil
+}
+
+// NormalizarBusca põe em minúsculas e tira os acentos do português, como o translate() da
+// migração 004 faz no PostgreSQL. Spec: Q-23.
+func NormalizarBusca(s string) string {
+	return strings.NewReplacer(
+		"á", "a", "à", "a", "â", "a", "ã", "a", "ä", "a",
+		"é", "e", "è", "e", "ê", "e", "ë", "e",
+		"í", "i", "ì", "i", "î", "i", "ï", "i",
+		"ó", "o", "ò", "o", "ô", "o", "õ", "o", "ö", "o",
+		"ú", "u", "ù", "u", "û", "u", "ü", "u", "ç", "c", "ñ", "n",
+	).Replace(strings.ToLower(s))
 }
 
 // ---------- Evento ----------
@@ -221,6 +270,25 @@ func (r *RecomendacaoRepository) ListarAtivasPorCliente(_ context.Context, clien
 	return out, nil
 }
 
+// ListarPorCliente devolve todas as recomendações do cliente, a mais recente primeiro (Q-23).
+func (r *RecomendacaoRepository) ListarPorCliente(_ context.Context, clienteID uuid.UUID) ([]entity.RecomendacaoProduto, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	out := []entity.RecomendacaoProduto{}
+	for _, rec := range r.dados {
+		if rec.ClienteID == clienteID {
+			out = append(out, rec)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if !out[i].DataGeracao.Equal(out[j].DataGeracao) {
+			return out[i].DataGeracao.After(out[j].DataGeracao)
+		}
+		return out[i].ID.String() < out[j].ID.String()
+	})
+	return out, nil
+}
+
 // BuscarPorID e Gravacoes apoiam testes; não fazem parte do port.
 func (r *RecomendacaoRepository) BuscarPorID(id uuid.UUID) (entity.RecomendacaoProduto, bool) {
 	r.mu.RLock()
@@ -311,6 +379,22 @@ func (r *ProdutoRepository) Todos() []entity.Produto {
 		out = append(out, p)
 	}
 	return out
+}
+
+// ListarTodos devolve o catálogo completo, por Categoria, Nome e ID (Q-23).
+func (r *ProdutoRepository) ListarTodos(_ context.Context) ([]entity.Produto, error) {
+	out := r.Todos()
+	sort.Slice(out, func(i, j int) bool {
+		a, b := out[i], out[j]
+		if a.Categoria != b.Categoria {
+			return a.Categoria < b.Categoria
+		}
+		if a.Nome != b.Nome {
+			return a.Nome < b.Nome
+		}
+		return a.ID.String() < b.ID.String()
+	})
+	return out, nil
 }
 
 func (r *ProdutoRepository) ListarAtivosPorCategoria(_ context.Context, categoria string) ([]entity.Produto, error) {

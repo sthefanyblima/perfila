@@ -17,6 +17,16 @@ import (
 type ClienteRepository interface {
 	Salvar(ctx context.Context, c entity.Cliente) error
 	BuscarPorID(ctx context.Context, id uuid.UUID) (entity.Cliente, error)
+	// Listar [ADIÇÃO] devolve a página pedida e o total que casa com a busca. Spec: 3.6, Q-23.
+	Listar(ctx context.Context, f FiltroClientes) ([]entity.Cliente, int, error)
+}
+
+// FiltroClientes [ADIÇÃO] seleciona e pagina clientes, do cadastro mais recente para o mais
+// antigo (desempate por ID). Spec: 3.6, Q-23.
+type FiltroClientes struct {
+	Busca        string // vazio = todos; UUID = ID exato; senão, nome contém (sem maiúsculas nem acentos)
+	Deslocamento int
+	Limite       int // 0 = sem limite
 }
 
 // EventoRepository. Spec: UC-01.
@@ -43,6 +53,7 @@ type RecomendacaoRepository interface {
 	Salvar(ctx context.Context, r entity.RecomendacaoProduto) error
 	ListarAtivasVencidas(ctx context.Context, agora time.Time) ([]entity.RecomendacaoProduto, error)       // [ADIÇÃO]
 	ListarAtivasPorCliente(ctx context.Context, clienteID uuid.UUID) ([]entity.RecomendacaoProduto, error) // [ADIÇÃO] Q-18
+	ListarPorCliente(ctx context.Context, clienteID uuid.UUID) ([]entity.RecomendacaoProduto, error)       // [ADIÇÃO] Q-23: DataGeracao decrescente
 }
 
 // ConsentimentoRepository. Salvar faz upsert por ClienteID.
@@ -55,6 +66,7 @@ type ConsentimentoRepository interface {
 // ProdutoRepository [ADIÇÃO] (D-05).
 type ProdutoRepository interface {
 	ListarAtivosPorCategoria(ctx context.Context, categoria string) ([]entity.Produto, error)
+	ListarTodos(ctx context.Context) ([]entity.Produto, error) // [ADIÇÃO] Q-23: por Categoria e Nome
 }
 
 // ConsentimentoGateway — MVP: implementação local sobre ConsentimentoRepository (fase Support).

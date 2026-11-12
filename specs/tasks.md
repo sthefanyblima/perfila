@@ -66,7 +66,7 @@ Interface do operador a partir do design system "Perfila Console" (`docs/design/
 |---|---|---|---|---|
 | T-31 | Spec v1.3: Q-20 a Q-29, casos de uso do painel, ports novos, rotas 3.7.1, configuração `PAINEL_*`, UML7 e UML8 em texto, `features/painel.feature` (`@web`, vermelha) | T-30 | Spec, UML e feature revisados | ✅ |
 | T-32 | `ProcessarClienteUseCase` (RN-09 com estado por etapa) em `application/usecase`; a API passa a usá-lo | T-31 | `@api` verde; cenários `@aplicacao` do processamento | ✅ `processamento.feature` (4 cenários) |
-| T-33 | `ClienteRepository.Listar`, `RecomendacaoRepository.ListarPorCliente`, `ProdutoRepository.ListarTodos` na memória e no PostgreSQL; migração 004 | T-31 | contrato nos dois backends | ⬜ |
+| T-33 | `ClienteRepository.Listar`, `RecomendacaoRepository.ListarPorCliente`, `ProdutoRepository.ListarTodos` na memória e no PostgreSQL; migração 004 | T-31 | contrato nos dois backends | ✅ busca, paginação, histórico e catálogo no contrato (memória e PostgreSQL 16) |
 | T-34 | Casos de uso de leitura: `ListarClientes`, `ConsultarCliente`, `ConsultarResultado` (RN-01), `ListarSegmentos`, `ListarCatalogo` | T-33 | cenários `@aplicacao` | ⬜ |
 | T-35 | `internal/web` base: rotas, sessão HMAC, CSRF, limite de tentativas, cabeçalhos e CSP, Entrar, layout, static embutido, regra "web" no teste de arquitetura, `PAINEL_*`, `hash-senha`, montagem no `omega-server` | T-34 | cenários `@web` de sessão e segurança | ⬜ |
 | T-36 | Telas Clientes (busca, filtro, paginação) e Cadastrar cliente | T-35 | cenários `@web` de cadastro e busca | ⬜ |

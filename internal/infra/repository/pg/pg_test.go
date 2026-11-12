@@ -106,7 +106,7 @@ func TestMigracoes(t *testing.T) {
 		versoes = append(versoes, v)
 	}
 	linhas.Close()
-	if !reflect.DeepEqual(versoes, []string{"001_inicial", "002_dados_demonstracao", "003_recomendacoes_ativas_por_cliente"}) {
+	if !reflect.DeepEqual(versoes, []string{"001_inicial", "002_dados_demonstracao", "003_recomendacoes_ativas_por_cliente", "004_listagem_de_clientes"}) {
 		t.Fatalf("migrações registradas: %v", versoes)
 	}
 	aplicadas, err := pg.Migrar(ctx, db)
@@ -123,6 +123,10 @@ func TestMigracoes(t *testing.T) {
 	ativos, err := pg.NovoPgSegmentoRepository(db).ListarAtivos(ctx)
 	if err != nil || !reflect.DeepEqual(ativos, esperados) {
 		t.Fatalf("segmentos da migração (%v):\n obtido   %+v\n esperado %+v", err, ativos, esperados)
+	}
+	todosMem, _ := memProd.ListarTodos(ctx)
+	if todos, err := pg.NovoPgProdutoRepository(db).ListarTodos(ctx); err != nil || !reflect.DeepEqual(todos, todosMem) {
+		t.Fatalf("catálogo completo (%v):\n obtido   %+v\n esperado %+v", err, todos, todosMem)
 	}
 	for _, categoria := range []string{"livros", "games", "eletronicos"} {
 		esperado, _ := memProd.ListarAtivosPorCategoria(ctx, categoria)
