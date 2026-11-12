@@ -172,13 +172,13 @@
   {{end}}
 
 {{else}}
-  <section class="pf-consent pf-consent--{{estado .Consentimento.Status}}" aria-labelledby="titulo-consentimento" data-teste="consentimento-completo">
-    <div class="pf-row">
-      <span class="pf-consent__seal" aria-hidden="true">{{icone (iconeEstado (estado .Consentimento.Status))}}</span>
-      <div><h2 class="pf-panel__title" id="titulo-consentimento">Consentimento LGPD</h2><span class="pf-consent__sub">Estado atual: {{rotulo (estado .Consentimento.Status)}}</span></div>
+  <section class="pf-panel" aria-labelledby="titulo-consentimento" data-teste="consentimento-completo">
+    <div class="pf-panel__head">
+      <h2 class="pf-panel__title" id="titulo-consentimento">Registro do consentimento</h2>
+      <div class="pf-consent__actions">{{template "acao-consentimento" .}}</div>
     </div>
+    <div class="pf-panel__body">
     <dl class="pf-kv">
-      <dt>Estado</dt><dd>{{template "tag" (estado .Consentimento.Status)}}</dd>
       <dt>Finalidade</dt><dd>{{if .Consentimento.Finalidade}}{{.Consentimento.Finalidade}}{{else}}—{{end}}</dd>
       <dt>Versão do termo</dt><dd>{{if .Consentimento.VersaoTermo}}{{.Consentimento.VersaoTermo}}{{else}}—{{end}}</dd>
       <dt>Data do consentimento</dt><dd class="pf-num">{{dataHora .Consentimento.DataConsentimento}}</dd>
@@ -186,7 +186,7 @@
       <dt>Última atualização</dt><dd class="pf-num">{{if eq (estado .Consentimento.Status) "NAO_CONCEDIDO"}}—{{else}}{{dataHora .Consentimento.DataAtualizacao}}{{end}}</dd>
     </dl>
     <p class="pf-muted pf-small">A data da revogação continua registrada depois de uma nova concessão, como prova do histórico.</p>
-    <div class="pf-consent__actions">{{template "acao-consentimento" .}}</div>
+    </div>
   </section>
 {{end}}
 

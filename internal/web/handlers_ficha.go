@@ -118,9 +118,8 @@ func (p *painel) alertaBloqueio(d dadosFicha) *alerta {
 		return &alerta{Tom: "critical", Titulo: t, Texto: x, Teste: "bloqueio-consentimento"}
 	}
 	a := &alerta{Tom: "critical", Titulo: "Sem consentimento válido",
-		Texto: "Os dados de comportamento deste cliente não podem ser usados.", Teste: "bloqueio-consentimento"}
-	a.AcaoHref = fmt.Sprintf("/painel/clientes/%s/consentimento/conceder", d.Cliente.ID)
-	a.AcaoTexto, a.AcaoDialogo = "Conceder consentimento", "dlg-conceder"
+		Texto: "Os dados de comportamento deste cliente não podem ser usados. Conceda o consentimento no selo acima para liberá-los.",
+		Teste: "bloqueio-consentimento"}
 	return a
 }
 

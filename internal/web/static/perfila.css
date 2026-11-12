@@ -349,6 +349,7 @@ body.pf {
 
 /* ConsentRecord ------------------------------------------------------ */
 .pf-consent { display: grid; gap: var(--space-3); padding: var(--space-4); background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--radius-2); }
+.pf-consent--compact:not(:has(.pf-consent__actions)) { grid-template-columns: auto 1fr; }
 .pf-consent--compact { grid-template-columns: auto 1fr auto; align-items: center; column-gap: var(--space-3); padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4); min-width: min(100%, 380px); }
 .pf-consent__seal { display: grid; place-items: center; width: 36px; height: 36px; border: 2px solid; border-radius: 50%; }
 .pf-consent__seal .pf-ico { width: 18px; height: 18px; }
