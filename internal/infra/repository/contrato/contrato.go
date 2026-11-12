@@ -212,6 +212,19 @@ func testarRecomendacao(t *testing.T, r Repositorios) {
 	lista, err = r.Recomendacoes.ListarAtivasVencidas(ctx, agora)
 	ok(t, err)
 	igual(t, "após expirar", lista, []entity.RecomendacaoProduto{noLimite})
+
+	// Q-18: ATIVA do cliente, de qualquer validade; EXPIRADA e de outros clientes ficam de fora.
+	outro := cliente(t, r)
+	ok(t, r.Recomendacoes.Salvar(ctx, entity.RecomendacaoProduto{ID: uuid.New(), ClienteID: outro.ID, ProdutoID: prod.ID,
+		Motivo: "segmento:padrao;categoria:livros", Status: entity.StatusAtiva, DataGeracao: agora}))
+	ativas, err := r.Recomendacoes.ListarAtivasPorCliente(ctx, c.ID)
+	ok(t, err)
+	igual(t, "ativas do cliente", len(ativas), 2) // noLimite e a de validade futura
+	for _, a := range ativas {
+		if a.Status != entity.StatusAtiva || a.ClienteID != c.ID {
+			t.Fatalf("ativa inesperada: %+v", a)
+		}
+	}
 }
 
 func porIDRec(rs []entity.RecomendacaoProduto) []entity.RecomendacaoProduto {

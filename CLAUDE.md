@@ -2,7 +2,7 @@
 
 > Constituição do projeto para o agente de código (Claude Code). Lida automaticamente no início de cada sessão.
 > **Sistema de Segmentação e Perfilamento do Comportamento do Cliente** · Equipe Omega · Go 1.22+
-> Versão da Spec: **v1.2** · MVP concluído (Core, Support e Generic; T-01 a T-29) · daqui até 19/11, só correções · escopo fecha em **19/11** · evento final **24/11**
+> Versão da Spec: **v1.2** · MVP concluído (Core, Support e Generic; T-01 a T-30) · daqui até 19/11, só correções · escopo fecha em **19/11** · evento final **24/11**
 
 ## 1. O que é o projeto
 

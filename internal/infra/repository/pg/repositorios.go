@@ -250,13 +250,20 @@ func (r *PgRecomendacaoRepository) Salvar(ctx context.Context, rec entity.Recome
 
 // ListarAtivasVencidas devolve as recomendações ATIVA com Validade <= agora (RN-08).
 func (r *PgRecomendacaoRepository) ListarAtivasVencidas(ctx context.Context, agora time.Time) ([]entity.RecomendacaoProduto, error) {
+	return r.listar(ctx, `WHERE status = 'ATIVA' AND validade IS NOT NULL AND validade <= $1 ORDER BY validade, id`, agora.UTC())
+}
+
+// ListarAtivasPorCliente devolve as recomendações ATIVA do cliente (Q-18).
+func (r *PgRecomendacaoRepository) ListarAtivasPorCliente(ctx context.Context, clienteID uuid.UUID) ([]entity.RecomendacaoProduto, error) {
+	return r.listar(ctx, `WHERE status = 'ATIVA' AND cliente_id = $1 ORDER BY data_geracao, id`, clienteID)
+}
+
+func (r *PgRecomendacaoRepository) listar(ctx context.Context, filtro string, arg any) ([]entity.RecomendacaoProduto, error) {
 	linhas, err := r.db.QueryContext(ctx, `
 		SELECT id, cliente_id, produto_id, motivo, status, data_geracao, data_ativacao, validade, data_expiracao
-		FROM recomendacoes_produto
-		WHERE status = 'ATIVA' AND validade IS NOT NULL AND validade <= $1
-		ORDER BY validade, id`, agora.UTC())
+		FROM recomendacoes_produto `+filtro, arg)
 	if err != nil {
-		return nil, fmt.Errorf("pg: listando recomendações vencidas: %w", err)
+		return nil, fmt.Errorf("pg: listando recomendações: %w", err)
 	}
 	defer linhas.Close()
 	out := []entity.RecomendacaoProduto{}

@@ -53,6 +53,8 @@ Legenda de status: ✅ concluída · 🟡 parcial · ⬜ a fazer. "Prova" é o q
 | T-24 | Dockerfile multiestágio, `docker-compose.yml` (Nginx + 2 réplicas + PostgreSQL), `nginx.conf` | T-19, T-23 | `implantacao.feature` (`@slow`) | ✅ 11/11: Nginx 1.28 com TLS autoassinado (Q-12) e `X-Omega-Replica` (Q-11), `app1`/`app2`, PostgreSQL em rede interna; segredos gerados (Q-14); 3 cenários `@implantacao` verdes; job `implantacao` no CI (Q-13). Sem corte: duas réplicas no MVP |
 | T-25 | Checklist LGPD, auditoria de logs sem dados pessoais, README final, roteiro de demonstração | T-24 | checklist concluído | ✅ 11/11: `docs/CHECKLIST_LGPD.md` (L-01..L-20, com evidências e pendências pós-MVP); auditoria de logs encontrou e corrigiu `time.Now` no log de acesso da API (C-07, teste de arquitetura estendido a todo `internal/`); e-mail em query string coberto pelo teste de C-09; README final; `docs/ROTEIRO_DEMONSTRACAO.md` e `make demo-implantacao` |
 
+| T-30 | [nova] Correções do mapeamento de bugs (Q-15 a Q-19): limite de `Valor` e resposta nunca "200 vazio"; tolerância de relógio de 2 min; critério de segmento inválido e segmento inexistente como falha de configuração (500); uma recomendação ATIVA por cliente (`ListarAtivasPorCliente`, migração 003); `/saude` com o banco; corpo JSON único | T-25 | 8 cenários novos (107 no verify); contrato nos dois backends; sondagens repetidas contra a implantação | ✅ 11/11 |
+
 Filtro padrão do BDD: `~@slow && ~@wip`; `@implantacao` roda em `make bdd-implantacao` e no job `implantacao` do CI (Q-13).
 Corte planejado das réplicas: **não foi necessário** (T-24 concluída em 11/11 com duas réplicas).
 

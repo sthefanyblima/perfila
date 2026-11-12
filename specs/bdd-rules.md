@@ -97,21 +97,21 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 
 ## 6. Features em Gherkin
 
-As features vivem em `features/` e são a versão executável deste documento. Estado em 03/11/2026:
+As features vivem em `features/` e são a versão executável deste documento. Estado em 11/11/2026:
 
 | Arquivo | UC / regra | Camada | Cenários executados | Fase |
 |---|---|---|---|---|
 | `consentimento.feature` | UC-08, RN-02, RN-03 | `@aplicacao` | 13 | Core ✅ |
-| `evento.feature` | UC-01, RN-01, RN-04 | `@aplicacao` | 17 | Core ✅ |
+| `evento.feature` | UC-01, RN-01, RN-04 | `@aplicacao` | 21 | Core ✅ (+4 limites de Q-15 e Q-16) |
 | `perfilamento.feature` | UC-02, RN-05 | `@aplicacao` | 9 | Core ✅ |
-| `segmentacao.feature` | UC-03, RN-06 | `@aplicacao` e `@dominio` | 19 | Core ✅ |
-| `recomendacao.feature` | UC-04, RN-07, RN-08 | `@aplicacao` | 6 | Core ✅ |
+| `segmentacao.feature` | UC-03, RN-06 | `@aplicacao` e `@dominio` | 20 | Core ✅ (+1 Q-17) |
+| `recomendacao.feature` | UC-04, RN-07, RN-08 | `@aplicacao` | 8 | Core ✅ (+2 Q-17 e Q-18) |
 | `recomendacao_ciclo.feature` | 3.4.2, RN-08 | `@dominio` e `@aplicacao` | 9 | Core ✅ |
 | `cliente.feature` | UC-09 (D-22) | `@aplicacao` | 6 | Core ✅ |
-| `api.feature` | UC-01..04, UC-08, UC-09, RN-09 | `@api` | 20 | Support ✅ |
+| `api.feature` | UC-01..04, UC-08, UC-09, RN-09 | `@api` | 21 | Support ✅ (+1 Q-19) |
 | `implantacao.feature` | UML8 | `@implantacao @slow` | 3 | Generic ✅ (T-24) |
 
-Total executado: **99 cenários, 668 passos, todos verdes** (Core 79 + Support 20).
+Total no `make verify`: **107 cenários, 725 passos, todos verdes**; mais 3 cenários `@implantacao` (11 passos) em `make bdd-implantacao`.
 
 ### 6.1 Mudanças da v1.0 nas features (aprovadas junto com a Spec v1.0, B-14)
 

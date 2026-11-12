@@ -20,7 +20,7 @@ Desenvolvido com **Spec-Driven Development** (a especificação é a fonte da ve
 | Fechamento do escopo | 19/11 | daqui em diante, só correções |
 | Ensaio · evento final | 23/11 · 24/11 | roteiro em `docs/ROTEIRO_DEMONSTRACAO.md` |
 
-**102 cenários BDD** (99 no `make verify` + 3 de implantação), teste de arquitetura e suíte de contrato dos repositórios em memória e em PostgreSQL.
+**110 cenários BDD** (107 no `make verify` + 3 de implantação), teste de arquitetura e suíte de contrato dos repositórios em memória e em PostgreSQL.
 
 ## Arquitetura
 
@@ -38,7 +38,7 @@ Implantação (UML8): o **Nginx** (TLS, única porta de entrada) distribui para 
 ### Desenvolvimento (Go 1.22+)
 
 ```bash
-make verify   # gofmt, vet, testes com -race, 99 cenários BDD e teste de arquitetura
+make verify   # gofmt, vet, testes com -race, 107 cenários BDD e teste de arquitetura
 make demo     # fluxo do diagrama de sequência em memória, passo a passo
 make serve    # API em modo memória na porta 8080 (token dev-token)
 make demo-api # roteiro de curl contra o make serve (em outro terminal)
@@ -97,7 +97,7 @@ Nenhum caso de uso que processa dado pessoal roda sem consentimento válido (C-0
 
 ```text
 CLAUDE.md                   constituição para o agente (C-01..C-12) e mapa de contexto
-OPEN_QUESTIONS.md           decisões Q-01..Q-14, com o porquê
+OPEN_QUESTIONS.md           decisões Q-01..Q-19, com o porquê
 specs/                      spec.md (v1.2) · plan.md (roadmap) · tasks.md · bdd-rules.md
 docs/uml/                   UML1..UML8 em texto (Mermaid) + imagens originais e corrigidas (img/v1)
 docs/                       checklist LGPD · roteiro de demonstração · relatório parcial · auditoria

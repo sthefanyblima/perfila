@@ -208,6 +208,19 @@ func (r *RecomendacaoRepository) ListarAtivasVencidas(_ context.Context, agora t
 	return out, nil
 }
 
+// ListarAtivasPorCliente devolve as recomendações ATIVA do cliente (Q-18).
+func (r *RecomendacaoRepository) ListarAtivasPorCliente(_ context.Context, clienteID uuid.UUID) ([]entity.RecomendacaoProduto, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	out := []entity.RecomendacaoProduto{}
+	for _, rec := range r.dados {
+		if rec.Status == entity.StatusAtiva && rec.ClienteID == clienteID {
+			out = append(out, rec)
+		}
+	}
+	return out, nil
+}
+
 // BuscarPorID e Gravacoes apoiam testes; não fazem parte do port.
 func (r *RecomendacaoRepository) BuscarPorID(id uuid.UUID) (entity.RecomendacaoProduto, bool) {
 	r.mu.RLock()

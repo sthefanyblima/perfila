@@ -22,6 +22,8 @@ Funcionalidade: Coleta de eventos comportamentais
       | navegacao | 0     | 2026-03-10T12:00:00Z |
       | interacao | 0     | 2026-03-09T10:00:00Z |
       | compra    | 0.01  | 2026-03-09T10:00:00Z |
+      | compra    | 1000000 | 2026-03-09T10:00:00Z |
+      | navegacao | 0     | 2026-03-10T12:02:00Z |
 
   @RN-04
   Esquema do Cenário: Eventos inválidos são rejeitados
@@ -37,6 +39,8 @@ Funcionalidade: Coleta de eventos comportamentais
       | navegacao    | web       | -1    | 2026-03-09T10:00:00Z |
       | navegacao    |           | 0     | 2026-03-09T10:00:00Z |
       | navegacao    | web       | 0     | 2026-03-11T00:00:00Z |
+      | navegacao    | web       | 0     | 2026-03-10T12:02:01Z |
+      | compra       | ecommerce | 1000000.01 | 2026-03-09T10:00:00Z |
 
   @lgpd @RN-01 @RN-03
   Esquema do Cenário: Sem consentimento válido nada é gravado nem lido

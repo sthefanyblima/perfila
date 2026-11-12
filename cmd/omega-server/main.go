@@ -90,6 +90,7 @@ type repositorios struct {
 	recomendacoes  port.RecomendacaoRepository
 	consentimentos port.ConsentimentoRepository
 	produtos       port.ProdutoRepository
+	saude          func(ctx context.Context) error // nil no modo memória (Q-19)
 	fechar         func()
 }
 
@@ -121,6 +122,7 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 			service.NovoRecomendacaoService(repos.produtos, clock), repos.recomendacoes, clock, cfg.RecomendacaoValidadeDias, log),
 		Log:   log,
 		Clock: clock,
+		Saude: repos.saude,
 	}
 	return aplicacao{
 		log:     log,
@@ -168,6 +170,7 @@ func repositoriosPostgres(ctx context.Context, url string, log *slog.Logger) (re
 		recomendacoes:  pg.NovoPgRecomendacaoRepository(db),
 		consentimentos: pg.NovoPgConsentimentoRepository(db),
 		produtos:       pg.NovoPgProdutoRepository(db),
+		saude:          db.PingContext,
 		fechar:         func() { db.Close() },
 	}, nil
 }

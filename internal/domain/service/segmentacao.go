@@ -35,7 +35,8 @@ func (s *SegmentacaoService) Segmentar(ctx context.Context, p entity.PerfilClien
 		}
 		casa, err := seg.ClassificarPerfil(p)
 		if err != nil {
-			return entity.Segmento{}, fmt.Errorf("segmento %s: %w", seg.Nome, err)
+			// O critério veio da configuração, não do cliente: falha de configuração (Q-17).
+			return entity.Segmento{}, fmt.Errorf("%w: segmento %s: %v", ErrSegmentoMalConfigurado, seg.Nome, err)
 		}
 		if casa {
 			return seg, nil
@@ -46,6 +47,10 @@ func (s *SegmentacaoService) Segmentar(ctx context.Context, p entity.PerfilClien
 
 // ErrSemSegmentoAplicavel indica configuração incompleta: o segmento padrao (critério vazio) deve existir.
 const ErrSemSegmentoAplicavel = erroConfiguracao("nenhum segmento ativo casa com o perfil: o segmento padrao (critério vazio) não está configurado")
+
+// ErrSegmentoMalConfigurado indica segmento configurado com critério inválido ou inexistente
+// (falha de configuração, HTTP 500). Spec: RN-06, Q-17.
+const ErrSegmentoMalConfigurado = erroConfiguracao("segmento mal configurado")
 
 type erroConfiguracao string
 

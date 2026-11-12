@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -37,7 +38,8 @@ func NovoGerarRecomendacaoUseCase(pre Precondicoes, perfis port.PerfilRepository
 		recomendacoes: recomendacoes, clock: clock, validadeDias: validadeDias, log: log}
 }
 
-// Executar gera, disponibiliza e grava a recomendação uma única vez, já em ATIVA. Spec: UC-04 RN-08.
+// Executar gera, disponibiliza e grava a recomendação uma única vez, já em ATIVA, expirando antes
+// as ATIVA anteriores do cliente. Spec: UC-04 RN-08, Q-17, Q-18.
 func (uc *GerarRecomendacaoUseCase) Executar(ctx context.Context, clienteID uuid.UUID) (entity.RecomendacaoProduto, error) {
 	cliente, err := uc.pre.Verificar(ctx, clienteID)
 	if err != nil {
@@ -51,6 +53,10 @@ func (uc *GerarRecomendacaoUseCase) Executar(ctx context.Context, clienteID uuid
 		return entity.RecomendacaoProduto{}, fmt.Errorf("%w: perfil ainda sem segmento", errs.ErrPerfilNaoEncontrado)
 	}
 	seg, err := uc.segmentos.BuscarPorID(ctx, *perfil.SegmentoID)
+	if errors.Is(err, errs.ErrDadosInvalidos) {
+		// O perfil aponta para um segmento que a configuração não tem: falha de configuração (Q-17).
+		return entity.RecomendacaoProduto{}, fmt.Errorf("%w: segmento %s do perfil: %v", service.ErrSegmentoMalConfigurado, *perfil.SegmentoID, err)
+	}
 	if err != nil {
 		return entity.RecomendacaoProduto{}, err
 	}
@@ -58,8 +64,22 @@ func (uc *GerarRecomendacaoUseCase) Executar(ctx context.Context, clienteID uuid
 	if err != nil {
 		return entity.RecomendacaoProduto{}, err
 	}
-	if err := rec.Disponibilizar(uc.clock.Agora(), uc.validadeDias); err != nil {
+	agora := uc.clock.Agora()
+	if err := rec.Disponibilizar(agora, uc.validadeDias); err != nil {
 		return entity.RecomendacaoProduto{}, err
+	}
+	// RN-08 (Q-18): no máximo uma ATIVA por cliente; as anteriores expiram antes da nova.
+	anteriores, err := uc.recomendacoes.ListarAtivasPorCliente(ctx, clienteID)
+	if err != nil {
+		return entity.RecomendacaoProduto{}, err
+	}
+	for _, ant := range anteriores {
+		if err := ant.Expirar(agora); err != nil {
+			return entity.RecomendacaoProduto{}, err
+		}
+		if err := uc.recomendacoes.Salvar(ctx, ant); err != nil {
+			return entity.RecomendacaoProduto{}, err
+		}
 	}
 	if err := uc.recomendacoes.Salvar(ctx, rec); err != nil {
 		return entity.RecomendacaoProduto{}, err

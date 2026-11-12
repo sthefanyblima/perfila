@@ -41,7 +41,8 @@ type SegmentoRepository interface {
 // RecomendacaoRepository. Salvar insere ou atualiza por ID.
 type RecomendacaoRepository interface {
 	Salvar(ctx context.Context, r entity.RecomendacaoProduto) error
-	ListarAtivasVencidas(ctx context.Context, agora time.Time) ([]entity.RecomendacaoProduto, error) // [ADIÇÃO]
+	ListarAtivasVencidas(ctx context.Context, agora time.Time) ([]entity.RecomendacaoProduto, error)       // [ADIÇÃO]
+	ListarAtivasPorCliente(ctx context.Context, clienteID uuid.UUID) ([]entity.RecomendacaoProduto, error) // [ADIÇÃO] Q-18
 }
 
 // ConsentimentoRepository. Salvar faz upsert por ClienteID.

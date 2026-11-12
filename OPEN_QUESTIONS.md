@@ -2,7 +2,7 @@
 
 Registro exigido por C-12. Mudança aprovada entra primeiro na Spec, depois nas features, depois no código.
 
-**Estado em 11/11/2026:** nenhuma pergunta aberta. Q-01 a Q-06 foram decididas (Spec v1.1); Q-07 a Q-10 surgiram na T-19 e Q-11 a Q-14 na T-24; todas decididas (Spec v1.2).
+**Estado em 11/11/2026:** nenhuma pergunta aberta. Q-01 a Q-06 foram decididas (Spec v1.1); Q-07 a Q-10 surgiram na T-19, Q-11 a Q-14 na T-24 e Q-15 a Q-19 no mapeamento de bugs de 11/11; todas decididas (Spec v1.2).
 
 ## Decididas
 
@@ -22,6 +22,11 @@ Registro exigido por C-12. Mudança aprovada entra primeiro na Spec, depois nas 
 | Q-12 | TLS no Nginx (Spec 3.8) sem certificado da equipe | **Certificado autoassinado gerado na primeira subida**, num volume; um certificado real pode ser montado no mesmo caminho. Só a porta HTTPS é publicada (`PERFILA_PORTA_HTTPS`, padrão 8443) | Demonstração reproduzível em qualquer máquina, sem segredo no repositório; "única porta de entrada" do UML8 | `deploy/nginx/` |
 | Q-13 | `@implantacao` sobe contêineres: entra no `make verify`? | **Não.** O filtro padrão passa a ser `~@slow && ~@wip`; `@implantacao` roda em `make bdd-implantacao` e num job próprio do CI | Mantém o portão de toda tarefa rápido e sem Docker; o plano já previa job separado | `features/bdd_test.go`, `Makefile`, CI |
 | Q-14 | Senha do banco e `AUTH_TOKEN` da implantação | **Gerados aleatoriamente** por `scripts/preparar-implantacao.sh` em `deploy/.env` e `deploy/config.env` (ignorados pelo git); a `DATABASE_URL` é montada pelo compose. Logs do Nginx sem IP do cliente e sem query string | Nenhum segredo versionado; IP é dado pessoal na LGPD, então os logs seguem C-09 também no balanceador | `deploy/`, `scripts/` |
+| Q-15 | Compras com valor perto do limite do `float64` (ex.: `1e308`) estouram a soma: `TicketMedio` vira infinito, o banco grava `Infinity` e o processamento responde 200 com corpo vazio | **`Valor` no máximo 1.000.000** (RN-04); a API serializa a resposta antes de escrever o status e devolve 500 se falhar | O limite impede o estouro na origem; a serialização prévia garante que nenhuma falha vire "200 vazio" | RN-04, `evento.feature`, `Validar`, `escreverJSON` |
+| Q-16 | Evento com `Timestamp` segundos à frente do servidor (relógio do dispositivo adiantado) é rejeitado | **Tolerância de 2 minutos** em RN-04. O score (RN-05) continua contando só eventos até agora | Relógios de clientes divergem; rejeitar perde dados legítimos. 2 minutos cobrem a deriva comum sem aceitar datas absurdas | RN-04, `evento.feature`, `Validar` |
+| Q-17 | Critério inválido num segmento da configuração, ou segmento do perfil inexistente, responde 422 `dados_invalidos`, culpando o cliente | **Falha de configuração (500)**, `ErrSegmentoMalConfigurado`, como a Q-02 | Mesmo raciocínio da Q-02: o cliente não enviou nada inválido | RN-06, `segmentacao.feature`, `SegmentacaoService`, UC-04 |
+| Q-18 | Cada processamento cria mais uma recomendação ATIVA, e as anteriores nunca expiram enquanto válidas | **No máximo uma ATIVA por cliente**: UC-04 expira as anteriores antes de gravar a nova (novo método `ListarAtivasPorCliente`) | Evita recomendações contraditórias ativas ao mesmo tempo e mantém o UML6 (ATIVA → EXPIRADA por `Expirar`) | RN-08, port, `recomendacao.feature`, memória, PostgreSQL e contrato |
+| Q-19 | `GET /saude` responde 200 com o banco fora do ar; corpo com JSON extra depois do objeto é aceito | **`/saude` consulta o banco** (503 `indisponivel` se não responder); **corpo deve ser um único objeto JSON** | O balanceador e o healthcheck passam a enxergar a falha real; o corpo ambíguo vira `dados_invalidos` | Spec 3.7, `api.feature`, `api` |
 
 ## Decisões de modelagem (T-04)
 

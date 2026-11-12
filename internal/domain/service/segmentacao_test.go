@@ -32,7 +32,8 @@ func TestSegmentarSemPadrao(t *testing.T) {
 
 func TestSegmentarCriterioInvalido(t *testing.T) {
 	svc := NovoSegmentacaoService(segmentosFixos{{Nome: "x", Criterio: "idade > 1", Ativo: true}})
-	if _, err := svc.Segmentar(context.Background(), entity.PerfilCliente{}); !errors.Is(err, errs.ErrDadosInvalidos) {
-		t.Fatalf("critério inválido deveria ser ErrDadosInvalidos: %v", err)
+	_, err := svc.Segmentar(context.Background(), entity.PerfilCliente{})
+	if !errors.Is(err, ErrSegmentoMalConfigurado) || errs.Codigo(err) != "" {
+		t.Fatalf("critério inválido configurado deveria ser falha de configuração (Q-17): %v", err)
 	}
 }
