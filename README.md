@@ -97,7 +97,7 @@ Erros: JSON `{codigo, mensagem}` com códigos estáveis (Spec 3.5): 401 sem toke
 
 ## Painel do operador (Spec 3.7.1)
 
-Interface web em `/painel`, servida pelo próprio `omega-server`, seguindo o design system "Perfila Console" (`docs/design/`) com cantos suaves e paleta petróleo e ameixa (Q-27). HTML gerado no servidor (`html/template`), CSS próprio a partir dos tokens, htmx 2.0.3 e fontes IBM Plex embutidos no binário: nenhuma requisição a terceiros.
+Interface web em `/painel`, servida pelo próprio `omega-server`, seguindo o design system "Perfila Console" (`docs/design/`) com cantos suaves, neutros cinza, primária petróleo claro, acento ameixa e verde positivo próprio (Q-27). HTML gerado no servidor (`html/template`), CSS próprio a partir dos tokens, htmx 2.0.3 e fontes IBM Plex embutidos no binário: nenhuma requisição a terceiros.
 
 | Tela | O que faz |
 |---|---|
