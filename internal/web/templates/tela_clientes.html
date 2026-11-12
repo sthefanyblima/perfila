@@ -21,8 +21,10 @@
       {{range .Filtros}}<option value="{{.Valor}}"{{if .Atual}} selected{{end}}>{{.Rotulo}}</option>{{end}}
     </select>
   </div>
-  <button type="submit" class="pf-btn">{{icone "busca"}} Buscar</button>
-  {{if .FiltroAtivo}}<a class="pf-btn pf-btn--quiet" href="/painel/clientes">Limpar busca</a>{{end}}
+  <div class="pf-filters__acoes">
+    <button type="submit" class="pf-btn">{{icone "busca"}} Buscar</button>
+    {{if .FiltroAtivo}}<a class="pf-btn pf-btn--quiet" href="/painel/clientes">Limpar busca</a>{{end}}
+  </div>
 </form>
 
 {{if .Lista.Linhas}}

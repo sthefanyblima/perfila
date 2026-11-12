@@ -10,7 +10,7 @@
       <input type="hidden" name="_csrf" value="{{.Token}}">
       <input type="hidden" name="volta" value="{{.Volta}}">
       {{if .Expirou}}{{template "alerta" (alertaInfo "Sessão expirada" "Sua sessão expirou. Entre de novo para continuar.")}}{{end}}
-      {{if .Erro}}<div class="pf-alert pf-alert--critical" role="alert" data-teste="erro-entrar">{{icone "barra"}}<div><p class="pf-alert__text">{{.Erro}}</p></div></div>{{end}}
+      {{if .Erro}}<div class="pf-alert pf-alert--critical" role="alert" data-teste="erro-entrar"><span class="pf-alert__badge" aria-hidden="true">{{icone "barra"}}</span><div><p class="pf-alert__text">{{.Erro}}</p></div></div>{{end}}
       <div class="pf-field">
         <label class="pf-field__label" for="usuario">Usuário</label>
         <input class="pf-input" id="usuario" name="usuario" value="{{.Usuario}}" autocomplete="username" required autofocus>
@@ -19,7 +19,7 @@
         <label class="pf-field__label" for="senha">Senha</label>
         <input class="pf-input" id="senha" name="senha" type="password" autocomplete="current-password" required>
       </div>
-      <button type="submit" class="pf-btn pf-btn--primary">Entrar</button>
+      <button type="submit" class="pf-btn pf-btn--primary pf-btn--bloco">Entrar</button>
     </form>
     <p class="pf-entrar__nota">Acesso restrito à equipe de operação. As ações ficam registradas com o seu usuário.</p>
   </section>

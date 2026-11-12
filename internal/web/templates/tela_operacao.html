@@ -9,7 +9,7 @@
       {{if .BancoOK}}<span class="pf-tag pf-tag--ok">{{icone "ok"}}Banco no ar</span>{{else}}<span class="pf-tag pf-tag--critical">{{icone "barra"}}Banco fora do ar</span>{{end}}
     </div>
     <div class="pf-panel__body">
-      {{if not .BancoOK}}<div class="pf-alert pf-alert--critical" role="alert">{{icone "barra"}}<div><p class="pf-alert__title">O banco de dados não está respondendo</p><p class="pf-alert__text">Nada foi alterado. Tente de novo em instantes.</p></div><a class="pf-btn pf-btn--sm pf-alert__acao" href="/painel/operacao">Tentar de novo</a></div>{{end}}
+      {{if not .BancoOK}}<div class="pf-alert pf-alert--critical" role="alert"><span class="pf-alert__badge" aria-hidden="true">{{icone "barra"}}</span><div><p class="pf-alert__title">O banco de dados não está respondendo</p><p class="pf-alert__text">Nada foi alterado. Tente de novo em instantes.</p></div><a class="pf-btn pf-btn--sm pf-alert__acao" href="/painel/operacao">Tentar de novo</a></div>{{end}}
       <dl class="pf-kv">
         <dt>Armazenamento</dt><dd>{{if .ModoMemoria}}Memória (dados sintéticos, apagados ao reiniciar){{else}}PostgreSQL <span class="pf-mono">omega_db</span>{{end}}</dd>
         <dt>Migrações</dt><dd class="pf-mono">{{if .Migracoes}}{{.Migracoes}}{{else}}—{{end}}</dd>

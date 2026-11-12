@@ -35,7 +35,7 @@
 
 {{define "alerta"}}
 <div class="pf-alert pf-alert--{{.Tom}}"{{if .Teste}} data-teste="aviso-{{.Teste}}"{{end}}{{if .Agora}} role="alert"{{end}}>
-  {{if eq .Tom "critical"}}{{icone "barra"}}{{else if eq .Tom "warn"}}{{icone "atencao"}}{{else if eq .Tom "ok"}}{{icone "ok"}}{{else}}{{icone "info"}}{{end}}
+  <span class="pf-alert__badge" aria-hidden="true">{{if eq .Tom "critical"}}{{icone "barra"}}{{else if eq .Tom "warn"}}{{icone "atencao"}}{{else if eq .Tom "ok"}}{{icone "ok"}}{{else}}{{icone "info"}}{{end}}</span>
   <div><p class="pf-alert__title">{{.Titulo}}</p><p class="pf-alert__text">{{.Texto}}{{if .RequestID}} Código da requisição: <span class="pf-mono">{{.RequestID}}</span>.{{end}}</p></div>
   {{if .AcaoHref}}<a class="pf-btn pf-btn--sm pf-alert__acao" href="{{.AcaoHref}}"{{if .AcaoDialogo}} data-dialogo="{{.AcaoDialogo}}"{{end}}>{{.AcaoTexto}}</a>{{end}}
 </div>
