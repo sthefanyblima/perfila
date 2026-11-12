@@ -1,0 +1,5 @@
+# Go e scripts exigem LF (gofmt e sh); vale também para checkouts no Windows.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.pdf binary
