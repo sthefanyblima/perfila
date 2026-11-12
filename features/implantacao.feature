@@ -16,6 +16,11 @@ Funcionalidade: Implantação com balanceador, réplicas e banco isolado
     Quando o dispositivo do cliente faz 20 chamadas a "/saude" pelo balanceador
     Então todas as respostas têm status 200
 
+  @Q-22
+  Cenário: O painel do operador responde pelo balanceador com os cabeçalhos de segurança
+    Quando o dispositivo do cliente abre "/painel/entrar" pelo balanceador
+    Então a página do painel responde 200 com os cabeçalhos de segurança
+
   Cenário: O banco não é acessível pelo dispositivo do cliente
     Quando o dispositivo do cliente tenta conectar ao banco na porta 5432
     Então a conexão é recusada

@@ -110,7 +110,7 @@ As features vivem em `features/` e são a versão executável deste documento. E
 | `recomendacao_ciclo.feature` | 3.4.2, RN-08 | `@dominio` e `@aplicacao` | 9 | Core ✅ |
 | `cliente.feature` | UC-09 (D-22) | `@aplicacao` | 6 | Core ✅ |
 | `api.feature` | UC-01..04, UC-08, UC-09, RN-09 | `@api` | 21 | Support ✅ (+1 Q-19) |
-| `implantacao.feature` | UML8 | `@implantacao @slow` | 3 | Generic ✅ (T-24) |
+| `implantacao.feature` | UML8 | `@implantacao @slow` | 4 | Generic ✅ (T-24; +1 do painel na T-38) |
 | `processamento.feature` | RN-09, Q-26 | `@aplicacao` | 4 | Painel web ✅ (T-32) |
 | `leitura.feature` | RN-01, Q-21, Q-23 | `@aplicacao` | 17 | Painel web ✅ (T-34) |
 | `painel.feature` | 3.7.1, UC-01, UC-08, UC-09, RN-01, RN-09, Q-21 a Q-24 | `@web` | 26 | Painel web ✅ (T-35 a T-38) |

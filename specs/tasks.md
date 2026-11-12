@@ -71,7 +71,7 @@ Interface do operador a partir do design system "Perfila Console" (`docs/design/
 | T-35 | `internal/web` base: rotas, sessão HMAC, CSRF, limite de tentativas, cabeçalhos e CSP, Entrar, layout, static embutido, regra "web" no teste de arquitetura, `PAINEL_*`, `hash-senha`, montagem no `omega-server` | T-34 | cenários `@web` de sessão e segurança | ✅ 9 cenários `@web`; testes de sessão, limitador e formatos |
 | T-36 | Telas Clientes (busca, filtro, paginação) e Cadastrar cliente | T-35 | cenários `@web` de cadastro e busca | ✅ 4 cenários `@web` |
 | T-37 | Ficha do cliente: cabeçalho com consentimento, Visão geral (etapas, perfil, segmento, recomendação), Eventos e Consentimento, com diálogos; sem JavaScript (PRG) e com htmx | T-36 | cenários `@web` de consentimento, processamento e eventos | ✅ 12 cenários `@web`; fluxo A conferido no navegador. T-35 a T-37 num só commit: as telas dividem layout, partes e funções de template |
-| T-38 | Segmentos, Catálogo e Operação; `@implantacao` confere `/painel/entrar` pelo Nginx; README, roteiro e checklist LGPD; acessibilidade | T-37 | `make bdd-implantacao`; fluxos A a E no navegador | ⬜ |
+| T-38 | Segmentos, Catálogo e Operação; `@implantacao` confere `/painel/entrar` pelo Nginx; README, roteiro e checklist LGPD; acessibilidade | T-37 | `make bdd-implantacao`; fluxos A a E no navegador | ✅ 4 cenários `@implantacao` contra a implantação no Docker; contraste AA de todos os pares de cor nos dois temas (mínimo 5,3:1); README, roteiro e checklist LGPD (L-21 a L-27) |
 
 ## Fechamento
 

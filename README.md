@@ -8,7 +8,7 @@ O Perfila transforma eventos de comportamento (navegação, compra, interação)
 
 Desenvolvido com **Spec-Driven Development** (a especificação é a fonte da verdade e o agente de IA implementa) e **Behavior-Driven Development** (cenários Gherkin executáveis provam o comportamento).
 
-## Estado (11/11/2026): MVP concluído
+## Estado (12/11/2026): MVP concluído + painel web
 
 | Marco | Período | Estado |
 |---|---|---|
@@ -17,18 +17,20 @@ Desenvolvido com **Spec-Driven Development** (a especificação é a fonte da ve
 | 1ª chamada de acompanhamento | 09–11/11 | ✅ `docs/RELATORIO_PARCIAL.md` |
 | **Support** (API, middlewares, CMD, gateways), 25% | 09–13/11 | ✅ 20 cenários de API |
 | **Generic** (PostgreSQL, Docker/Nginx, LGPD), 25% | 16–19/11 | ✅ contrato nos dois backends · 3 cenários de implantação · checklist LGPD |
+| **Painel web do operador** (Spec v1.3, T-31 a T-38) | 12/11 | ✅ 26 cenários `@web` · 21 de aplicação novos · 1 de implantação |
 | Fechamento do escopo | 19/11 | daqui em diante, só correções |
 | Ensaio · evento final | 23/11 · 24/11 | roteiro em `docs/ROTEIRO_DEMONSTRACAO.md` |
 
-**110 cenários BDD** (107 no `make verify` + 3 de implantação), teste de arquitetura e suíte de contrato dos repositórios em memória e em PostgreSQL.
+**158 cenários BDD** (154 no `make verify` + 4 de implantação), teste de arquitetura e suíte de contrato dos repositórios em memória e em PostgreSQL.
 
 ## Arquitetura
 
 Clean Architecture (UML7), com a regra de dependência verificada por teste (`internal/arquitetura_test.go`):
 
 ```text
-api ──► application ──► domain ◄── infra        shared/errs: importável por todos
-        (casos de uso)  (entity, port, service)  (memoria, relogio, repository/pg, external, config)
+api ─┐
+     ├─► application ──► domain ◄── infra        shared/errs: importável por todos
+web ─┘   (casos de uso)  (entity, port, service)  (memoria, relogio, repository/pg, external, config)
 ```
 
 Implantação (UML8): o **Nginx** (TLS, única porta de entrada) distribui para **duas réplicas** do `omega-server`, que acessam o **PostgreSQL** `omega_db` numa rede interna, inalcançável pelo dispositivo do cliente.
@@ -38,9 +40,9 @@ Implantação (UML8): o **Nginx** (TLS, única porta de entrada) distribui para 
 ### Desenvolvimento (Go 1.22+)
 
 ```bash
-make verify   # gofmt, vet, testes com -race, 107 cenários BDD e teste de arquitetura
+make verify   # gofmt, vet, testes com -race, 154 cenários BDD e teste de arquitetura
 make demo     # fluxo do diagrama de sequência em memória, passo a passo
-make serve    # API em modo memória na porta 8080 (token dev-token)
+make serve    # API e painel em modo memória: http://localhost:8080/painel (operador / dev-senha)
 make demo-api # roteiro de curl contra o make serve (em outro terminal)
 make cover    # cobertura de domínio + aplicação
 make pg-teste # sobe um PostgreSQL descartável no Docker e roda o verify contra ele
@@ -52,13 +54,14 @@ make build    # binário estático bin/omega-server
 ```bash
 make implantar         # gera segredos (1ª vez) e sobe nginx + app1 + app2 + db
 make demo-implantacao  # roteiro da API pelo Nginx em HTTPS, gravando no PostgreSQL
-make bdd-implantacao   # 3 cenários @implantacao (inclui parar uma réplica)
+make bdd-implantacao   # 4 cenários @implantacao (inclui parar uma réplica e o painel pelo Nginx)
 make expirar           # administrador: expira recomendações vencidas
 make derrubar          # derruba (os dados ficam no volume omega_db)
 ```
 
 - A única porta publicada é `https://localhost:8443`, com certificado autoassinado gerado na primeira subida.
 - O token da API fica em `deploy/config.env` e a senha do banco em `deploy/.env`. Os dois são gerados aleatoriamente e ficam fora do git.
+- O painel fica em `https://localhost:8443/painel`, usuário `operador`; a senha aleatória está em `deploy/.env` (`grep PAINEL_SENHA deploy/.env`) e só o hash bcrypt vai para o `config.env` (Q-28).
 - O cabeçalho `X-Omega-Replica` mostra qual réplica atendeu.
 - No Windows sem `make` nem Go, os comandos equivalentes estão em `docs/ROTEIRO_DEMONSTRACAO.md`, seção 4.
 
@@ -72,6 +75,9 @@ make derrubar          # derruba (os dados ficam no volume omega_db)
 | `RECOMENDACAO_VALIDADE_DIAS` | 30 | validade da recomendação (RN-08) |
 | `ENGAJAMENTO_META_EVENTOS` | 30 | meta de eventos em 30 dias para o score (RN-05) |
 | `LOG_LEVEL` | info | debug, info, warn ou error |
+| `PAINEL_USUARIO` | operador | login do operador do painel |
+| `PAINEL_SENHA_HASH`, `PAINEL_CHAVE_SESSAO` | vazias = painel desligado | hash bcrypt (`omega-server hash-senha`) e chave HMAC de 64 dígitos hexadecimais (Q-22, Q-29) |
+| `PAINEL_FINALIDADE`, `PAINEL_VERSAO_TERMO` | segmentacao, v1 | sugeridos ao conceder o consentimento (Q-25) |
 
 O ambiente prevalece sobre o arquivo. Exemplo em `deploy/config.env.example`.
 
@@ -89,6 +95,20 @@ O ambiente prevalece sobre o arquivo. Exemplo em `deploy/config.env.example`.
 
 Erros: JSON `{codigo, mensagem}` com códigos estáveis (Spec 3.5): 401 sem token, 403 `consentimento_invalido`, 404 `cliente_nao_encontrado`, 409 `cliente_inativo` / `transicao_invalida` / `perfil_nao_encontrado`, 422 `dados_invalidos`.
 
+## Painel do operador (Spec 3.7.1)
+
+Interface web em `/painel`, servida pelo próprio `omega-server`, seguindo o design system "Perfila Console" (`docs/design/`) com cantos suaves e paleta petróleo e ameixa (Q-27). HTML gerado no servidor (`html/template`), CSS próprio a partir dos tokens, htmx 2.0.3 e fontes IBM Plex embutidos no binário: nenhuma requisição a terceiros.
+
+| Tela | O que faz |
+|---|---|
+| Clientes | busca por nome (sem acentos) ou ID, filtro de consentimento, 20 por página, e-mail mascarado |
+| Cadastrar cliente | UC-09; abre a ficha já com o selo "Não concedido" |
+| Ficha | selo de consentimento sempre visível; Visão geral (etapas do processamento, perfil, segmento com os critérios atendidos, recomendação), Eventos e Consentimento. Sem consentimento, nenhum dado de comportamento é lido |
+| Segmentos e Catálogo | somente leitura |
+| Operação | saúde do banco e expiração de recomendações vencidas |
+
+Sessão assinada sem estado (funciona com as duas réplicas), CSRF em todo envio, 5 tentativas de entrada por IP em 5 minutos, CSP `'self'`. Funciona sem JavaScript (formulários com redirecionamento e páginas de confirmação); com JavaScript, troca só a área do painel e usa diálogos nativos.
+
 ## LGPD
 
 Nenhum caso de uso que processa dado pessoal roda sem consentimento válido (C-03), e a revogação tem efeito imediato (RN-03). Os logs da aplicação e do Nginx não trazem nome, e-mail nem IP (C-09), e os testes usam só dados sintéticos. O checklist completo, com a evidência de cada item e o que ficou para depois do MVP, está em [`docs/CHECKLIST_LGPD.md`](docs/CHECKLIST_LGPD.md). Os requisitos são interpretação técnica da equipe, não parecer jurídico.
@@ -97,17 +117,19 @@ Nenhum caso de uso que processa dado pessoal roda sem consentimento válido (C-0
 
 ```text
 CLAUDE.md                   constituição para o agente (C-01..C-12) e mapa de contexto
-OPEN_QUESTIONS.md           decisões Q-01..Q-19, com o porquê
-specs/                      spec.md (v1.2) · plan.md (roadmap) · tasks.md · bdd-rules.md
+OPEN_QUESTIONS.md           decisões Q-01..Q-29, com o porquê
+specs/                      spec.md (v1.3) · plan.md (roadmap) · tasks.md · bdd-rules.md
 docs/uml/                   UML1..UML8 em texto (Mermaid) + imagens originais e corrigidas (img/v1)
+docs/design/                design system Perfila Console (princípios, telas, textos, tokens, componentes)
 docs/                       checklist LGPD · roteiro de demonstração · relatório parcial · auditoria
 docs/pdf/                   os documentos em PDF para entrega (Spec, Plano, Tarefas e BDD v1.2, decisões, checklist, roteiro)
 features/                   cenários Gherkin + passos godog
-cmd/omega-server            binário do UML8 (serve, expirar-recomendacoes) — raiz de composição
+cmd/omega-server            binário do UML8 (serve, expirar-recomendacoes, hash-senha) — raiz de composição
 cmd/perfila-demo            demonstração do core em memória
 internal/domain/            entity · port · service
 internal/application/       usecase
 internal/api/               rotas, handlers, middlewares (autenticação, LGPD, registro)
+internal/web/               painel do operador: sessão, CSRF, telas, templates e estáticos embutidos
 internal/infra/             memoria · relogio · external · config · repository/pg (+ migrações) · repository/contrato
 internal/shared/errs        erros de domínio com código estável
 deploy/                     Dockerfile · docker-compose.yml · nginx/ · config.env.example
