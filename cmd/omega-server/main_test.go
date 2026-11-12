@@ -63,6 +63,8 @@ func fluxoPontaAPonta(t *testing.T, databaseURL string) {
 	base := "/v1/clientes/" + id
 	chamar("POST", base+"/processamento", "", 403)
 	chamar("PUT", base+"/consentimento", `{"finalidade":"segmentacao","versaoTermo":"v1"}`, 200)
+	// C-09: a query string nunca vai para o log (o teste de dados pessoais no fim confere).
+	chamar("GET", base+"/consentimento?email=c-001@exemplo.test", "", 200)
 	quando := time.Now().UTC().Add(-time.Hour).Format(time.RFC3339)
 	for _, v := range []string{"520", "610", "700"} {
 		chamar("POST", base+"/eventos", `{"tipo":"compra","origem":"ecommerce","valor":`+v+`,"categoria":"livros","timestamp":"`+quando+`"}`, 201)

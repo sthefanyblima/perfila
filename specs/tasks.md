@@ -51,7 +51,7 @@ Legenda de status: ✅ concluída · 🟡 parcial · ⬜ a fazer. "Prova" é o q
 |---|---|---|---|---|
 | T-19 | Migrações SQL, sete `Pg*Repository`, suíte de contrato rodando contra fake e PostgreSQL | T-13 | contrato verde nos dois backends | ✅ 11/11: migrações 001 (esquema + `padrao`) e 002 (dados sintéticos, Q-08) aplicadas pelo servidor com trava (Q-09); contrato com 7 repositórios verde em memória e PostgreSQL 16; fluxo ponta a ponta também sobre o banco; CI com serviço PostgreSQL |
 | T-24 | Dockerfile multiestágio, `docker-compose.yml` (Nginx + 2 réplicas + PostgreSQL), `nginx.conf` | T-19, T-23 | `implantacao.feature` (`@slow`) | ✅ 11/11: Nginx 1.28 com TLS autoassinado (Q-12) e `X-Omega-Replica` (Q-11), `app1`/`app2`, PostgreSQL em rede interna; segredos gerados (Q-14); 3 cenários `@implantacao` verdes; job `implantacao` no CI (Q-13). Sem corte: duas réplicas no MVP |
-| T-25 | Checklist LGPD, auditoria de logs sem dados pessoais, README final, roteiro de demonstração | T-24 | checklist concluído | 🟡 README e demo do core prontos |
+| T-25 | Checklist LGPD, auditoria de logs sem dados pessoais, README final, roteiro de demonstração | T-24 | checklist concluído | ✅ 11/11: `docs/CHECKLIST_LGPD.md` (L-01..L-20, com evidências e pendências pós-MVP); auditoria de logs encontrou e corrigiu `time.Now` no log de acesso da API (C-07, teste de arquitetura estendido a todo `internal/`); e-mail em query string coberto pelo teste de C-09; README final; `docs/ROTEIRO_DEMONSTRACAO.md` e `make demo-implantacao` |
 
 Filtro padrão do BDD: `~@slow && ~@wip`; `@implantacao` roda em `make bdd-implantacao` e no job `implantacao` do CI (Q-13).
 Corte planejado das réplicas: **não foi necessário** (T-24 concluída em 11/11 com duas réplicas).

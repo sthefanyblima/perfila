@@ -4,7 +4,7 @@
 
 GO ?= go
 
-.PHONY: verify fmt vet test bdd arch cover demo serve demo-api build contrato pg-teste implantar bdd-implantacao expirar derrubar
+.PHONY: verify fmt vet test bdd arch cover demo serve demo-api build contrato pg-teste implantar bdd-implantacao demo-implantacao expirar derrubar
 
 verify: fmt vet test bdd arch ## portão de toda tarefa (Definição de pronto)
 
@@ -55,6 +55,11 @@ implantar: ## UML8: Nginx (TLS, :8443) + 2 réplicas + PostgreSQL; gera segredos
 
 bdd-implantacao: ## cenários @implantacao contra a implantação no ar (make implantar antes)
 	BDD_TAGS=@implantacao BDD_FORMAT=pretty $(GO) test -count=1 ./features/...
+
+demo-implantacao: ## roteiro da API pelo Nginx (HTTPS) gravando no PostgreSQL (make implantar antes)
+	mkdir -p bin
+	$(COMPOSE) cp nginx:/etc/nginx/certs/omega.crt bin/omega.crt
+	PERFILA_CA=bin/omega.crt ./scripts/demo-api.sh https://localhost:$${PERFILA_PORTA_HTTPS:-8443} "$$(sed -n 's/^AUTH_TOKEN=//p' deploy/config.env)"
 
 expirar: ## administrador: expira recomendações vencidas na réplica app1 (UML8, via exec)
 	$(COMPOSE) exec app1 omega-server -config /etc/omega/config.env expirar-recomendacoes
