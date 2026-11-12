@@ -76,6 +76,18 @@ Interface do operador a partir do design system "Perfila Console" (`docs/design/
 | T-40 | [nova] Cliente inativo só para leitura (Q-31): `Precondicoes.VerificarLeitura`, ficha com aviso e sem ação; revogado diferente de não concedido e linha do tempo do consentimento | T-39 | cenários `@aplicacao` e `@web` do inativo | ✅ |
 | T-41 | [nova] Demonstração ampliada (Q-32): migração 005 (segmentos e catálogo) e 14 clientes com história | T-40 | `TestMigracoes`, `TestCarregarExemplos` | ✅ |
 
+## Histórico do consentimento — Spec v1.4
+
+Prova de cada concessão e revogação (Q-34, RN-10, L-06). Base para os públicos e o portal do titular.
+
+| ID | Tarefa | Depende de | Prova | Status |
+|---|---|---|---|---|
+| T-42 | Spec v1.4, UML2 e UML5 em texto, Q-34; cenários novos em `consentimento.feature` e `painel.feature` (`@wip` até a tarefa que os implementa) | T-41 | Spec, UML e features revisados | ✅ 12 cenários novos (`@wip`) |
+| T-43 | `MovimentoConsentimento` e `NovoMovimento`; `ConsentimentoRepository.Registrar` e `ListarMovimentos` na memória e no PostgreSQL; migração 006 com reconstrução | T-42 | testes de tabela; contrato nos dois backends; `TestMigracoes` | ⬜ |
+| T-44 | UC-08 grava o movimento e expõe `Historico`; origem pelo contexto (`ComOrigem`) na API; `ConsultarCliente` devolve o histórico | T-43 | cenários `@aplicacao` do histórico; teste da origem na API | ⬜ |
+| T-45 | Painel: origem `painel` com o operador; linha do tempo pelo histórico, com a linha pelas datas para quem não tem movimentos | T-44 | cenários `@web` do histórico | ⬜ |
+| T-46 | Exemplos (Karina: v1, revoga, v2) conferidos pelo histórico; checklist L-06; README; fluxo no navegador | T-45 | `TestCarregarExemplos`; painel conferido | ⬜ |
+
 ## Fechamento
 
 | Data | Marco |
