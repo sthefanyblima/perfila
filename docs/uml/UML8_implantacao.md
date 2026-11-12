@@ -56,7 +56,7 @@ flowchart LR
 
 ## Regras para o agente
 
-1. Binário estático `omega-server` com subcomandos `serve`, `expirar-recomendacoes` e `hash-senha` (Q-28); o administrador os executa por SSH.
+1. Binário estático `omega-server` com subcomandos `serve`, `expirar-recomendacoes`, `hash-senha` (Q-28) e `carregar-exemplos` (Q-30); o administrador os executa por SSH.
 4. O painel (`/painel`) é servido pelo mesmo binário, atrás do mesmo Nginx; a sessão é assinada e sem estado, então qualquer réplica atende (Q-22). Fontes, CSS e htmx saem do próprio binário: nenhuma requisição a terceiros.
 2. O cliente nunca acessa o banco: só o balanceador expõe porta pública (cenário em `implantacao.feature`).
 3. `GET /saude` sem autenticação, para o balanceador.
