@@ -28,6 +28,9 @@ var regras = []regra{
 		[]string{"github.com/google/uuid"}},
 	{"shared", []string{modulo + "api", modulo + "application", modulo + "infra", modulo + "domain"}, nil},
 	{"api", []string{modulo + "infra", "database/sql"}, []string{"github.com/google/uuid"}},
+	// infra → domain (C-01, C-02); o driver PostgreSQL só entra aqui (Q-10).
+	{"infra", []string{modulo + "api", modulo + "application"},
+		[]string{"github.com/google/uuid", "github.com/jackc/pgx/v5/stdlib"}},
 }
 
 func arquivosGo(t *testing.T, dir string, incluirTestes bool) []string {

@@ -2,7 +2,7 @@
 
 > Constituição do projeto para o agente de código (Claude Code). Lida automaticamente no início de cada sessão.
 > **Sistema de Segmentação e Perfilamento do Comportamento do Cliente** · Equipe Omega · Go 1.22+
-> Versão da Spec: **v1.1** · Core e Support concluídos · próxima fase: **Generic** (16–19/11) · escopo fecha em **19/11** · evento final **24/11**
+> Versão da Spec: **v1.2** · Core e Support concluídos · Generic: T-19 (PostgreSQL) concluída, faltam T-24 e T-25 (16–19/11) · escopo fecha em **19/11** · evento final **24/11**
 
 ## 1. O que é o projeto
 
@@ -83,8 +83,9 @@ Aceite: cenários <tags> verdes; make verify verde; mudança de até ~300 linhas
 
 ## 6. Convenções rápidas
 
-- Camadas: `internal/domain/{entity,port,service}`, `internal/application/usecase`, `internal/infra/{memoria,relogio,repository/pg,external,config}`, `internal/api`, `internal/shared/errs`, `cmd/`.
+- Camadas: `internal/domain/{entity,port,service}`, `internal/application/usecase`, `internal/infra/{memoria,relogio,repository/pg,repository/contrato,external,config}`, `internal/api`, `internal/shared/errs`, `cmd/`.
 - Erro → código: `errs.Codigo(err)` devolve o código estável (`consentimento_invalido`, …) usado pela API e pelos cenários.
 - Fakes em memória (`internal/infra/memoria`) são a infraestrutura dos cenários `@dominio` e `@aplicacao` e da demo.
 - `@implantacao` fica fora do filtro do BDD até a fase Generic; `@api` já roda.
-- Sem `DATABASE_URL`, o `omega-server` usa repositórios em memória com dados sintéticos (D-23).
+- Sem `DATABASE_URL`, o `omega-server` usa repositórios em memória com dados sintéticos (D-23); com ela, PostgreSQL com migrações aplicadas ao subir (Q-07, Q-09). A implantação sempre a define.
+- Repositório novo ou alterado: a suíte `internal/infra/repository/contrato` precisa passar nos dois backends (`make pg-teste`).

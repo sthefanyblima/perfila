@@ -8,7 +8,7 @@ O Perfila transforma eventos de comportamento (navegação, compra, interação)
 
 Desenvolvido com **Spec-Driven Development** (a especificação é a fonte da verdade e o agente de IA implementa) e **Behavior-Driven Development** (cenários Gherkin executáveis provam o comportamento).
 
-## Estado (07/11/2026) — Core e Support concluídos
+## Estado (11/11/2026) — Core e Support concluídos; Generic em andamento
 
 | Marco | Período | Estado |
 |---|---|---|
@@ -16,7 +16,7 @@ Desenvolvido com **Spec-Driven Development** (a especificação é a fonte da ve
 | **Core** (domínio + aplicação) — 50% | 27/10–08/11 | ✅ 79 cenários verdes · cobertura 92,2% |
 | 1ª chamada de acompanhamento (relatório parcial) | 09–11/11 | `docs/RELATORIO_PARCIAL.md` |
 | Support (API, middlewares, CMD) — 25% | 09–13/11 | ✅ 20 cenários de API verdes · `make serve` |
-| Generic (PostgreSQL, Docker/Nginx, auth) — 25% | 16–19/11 | ⬜ |
+| Generic (PostgreSQL, Docker/Nginx, LGPD) — 25% | 16–19/11 | 🟡 T-19 PostgreSQL ✅ · T-24 e T-25 ⬜ |
 | Fechamento do escopo | 19/11 | ⬜ |
 | Ensaio · evento final | 23/11 · 24/11 | ⬜ |
 
@@ -31,7 +31,11 @@ make serve    # API HTTP em modo memória na porta 8080 (token dev-token)
 make demo-api # roteiro de curl contra o servidor (rode make serve em outro terminal)
 make build    # binário estático bin/omega-server
 make cover    # cobertura de domínio + aplicação
+make contrato # suíte de contrato dos repositórios (memória; PostgreSQL se houver banco)
+make pg-teste # sobe um PostgreSQL descartável no Docker e roda make verify contra ele
 ```
+
+Com `DATABASE_URL` preenchida, o `omega-server` usa o PostgreSQL (`omega_db`) e aplica as migrações de `internal/infra/repository/pg/migracoes` ao subir. Vazia, roda em memória com dados sintéticos — só para desenvolvimento e demonstração local (Q-07).
 
 Saída da demo (resumida):
 
@@ -47,13 +51,14 @@ Após revogar → consentimento_invalido
 
 ```text
 CLAUDE.md                 constituição para o agente (C-01..C-12) e mapa de contexto
-specs/                    spec.md (v1.0) · plan.md (roadmap) · tasks.md · bdd-rules.md
+specs/                    spec.md (v1.2) · plan.md (roadmap) · tasks.md · bdd-rules.md
 docs/uml/                 UML1..UML8 em texto (Mermaid) + imagens originais em img/
 docs/                     relatório parcial e auditoria de coerência
 features/                 cenários Gherkin + passos godog
 internal/domain/          entity · port · service           (Core)
 internal/application/     usecase                           (Core)
-internal/infra/           memoria · relogio                  (Core) · pg, external, config (próximas fases)
+internal/infra/           memoria · relogio (Core) · external · config (Support)
+internal/infra/repository pg (Pg*Repository + migrações) · contrato (suíte comum) (Generic)
 internal/shared/errs      erros de domínio com código estável
 cmd/perfila-demo          demonstração do core
 OPEN_QUESTIONS.md         dúvidas com decisão padrão e dono

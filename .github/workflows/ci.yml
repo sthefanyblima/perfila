@@ -7,6 +7,20 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    # PostgreSQL para a suíte de contrato e o fluxo ponta a ponta sobre o banco (T-19).
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: omega
+          POSTGRES_PASSWORD: omega
+          POSTGRES_DB: omega_db
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U omega -d omega_db"
+          --health-interval 2s --health-timeout 5s --health-retries 20
+    env:
+      PERFILA_TEST_DATABASE_URL: postgres://omega:omega@localhost:5432/omega_db?sslmode=disable
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5

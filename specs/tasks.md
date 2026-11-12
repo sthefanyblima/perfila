@@ -1,6 +1,6 @@
 # Tarefas (T-xx)
 
-Perfila · Equipe Omega · Plano SDD v1.0 · atualizado em 07/11/2026 (cronograma: escopo fecha 19/11, evento 24/11)
+Perfila · Equipe Omega · Plano SDD v1.0 · atualizado em 11/11/2026 (cronograma: escopo fecha 19/11, evento 24/11)
 
 Legenda de status: ✅ concluída · 🟡 parcial · ⬜ a fazer. "Prova" é o que precisa estar verde para a tarefa ser aceita (Definição de pronto no `specs/plan.md`, seção 3).
 
@@ -49,7 +49,7 @@ Legenda de status: ✅ concluída · 🟡 parcial · ⬜ a fazer. "Prova" é o q
 
 | ID | Tarefa | Depende de | Prova | Status |
 |---|---|---|---|---|
-| T-19 | Migrações SQL, sete `Pg*Repository`, suíte de contrato rodando contra fake e PostgreSQL | T-13 | contrato verde nos dois backends | ⬜ |
+| T-19 | Migrações SQL, sete `Pg*Repository`, suíte de contrato rodando contra fake e PostgreSQL | T-13 | contrato verde nos dois backends | ✅ 11/11: migrações 001 (esquema + `padrao`) e 002 (dados sintéticos, Q-08) aplicadas pelo servidor com trava (Q-09); contrato com 7 repositórios verde em memória e PostgreSQL 16; fluxo ponta a ponta também sobre o banco; CI com serviço PostgreSQL |
 | T-24 | Dockerfile multiestágio, `docker-compose.yml` (Nginx + 2 réplicas + PostgreSQL), `nginx.conf` | T-19, T-23 | `implantacao.feature` (`@slow`) | ⬜ |
 | T-25 | Checklist LGPD, auditoria de logs sem dados pessoais, README final, roteiro de demonstração | T-24 | checklist concluído | 🟡 README e demo do core prontos |
 

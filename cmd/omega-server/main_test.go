@@ -2,10 +2,12 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -14,13 +16,27 @@ import (
 )
 
 // Teste de fumaça ponta a ponta do binário montado (T-23): cadastro → consentimento →
-// eventos → processamento, pelo HTTP real.
+// eventos → processamento, pelo HTTP real. Roda no modo memória e, se
+// PERFILA_TEST_DATABASE_URL estiver definida, também sobre o PostgreSQL (T-19).
 func TestFluxoPontaAPonta(t *testing.T) {
+	t.Run("memoria", func(t *testing.T) { fluxoPontaAPonta(t, "") })
+	t.Run("postgres", func(t *testing.T) {
+		url := os.Getenv("PERFILA_TEST_DATABASE_URL")
+		if url == "" {
+			t.Skip("PERFILA_TEST_DATABASE_URL não definida")
+		}
+		fluxoPontaAPonta(t, url)
+	})
+}
+
+func fluxoPontaAPonta(t *testing.T, databaseURL string) {
 	var logs bytes.Buffer
-	app, err := montar(config.Config{AuthToken: "segredo", RecomendacaoValidadeDias: 30, EngajamentoMetaEventos: 10, LogLevel: "info"}, &logs)
+	cfg := config.Config{DatabaseURL: databaseURL, AuthToken: "segredo", RecomendacaoValidadeDias: 30, EngajamentoMetaEventos: 10, LogLevel: "info"}
+	app, err := montar(context.Background(), cfg, &logs)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer app.fechar()
 	srv := httptest.NewServer(app.handler)
 	defer srv.Close()
 
@@ -68,7 +84,7 @@ func TestFluxoPontaAPonta(t *testing.T) {
 }
 
 func TestSaudeSemToken(t *testing.T) {
-	app, _ := montar(config.Config{AuthToken: "x", LogLevel: "info", RecomendacaoValidadeDias: 30, EngajamentoMetaEventos: 30}, io.Discard)
+	app, _ := montar(context.Background(), config.Config{AuthToken: "x", LogLevel: "info", RecomendacaoValidadeDias: 30, EngajamentoMetaEventos: 30}, io.Discard)
 	rec := httptest.NewRecorder()
 	app.handler.ServeHTTP(rec, httptest.NewRequest("GET", "/saude", nil))
 	if rec.Code != 200 {
@@ -84,11 +100,14 @@ func TestArgumentosEConfig(t *testing.T) {
 	if err := executar([]string{"serve"}, semEnv, io.Discard); err == nil || !strings.Contains(err.Error(), "AUTH_TOKEN") {
 		t.Fatalf("sem AUTH_TOKEN: %v", err)
 	}
-	comBanco := func(k string) string {
-		return map[string]string{"AUTH_TOKEN": "x", "DATABASE_URL": "postgres://db"}[k]
+	// Banco inacessível aborta a inicialização sem expor a senha da URL.
+	bancoFora := func(k string) string {
+		return map[string]string{"AUTH_TOKEN": "x",
+			"DATABASE_URL": "postgres://omega:senha-secreta@127.0.0.1:1/omega_db?connect_timeout=2"}[k]
 	}
-	if err := executar([]string{"serve"}, comBanco, io.Discard); err == nil || !strings.Contains(err.Error(), "Generic") {
-		t.Fatalf("PostgreSQL ainda não suportado: %v", err)
+	err := executar([]string{"serve"}, bancoFora, io.Discard)
+	if err == nil || !strings.Contains(err.Error(), "pg: conectando") || strings.Contains(err.Error(), "senha-secreta") {
+		t.Fatalf("banco inacessível: %v", err)
 	}
 	soToken := func(k string) string { return map[string]string{"AUTH_TOKEN": "x"}[k] }
 	if err := executar([]string{"expirar-recomendacoes"}, soToken, io.Discard); err != nil {

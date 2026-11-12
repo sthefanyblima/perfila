@@ -9,7 +9,7 @@ import (
 	"perfila/features/steps"
 )
 
-// Fase Support concluída: só @implantacao fica fora até a fase Generic.
+// Só @implantacao fica fora até a T-24 (Docker/Nginx), quando ganha job próprio no CI.
 // Sobrescreva com BDD_TAGS, por exemplo: BDD_TAGS="@lgpd" go test ./features/...
 const tagsPadrao = "~@implantacao && ~@wip"
 

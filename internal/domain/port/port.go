@@ -35,7 +35,7 @@ type PerfilRepository interface {
 // SegmentoRepository. ListarAtivos devolve em ordem crescente de Prioridade (RN-06).
 type SegmentoRepository interface {
 	ListarAtivos(ctx context.Context) ([]entity.Segmento, error)
-	BuscarPorID(ctx context.Context, id uuid.UUID) (entity.Segmento, error) // [ADIÇÃO]
+	BuscarPorID(ctx context.Context, id uuid.UUID) (entity.Segmento, error) // [ADIÇÃO] errs.ErrDadosInvalidos se inexistente
 }
 
 // RecomendacaoRepository. Salvar insere ou atualiza por ID.
