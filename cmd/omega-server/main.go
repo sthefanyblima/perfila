@@ -110,19 +110,21 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 	clock := relogio.Sistema{}
 	pre := usecase.NovasPrecondicoes(repos.clientes, service.NovoValidadorLGPD(repos.consentimentos))
 	coletar := usecase.NovoColetarDadosUseCase(pre, repos.eventos, clock)
+	processar := usecase.NovoProcessarClienteUseCase(coletar,
+		usecase.NovoGerarPerfilUseCase(pre, coletar, service.NovoPerfilamentoService(clock, cfg.EngajamentoMetaEventos), repos.perfis),
+		usecase.NovoSegmentarClienteUseCase(pre, repos.perfis, service.NovoSegmentacaoService(repos.segmentos)),
+		usecase.NovoGerarRecomendacaoUseCase(pre, repos.perfis, repos.segmentos,
+			service.NovoRecomendacaoService(repos.produtos, clock), repos.recomendacoes, clock, cfg.RecomendacaoValidadeDias, log))
 	deps := api.Dependencias{
 		AuthToken:     cfg.AuthToken,
 		Precondicoes:  pre,
 		Cadastrar:     usecase.NovoCadastrarClienteUseCase(repos.clientes, clock),
 		Consentimento: usecase.NovoGerenciarConsentimentoUseCase(repos.clientes, repos.consentimentos, clock),
 		Coletar:       coletar,
-		GerarPerfil:   usecase.NovoGerarPerfilUseCase(pre, coletar, service.NovoPerfilamentoService(clock, cfg.EngajamentoMetaEventos), repos.perfis),
-		Segmentar:     usecase.NovoSegmentarClienteUseCase(pre, repos.perfis, service.NovoSegmentacaoService(repos.segmentos)),
-		Recomendar: usecase.NovoGerarRecomendacaoUseCase(pre, repos.perfis, repos.segmentos,
-			service.NovoRecomendacaoService(repos.produtos, clock), repos.recomendacoes, clock, cfg.RecomendacaoValidadeDias, log),
-		Log:   log,
-		Clock: clock,
-		Saude: repos.saude,
+		Processar:     processar,
+		Log:           log,
+		Clock:         clock,
+		Saude:         repos.saude,
 	}
 	return aplicacao{
 		log:     log,

@@ -111,6 +111,7 @@ As features vivem em `features/` e são a versão executável deste documento. E
 | `cliente.feature` | UC-09 (D-22) | `@aplicacao` | 6 | Core ✅ |
 | `api.feature` | UC-01..04, UC-08, UC-09, RN-09 | `@api` | 21 | Support ✅ (+1 Q-19) |
 | `implantacao.feature` | UML8 | `@implantacao @slow` | 3 | Generic ✅ (T-24) |
+| `processamento.feature` | RN-09, Q-26 | `@aplicacao` | 4 | Painel web ✅ (T-32) |
 | `painel.feature` | 3.7.1, UC-01, UC-08, UC-09, RN-01, RN-09, Q-21 a Q-24 | `@web` | 25 | Painel web (T-31 a T-38) |
 
 Total no `make verify`: **107 cenários, 725 passos, todos verdes**; mais 3 cenários `@implantacao` (11 passos) em `make bdd-implantacao`.

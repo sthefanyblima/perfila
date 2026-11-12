@@ -45,6 +45,7 @@ type Mundo struct {
 	temRecomendacao   bool
 	// recomendação gerada antes da ação do cenário (Q-18)
 	recomendacaoAnteriorID uuid.UUID
+	processamento          usecase.ResultadoProcessamento
 
 	api estadoAPI
 }
@@ -79,13 +80,14 @@ type casos struct {
 	gerarPerfil   *usecase.GerarPerfilUseCase
 	segmentar     *usecase.SegmentarClienteUseCase
 	recomendar    *usecase.GerarRecomendacaoUseCase
+	processar     *usecase.ProcessarClienteUseCase
 	expirar       *usecase.ExpirarRecomendacoesUseCase
 }
 
 func (m *Mundo) uc() casos {
 	pre := usecase.NovasPrecondicoes(m.clientes, service.NovoValidadorLGPD(m.consentimentos))
 	coletar := usecase.NovoColetarDadosUseCase(pre, m.eventos, m.clock)
-	return casos{
+	c := casos{
 		cadastrar:     usecase.NovoCadastrarClienteUseCase(m.clientes, m.clock),
 		consentimento: usecase.NovoGerenciarConsentimentoUseCase(m.clientes, m.consentimentos, m.clock),
 		coletar:       coletar,
@@ -96,6 +98,8 @@ func (m *Mundo) uc() casos {
 			service.NovoRecomendacaoService(m.produtos, m.clock), m.recomendacoes, m.clock, m.validadeDias, nil),
 		expirar: usecase.NovoExpirarRecomendacoesUseCase(m.recomendacoes, m.clock),
 	}
+	c.processar = usecase.NovoProcessarClienteUseCase(c.coletar, c.gerarPerfil, c.segmentar, c.recomendar)
+	return c
 }
 
 // id converte um identificador sintético ("c-001") em UUID determinístico (B-08).
