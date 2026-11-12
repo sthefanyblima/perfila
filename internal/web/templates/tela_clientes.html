@@ -17,7 +17,7 @@
   </div>
   <div class="pf-field pf-field--estreito">
     <label class="pf-field__label" for="consentimento">Consentimento</label>
-    <select class="pf-select" id="consentimento" name="consentimento">
+    <select class="pf-select" id="consentimento" name="consentimento" data-filtrar>
       {{range .Filtros}}<option value="{{.Valor}}"{{if .Atual}} selected{{end}}>{{.Rotulo}}</option>{{end}}
     </select>
   </div>

@@ -50,6 +50,15 @@
     }
   });
 
+  // Filtro de consentimento: aplica ao escolher, sem precisar clicar em Buscar (o botão continua
+  // valendo sem JavaScript). requestSubmit passa pelo htmx, que troca só a área do painel.
+  document.addEventListener("change", function (ev) {
+    var campo = ev.target.closest("[data-filtrar]");
+    if (campo && campo.form) {
+      if (typeof campo.form.requestSubmit === "function") { campo.form.requestSubmit(); } else { campo.form.submit(); }
+    }
+  });
+
   function toast(msg) {
     var area = document.querySelector(".pf-toasts");
     if (!area) { return; }
