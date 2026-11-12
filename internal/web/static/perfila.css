@@ -88,11 +88,12 @@
     --btn-bg: #2E333A; --btn-ink: #E8EAED; --btn-hover: #383E46;
     --danger-bg: #C9302C; --danger-hover: #A82824; --on-danger: #FFFFFF;
     --shadow-btn: 0 1px 2px rgba(0, 0, 0, 0.45);
-    --tag-ok-bg: #22C55E; --tag-ok-ink: #0B1215;
-    --tag-warn-bg: #F59E0B; --tag-warn-ink: #16191D;
+    /* Etiquetas com a mesma cor cheia e texto branco do tema claro: sem texto escuro "pesado" */
+    --tag-ok-bg: #157F3B; --tag-ok-ink: #FFFFFF;
+    --tag-warn-bg: #A15C00; --tag-warn-ink: #FFFFFF;
     --tag-critical-bg: #C9302C; --tag-critical-ink: #FFFFFF;
-    --tag-neutral-bg: #343A41; --tag-neutral-ink: #D5DAE1;
-    --tag-accent-bg: #E0A3D2; --tag-accent-ink: #1C0F19;
+    --tag-neutral-bg: #3A4048; --tag-neutral-ink: #E8EAED;
+    --tag-accent-bg: #8A3E7A; --tag-accent-ink: #FFFFFF;
     --scrim: #000000;
     --shadow-overlay: 0 10px 28px rgba(0, 0, 0, 0.55), 0 2px 4px rgba(0, 0, 0, 0.45);
   }
