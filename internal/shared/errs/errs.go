@@ -18,6 +18,7 @@ func (e *Erro) Error() string { return e.Codigo + ": " + e.Mensagem }
 var (
 	ErrClienteNaoEncontrado       = &Erro{"cliente_nao_encontrado", "cliente inexistente"}
 	ErrClienteInativo             = &Erro{"cliente_inativo", "cliente desativado"}
+	ErrClienteEliminado           = &Erro{"cliente_eliminado", "dados do titular eliminados"} // v1.9 RN-17
 	ErrConsentimentoInvalido      = &Erro{"consentimento_invalido", "consentimento diferente de CONCEDIDO"}
 	ErrTransicaoInvalida          = &Erro{"transicao_invalida", "transição de estado não permitida"}
 	ErrDadosInvalidos             = &Erro{"dados_invalidos", "argumento, evento ou critério inválido"}

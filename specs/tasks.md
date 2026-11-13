@@ -95,7 +95,7 @@ Correção, acesso e portabilidade e eliminação a pedido do titular (art. 18 d
 | ID | Tarefa | Depende de | Prova | Status |
 |---|---|---|---|---|
 | T-69 | Spec v1.9, Q-48 a Q-53, exceção em C-03, UML2, UML7 e UML8 em texto, `02-telas-e-fluxos.md` e `03-textos.md`; `features/direitos.feature` (`@wip` até a tarefa que a implementa) | T-46 | Spec, UML e feature revisados | ✅ cenários escritos (`@wip`) |
-| T-70 | `Cliente.DataEliminacao`, `Anonimizar`, `EstaEliminado` e `ErrClienteEliminado`; `RemoverPorCliente` (eventos, perfis, recomendações) e `ListarRevogadosAte` na memória e no PostgreSQL; migração 009; contrato | T-69 | testes de tabela; contrato nos dois backends | ⬜ |
+| T-70 | `Cliente.DataEliminacao`, `Anonimizar`, `EstaEliminado` e `ErrClienteEliminado`; `RemoverPorCliente` (eventos, perfis, recomendações) e `ListarRevogadosAte` na memória e no PostgreSQL; migração 009; contrato | T-69 | testes de tabela; contrato nos dois backends | ✅ `TestClienteAnonimizar`; contrato `DireitosDoTitular` e `RevogadosAte` (memória e PostgreSQL 16); `TestMigracaoEliminacaoExigeAnonimizado` |
 | T-71 | `AtualizarCadastro`, `ExportarDadosTitular`, `EliminarDadosTitular`, `AplicarRetencao`; RN-01 e UC-08 com o cliente eliminado; `RETENCAO_DIAS_REVOGADO` e subcomando `aplicar-retencao` | T-70 | cenários `@aplicacao` de `direitos.feature` | ⬜ |
 | T-72 | Painel: aba Direitos do titular (corrigir, baixar dados, eliminar com confirmação forte), ficha do eliminado e retenção na Operação; log `direito_atendido` | T-71 | cenários `@web` de `direitos.feature`; `@wip` retirado | ⬜ |
 | T-73 | Exemplo revogado há mais de 180 dias; checklist (L-19, L-20), README e roteiro; fluxo no navegador | T-72 | `TestCarregarExemplos`; painel conferido | ⬜ |

@@ -44,6 +44,10 @@ func NovoClienteRepository() *ClienteRepository {
 func (r *ClienteRepository) Salvar(_ context.Context, c entity.Cliente) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if c.DataEliminacao != nil { // cópia em UTC: o chamador não altera o que foi gravado
+		d := c.DataEliminacao.UTC()
+		c.DataEliminacao = &d
+	}
 	r.dados[c.ID] = c
 	return nil
 }
@@ -134,6 +138,21 @@ func (r *EventoRepository) BuscarPorCliente(_ context.Context, clienteID uuid.UU
 	return out, nil
 }
 
+// RemoverPorCliente apaga os eventos do cliente e diz quantos. Spec: RN-17, Q-52.
+func (r *EventoRepository) RemoverPorCliente(_ context.Context, clienteID uuid.UUID) (int, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	ficam := r.dados[:0]
+	for _, e := range r.dados {
+		if e.ClienteID != clienteID {
+			ficam = append(ficam, e)
+		}
+	}
+	n := len(r.dados) - len(ficam)
+	r.dados = ficam
+	return n, nil
+}
+
 // Total devolve o número de eventos gravados (apoio a testes).
 func (r *EventoRepository) Total() int {
 	r.mu.RLock()
@@ -161,6 +180,17 @@ func (r *PerfilRepository) Salvar(_ context.Context, p entity.PerfilCliente) (en
 	}
 	r.dados[p.ClienteID] = p
 	return p, nil
+}
+
+// RemoverPorCliente apaga o perfil do cliente; devolve 0 ou 1. Spec: RN-17, Q-52.
+func (r *PerfilRepository) RemoverPorCliente(_ context.Context, clienteID uuid.UUID) (int, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if _, ok := r.dados[clienteID]; !ok {
+		return 0, nil
+	}
+	delete(r.dados, clienteID)
+	return 1, nil
 }
 
 func (r *PerfilRepository) BuscarPorCliente(_ context.Context, clienteID uuid.UUID) (entity.PerfilCliente, error) {
@@ -256,6 +286,20 @@ func (r *RecomendacaoRepository) ListarAtivasVencidas(_ context.Context, agora t
 		}
 	}
 	return out, nil
+}
+
+// RemoverPorCliente apaga as recomendações do cliente e diz quantas. Spec: RN-17, Q-52.
+func (r *RecomendacaoRepository) RemoverPorCliente(_ context.Context, clienteID uuid.UUID) (int, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	n := 0
+	for id, rec := range r.dados {
+		if rec.ClienteID == clienteID {
+			delete(r.dados, id)
+			n++
+		}
+	}
+	return n, nil
 }
 
 // ListarAtivasPorCliente devolve as recomendações ATIVA do cliente (Q-18).
@@ -375,6 +419,31 @@ func (r *ConsentimentoRepository) BuscarPorCliente(_ context.Context, clienteID 
 		return entity.ConsentimentoLGPD{}, errs.ErrConsentimentoNaoEncontrado
 	}
 	return c, nil
+}
+
+// ListarRevogadosAte devolve os clientes REVOGADO com DataRevogacao <= limite, da revogação mais
+// antiga para a mais recente (desempate por ID). Spec: RN-18, Q-51.
+func (r *ConsentimentoRepository) ListarRevogadosAte(_ context.Context, limite time.Time) ([]uuid.UUID, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	vencidos := []entity.ConsentimentoLGPD{}
+	for _, c := range r.dados {
+		if c.Status == entity.StatusRevogado && c.DataRevogacao != nil && !c.DataRevogacao.After(limite) {
+			vencidos = append(vencidos, c)
+		}
+	}
+	sort.Slice(vencidos, func(i, j int) bool {
+		a, b := vencidos[i], vencidos[j]
+		if !a.DataRevogacao.Equal(*b.DataRevogacao) {
+			return a.DataRevogacao.Before(*b.DataRevogacao)
+		}
+		return a.ClienteID.String() < b.ClienteID.String()
+	})
+	out := make([]uuid.UUID, 0, len(vencidos))
+	for _, c := range vencidos {
+		out = append(out, c.ClienteID)
+	}
+	return out, nil
 }
 
 // Remover apaga o registro (apoio a testes: estado NAO_CONCEDIDO sem registro).

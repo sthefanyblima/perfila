@@ -33,6 +33,8 @@ type FiltroClientes struct {
 type EventoRepository interface {
 	Salvar(ctx context.Context, e entity.EventoComportamental) error
 	BuscarPorCliente(ctx context.Context, clienteID uuid.UUID) ([]entity.EventoComportamental, error)
+	// RemoverPorCliente [ADIÇÃO] v1.9 apaga os eventos do cliente e diz quantos; 0 sem erro. Spec: RN-17, Q-52.
+	RemoverPorCliente(ctx context.Context, clienteID uuid.UUID) (int, error)
 }
 
 // PerfilRepository. Salvar faz upsert por ClienteID e preserva o ID original (RN-05).
@@ -40,6 +42,8 @@ type EventoRepository interface {
 type PerfilRepository interface {
 	Salvar(ctx context.Context, p entity.PerfilCliente) (entity.PerfilCliente, error)
 	BuscarPorCliente(ctx context.Context, clienteID uuid.UUID) (entity.PerfilCliente, error)
+	// RemoverPorCliente [ADIÇÃO] v1.9 apaga o perfil do cliente; devolve 0 ou 1. Spec: RN-17, Q-52.
+	RemoverPorCliente(ctx context.Context, clienteID uuid.UUID) (int, error)
 }
 
 // SegmentoRepository. ListarAtivos devolve em ordem crescente de Prioridade (RN-06).
@@ -54,6 +58,8 @@ type RecomendacaoRepository interface {
 	ListarAtivasVencidas(ctx context.Context, agora time.Time) ([]entity.RecomendacaoProduto, error)       // [ADIÇÃO]
 	ListarAtivasPorCliente(ctx context.Context, clienteID uuid.UUID) ([]entity.RecomendacaoProduto, error) // [ADIÇÃO] Q-18
 	ListarPorCliente(ctx context.Context, clienteID uuid.UUID) ([]entity.RecomendacaoProduto, error)       // [ADIÇÃO] Q-23: DataGeracao decrescente
+	// RemoverPorCliente [ADIÇÃO] v1.9 apaga as recomendações do cliente e diz quantas. Spec: RN-17, Q-52.
+	RemoverPorCliente(ctx context.Context, clienteID uuid.UUID) (int, error)
 }
 
 // ConsentimentoRepository. Salvar faz upsert por ClienteID, sem movimento (cargas e testes).
@@ -67,6 +73,9 @@ type ConsentimentoRepository interface {
 	Registrar(ctx context.Context, c entity.ConsentimentoLGPD, m entity.MovimentoConsentimento) error
 	// ListarMovimentos [ADIÇÃO] v1.4: Data crescente, desempate pela ordem de gravação.
 	ListarMovimentos(ctx context.Context, clienteID uuid.UUID) ([]entity.MovimentoConsentimento, error)
+	// ListarRevogadosAte [ADIÇÃO] v1.9: clientes REVOGADO com DataRevogacao <= limite, da revogação
+	// mais antiga para a mais recente. Spec: RN-18, Q-51.
+	ListarRevogadosAte(ctx context.Context, limite time.Time) ([]uuid.UUID, error)
 }
 
 // ProdutoRepository [ADIÇÃO] (D-05).
