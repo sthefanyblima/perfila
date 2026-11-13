@@ -2,7 +2,7 @@
 
 ## Mapa do painel
 
-Todas as telas ficam sob `/painel` no próprio `omega-server`, atrás do Nginx. A navegação lateral (`SideNav`) tem três grupos:
+Todas as telas ficam sob `/painel` no próprio `omega-server`, atrás do Nginx. A navegação lateral (`SideNav`) tem três grupos, e cada grupo só aparece para o papel que pode abri-lo (v1.5, RN-11): Atendimento vê Clientes e Configuração; Analista, só Configuração; Administrador, os três.
 
 ```text
 /painel/entrar                         Entrar (sem sessão)
@@ -15,15 +15,22 @@ Clientes
 Configuração (somente leitura no MVP)
   /painel/segmentos                    Segmentos e critérios (RN-06)
   /painel/catalogo                     Produtos por categoria (RN-07)
-Operação
+Administração (só Administrador, v1.5)
   /painel/operacao                     Saúde do sistema e expiração de recomendações (RN-08)
+  /painel/usuarios                     Operadores: criar, papel, desativar, ativar, redefinir senha (Q-35)
+  /painel/usuarios/{id}                Um operador: papel, situação e senha provisória
+  /painel/auditoria                    Trilha do painel, com filtros por operador, ação e período (Q-39)
+Rodapé (todos os papéis)
+  /painel/minha-senha                  Trocar a própria senha; obrigatória depois de senha provisória (Q-40)
 ```
+
+Depois de Entrar, quem tem Clientes vai para a lista; o Analista vai para Segmentos. Uma página sem permissão mostra a tela de erro "Sem permissão" (403), e a tentativa fica na auditoria.
 
 Fase 2, fora deste escopo: `/titular` (portal do titular para ver e revogar o próprio consentimento, que exige autenticação do titular) e relatórios de segmento (UC-05 a UC-07).
 
 ## Moldura de toda tela
 
-- `SideNav` à esquerda (`size-sidebar`) em `surface-2`; nome "Perfila" no topo; operador logado e "Sair" no rodapé.
+- `SideNav` à esquerda (`size-sidebar`) em `surface-2`; nome "Perfila" no topo; login e papel do operador, "Minha senha" e "Sair" no rodapé.
 - Área de trabalho em `surface-0`, até `size-content`, com margem lateral `space-6`.
 - `PageHeader`: trilha (Clientes › Nome), título `display`, ações da página à direita (no máximo uma primária).
 - Toasts no canto inferior direito, acima de tudo.

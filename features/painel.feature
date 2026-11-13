@@ -244,3 +244,111 @@ Funcionalidade: Painel web do operador
     Quando a página "/painel/clientes/c-001/consentimento" é aberta
     Então a página mostra o aviso "linha-pelas-datas"
     E a página mostra "Consentimento revogado"
+
+  # ---- Usuários, perfis de acesso e auditoria (v1.5, Q-35 a Q-41, RN-11 a RN-13) ----
+
+  @RN-11 @Q-37
+  Esquema do Cenário: Cada papel só abre o que pode
+    Dado que o operador "rita" com o papel "<papel>" entrou no painel
+    Quando a página "<pagina>" é aberta
+    Então a resposta tem status <status>
+
+    Exemplos:
+      | papel         | pagina                 | status |
+      | ATENDIMENTO   | /painel/clientes       | 200    |
+      | ATENDIMENTO   | /painel/clientes/c-001 | 200    |
+      | ATENDIMENTO   | /painel/segmentos      | 200    |
+      | ATENDIMENTO   | /painel/operacao       | 403    |
+      | ATENDIMENTO   | /painel/usuarios       | 403    |
+      | ATENDIMENTO   | /painel/auditoria      | 403    |
+      | ANALISTA      | /painel/segmentos      | 200    |
+      | ANALISTA      | /painel/catalogo       | 200    |
+      | ANALISTA      | /painel/clientes       | 403    |
+      | ANALISTA      | /painel/clientes/c-001 | 403    |
+      | ANALISTA      | /painel/minha-senha    | 200    |
+      | ADMINISTRADOR | /painel/usuarios       | 200    |
+      | ADMINISTRADOR | /painel/auditoria      | 200    |
+      | ADMINISTRADOR | /painel/operacao       | 200    |
+
+  @RN-11 @Q-37
+  Esquema do Cenário: O menu mostra só as telas do papel
+    Dado que o operador "rita" com o papel "<papel>" entrou no painel
+    Quando a página "/painel/segmentos" é aberta
+    Então o menu mostra só os itens "<itens>"
+
+    Exemplos:
+      | papel         | itens                                                    |
+      | ANALISTA      | segmentos, catalogo                                      |
+      | ATENDIMENTO   | clientes, segmentos, catalogo                            |
+      | ADMINISTRADOR | clientes, segmentos, catalogo, operacao, usuarios, auditoria |
+
+  @RN-11 @Q-37 @lgpd
+  Cenário: Sem permissão, a ação é recusada e nada é processado
+    Dado que o consentimento do cliente "c-001" está no estado "CONCEDIDO"
+    E que o operador "caio" com o papel "ANALISTA" entrou no painel
+    Quando o operador envia "POST /painel/clientes/c-001/processamento"
+    Então a resposta tem status 403
+    E a página mostra "Sem permissão"
+    E o cliente "c-001" não tem perfil
+    E o último registro da auditoria é "acesso_negado" do operador "caio" sobre o cliente "c-001" com o resultado "NEGADO"
+
+  @RN-12 @Q-38
+  Cenário: Operador desativado perde o acesso na hora
+    Dado que o operador "rita" com o papel "ATENDIMENTO" entrou no painel
+    E que o operador "rita" foi desativado
+    Quando a página "/painel/clientes" é aberta
+    Então a resposta leva a "/painel/entrar"
+    E a página de destino mostra "Sua sessão foi encerrada. Entre de novo."
+
+  @RN-12 @Q-38
+  Cenário: A mudança de papel vale na próxima página
+    Dado que o operador "rita" com o papel "ATENDIMENTO" entrou no painel
+    E que o papel do operador "rita" mudou para "ANALISTA"
+    Quando a página "/painel/clientes" é aberta
+    Então a resposta tem status 403
+
+  @RN-12 @Q-40
+  Cenário: Com senha provisória, o operador só chega a Minha senha
+    Dado que existe o operador "rita" com o papel "ATENDIMENTO" e a senha "senha-provisoria-1"
+    E que o operador "rita" precisa trocar a senha
+    Quando o operador "rita" entra com a senha "senha-provisoria-1"
+    Então a resposta leva a "/painel/minha-senha"
+
+  @RN-12 @Q-35
+  Cenário: O administrador cria um operador pela tela Usuários
+    Dado que o operador entrou no painel
+    Quando o operador cria pelo painel o operador "rita" com o papel "ATENDIMENTO" e a senha "senha-provisoria-1"
+    Então a resposta leva à página do operador "rita"
+    E o operador "rita" está ativo com o papel "ATENDIMENTO"
+    E o último registro da auditoria é "criar_operador" do operador "operador" sobre o operador "rita" com o resultado "SUCESSO"
+
+  @RN-13 @Q-39
+  Esquema do Cenário: Ações e leituras de ficha ficam na auditoria
+    Dado que o operador entrou no painel
+    E que o consentimento do cliente "c-001" está no estado "<estado>"
+    Quando <acao>
+    Então a auditoria tem um registro "<registro>" do operador "operador" sobre o cliente "c-001" com o resultado "SUCESSO"
+
+    Exemplos:
+      | estado        | acao                                                         | registro              |
+      | CONCEDIDO     | a página "/painel/clientes/c-001" é aberta                    | ler_ficha             |
+      | CONCEDIDO     | a página "/painel/clientes/c-001/eventos" é aberta            | ler_ficha             |
+      | NAO_CONCEDIDO | o operador confirma "conceder" o consentimento do cliente "c-001" | conceder_consentimento |
+      | CONCEDIDO     | o operador processa o cliente "c-001" pelo painel             | processar             |
+
+  @RN-13 @Q-39 @lgpd @C-09
+  Cenário: A auditoria não guarda nome nem e-mail
+    Dado que o operador entrou no painel
+    E que o operador cadastrou o cliente "Cliente Sintético" com o e-mail "c-020@exemplo.test"
+    Quando a página da ficha do cliente cadastrado é aberta
+    Então a auditoria tem registros das ações "cadastrar_cliente" e "ler_ficha"
+    E nenhum registro da auditoria contém "Cliente Sintético" nem "c-020@exemplo.test"
+
+  @RN-13 @Q-39
+  Cenário: A tela Auditoria filtra por ação
+    Dado que o operador entrou no painel
+    E que o consentimento do cliente "c-001" está no estado "CONCEDIDO"
+    E que a página "/painel/clientes/c-001" foi aberta
+    Quando a página "/painel/auditoria?acao=ler_ficha" é aberta
+    Então a resposta tem status 200
+    E a auditoria na tela mostra 1 registro

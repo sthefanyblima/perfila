@@ -88,6 +88,21 @@ Prova de cada concessão e revogação (Q-34, RN-10, L-06). Base para os públic
 | T-45 | Painel: origem `painel` com o operador; linha do tempo pelo histórico, com a linha pelas datas para quem não tem movimentos | T-44 | cenários `@web` do histórico | ✅ 4 cenários `@web`; `TestDetalheMovimento`, `TestLinhaPeloHistorico` |
 | T-46 | Exemplos (Karina: v1, revoga, v2) conferidos pelo histórico; checklist L-06; README; fluxo no navegador | T-45 | `TestCarregarExemplos`; painel conferido | ✅ Karina com v1 pela API, revogação e v2 pelo painel; L-06 atendido; fluxo conferido no navegador; cobertura 91,0% |
 
+## Usuários, perfis de acesso e auditoria — Spec v1.5
+
+Operadores no banco com papel (ADMINISTRADOR, ANALISTA, ATENDIMENTO), matriz de permissões e trilha de auditoria (Q-35 a Q-41, L-12, L-23). Aprovadas em 13/11.
+
+| ID | Tarefa | Depende de | Prova | Status |
+|---|---|---|---|---|
+| T-47 | Spec v1.5 (atores, entidades, casos de uso, ports, rotas, configuração), UML1, UML2, UML7 e UML8 em texto, Q-35 a Q-41; `usuarios.feature` e cenários novos em `painel.feature` (`@wip`) | T-46 | Spec, UML e features revisados | ✅ 54 cenários novos (`@wip`): 30 `@aplicacao` em `usuarios.feature`, 24 `@web` em `painel.feature` |
+| T-48 | `Operador`, `PapelOperador`, matriz `Pode`, `RegistroAuditoria`; ports `OperadorRepository`, `AuditoriaRepository`, `HashSenha`; memória e contrato | T-47 | testes de tabela; contrato em memória | ✅ `TestPapelPode`, `TestNovoOperador`, `TestOperadorAlteracoes`, `TestNovoRegistroAuditoria`; contrato `Operador` e `Auditoria` em memória |
+| T-49 | PostgreSQL: migração 007, `PgOperadorRepository`, `PgAuditoriaRepository`; bcrypt em `infra/senha` | T-48 | contrato nos dois backends; `TestMigracoes` | ✅ `TestPapelPode`, `TestNovoOperador`, `TestOperadorAlteracoes`, `TestNovoRegistroAuditoria`; contrato `Operador` e `Auditoria` em memória |
+| T-50 | Casos de uso `AutenticarOperador`, `GerenciarOperadores`, `RegistrarAuditoria`, `ListarAuditoria`; administrador inicial | T-48 | cenários `@aplicacao` | ✅ `TestPapelPode`, `TestNovoOperador`, `TestOperadorAlteracoes`, `TestNovoRegistroAuditoria`; contrato `Operador` e `Auditoria` em memória |
+| T-51 | Painel: Entrar pelo caso de uso, sessão com o ID do operador conferida a cada requisição, permissão por rota (403), menu por papel, auditoria das ações e das leituras de ficha | T-50 | cenários `@web` de papéis e sessão | ✅ `usuarios.feature` verde (`@aplicacao`); cobertura de domínio + aplicação 88,2%. `TrocarSenha` devolve o operador para o painel renovar a sessão (Spec 3.5 ajustada) |
+| T-52 | Telas Usuários (criar, mudar papel, desativar, ativar, redefinir senha) e Minha senha | T-51 | cenários `@web` de usuários | ✅ 11 cenários `@web` novos (menu por papel, ação sem permissão, sessão encerrada, mudança de papel, auditoria das ações e leituras, auditoria sem dado pessoal); `TestAdministradorInicial` |
+| T-53 | Tela Auditoria (filtros e paginação) e subcomando `expurgar-auditoria` | T-51 | cenários `@web` da auditoria; `TestExpurgarAuditoria` | ✅ 11 cenários `@web` novos (menu por papel, ação sem permissão, sessão encerrada, mudança de papel, auditoria das ações e leituras, auditoria sem dado pessoal); `TestAdministradorInicial` |
+| T-54 | Exemplos (um operador por papel, só no modo memória), README, roteiro, checklist (L-12, L-23, L-28); fluxo no navegador | T-52, T-53 | `TestCarregarExemplos`; painel conferido | ✅ `TestOperadoresExemplo`; atendimento e analista só no modo memória; README, roteiro (passo 5c), checklist (L-12, L-23, L-28, L-29) e textos do design; fluxo conferido no navegador |
+
 ## Fechamento
 
 | Data | Marco |

@@ -87,3 +87,40 @@ type IntegracaoGateway interface {
 
 // Clock é a única fonte de tempo do sistema (C-07).
 type Clock interface{ Agora() time.Time }
+
+// OperadorRepository [ADIÇÃO v1.5]. Salvar insere ou atualiza por ID; Login de outro ID dá
+// errs.ErrLoginEmUso. Buscas devolvem errs.ErrOperadorNaoEncontrado. CriarSeVazio grava só se
+// não houver nenhum operador, de forma atômica (duas réplicas, RN-12). Spec: 3.6, Q-35.
+type OperadorRepository interface {
+	Salvar(ctx context.Context, o entity.Operador) error
+	BuscarPorID(ctx context.Context, id uuid.UUID) (entity.Operador, error)
+	BuscarPorLogin(ctx context.Context, login string) (entity.Operador, error)
+	Listar(ctx context.Context) ([]entity.Operador, error) // por Login
+	CriarSeVazio(ctx context.Context, o entity.Operador) (bool, error)
+}
+
+// AuditoriaRepository [ADIÇÃO v1.5]. Registrar só inclui (ID repetido falha); Listar devolve
+// da Data mais recente para a mais antiga (desempate pela gravação mais recente), com o total;
+// ExpurgarAntesDe apaga Data < limite. Spec: 3.6, RN-13, Q-39.
+type AuditoriaRepository interface {
+	Registrar(ctx context.Context, r entity.RegistroAuditoria) error
+	Listar(ctx context.Context, f FiltroAuditoria) ([]entity.RegistroAuditoria, int, error)
+	ExpurgarAntesDe(ctx context.Context, limite time.Time) (int, error)
+}
+
+// FiltroAuditoria [ADIÇÃO v1.5]: campos vazios ou zero não filtram; De <= Data < Ate.
+// Spec: 3.6, Q-39.
+type FiltroAuditoria struct {
+	Operador     string
+	Acao         entity.AcaoAuditoria
+	De, Ate      time.Time
+	Deslocamento int
+	Limite       int // 0 = sem limite
+}
+
+// HashSenha [ADIÇÃO v1.5] gera e confere o hash da senha do operador. Sem ctx: não faz I/O
+// (C-07). Spec: 3.6, Q-36.
+type HashSenha interface {
+	Gerar(senha string) (string, error)
+	Conferir(hash, senha string) bool
+}

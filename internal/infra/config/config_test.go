@@ -59,20 +59,28 @@ func TestCarregarArquivo(t *testing.T) {
 	}
 }
 
-// Spec: 3.8, Q-29 — painel desligado sem PAINEL_*; hash e chave juntos; chave de 32 bytes.
+// Spec: 3.8, Q-29, Q-35 — painel desligado sem a chave; o hash exige a chave; chave de 32 bytes.
 func TestCarregarPainel(t *testing.T) {
 	chave := strings.Repeat("ab", 32)
 	c, err := Carregar("", env(map[string]string{"AUTH_TOKEN": "t"}))
-	if err != nil || c.PainelLigado() || c.PainelUsuario != "operador" || c.PainelFinalidade != "segmentacao" || c.PainelVersaoTermo != "v1" {
+	if err != nil || c.PainelLigado() || c.PainelUsuario != "operador" || c.PainelFinalidade != "segmentacao" || c.PainelVersaoTermo != "v1" ||
+		c.AuditoriaRetencaoDias != 180 {
 		t.Fatalf("padrões do painel: %+v (%v)", c, err)
 	}
 	c, err = Carregar("", env(map[string]string{"AUTH_TOKEN": "t", "PAINEL_SENHA_HASH": "$2a$10$x", "PAINEL_CHAVE_SESSAO": chave}))
 	if err != nil || !c.PainelLigado() || len(c.PainelChaveSessao) != 32 {
 		t.Fatalf("painel ligado: %+v (%v)", c, err)
 	}
+	// Q-35: com operadores já gravados, só a chave basta.
+	c, err = Carregar("", env(map[string]string{"AUTH_TOKEN": "t", "PAINEL_CHAVE_SESSAO": chave, "AUDITORIA_RETENCAO_DIAS": "30"}))
+	if err != nil || !c.PainelLigado() || c.PainelSenhaHash != "" || c.AuditoriaRetencaoDias != 30 {
+		t.Fatalf("painel só com a chave: %+v (%v)", c, err)
+	}
+	if _, err := Carregar("", env(map[string]string{"AUTH_TOKEN": "t", "AUDITORIA_RETENCAO_DIAS": "0"})); err == nil {
+		t.Fatal("AUDITORIA_RETENCAO_DIAS = 0 deveria falhar")
+	}
 	casos := []map[string]string{
 		{"AUTH_TOKEN": "t", "PAINEL_SENHA_HASH": "$2a$10$x"},
-		{"AUTH_TOKEN": "t", "PAINEL_CHAVE_SESSAO": chave},
 		{"AUTH_TOKEN": "t", "PAINEL_SENHA_HASH": "$2a$10$x", "PAINEL_CHAVE_SESSAO": "curta"},
 		{"AUTH_TOKEN": "t", "PAINEL_SENHA_HASH": "senha-em-claro", "PAINEL_CHAVE_SESSAO": chave},
 	}

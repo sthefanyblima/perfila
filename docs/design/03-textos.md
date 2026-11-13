@@ -30,6 +30,12 @@ O código estável (`errs.Codigo`) define a mensagem; o texto técnico do servid
 | `sem_produto_elegivel` | Recomendação (não é erro) | Nenhum produto ativo na categoria preferida ({categoria}). |
 | `erro_interno` | Qualquer | Algo falhou do nosso lado. As etapas concluídas antes da falha ficaram salvas. Tente de novo; se continuar, informe o código {X-Request-ID} à equipe técnica. |
 | 503 `indisponivel` | Qualquer | O banco de dados não está respondendo. Nada foi alterado. Tente de novo em instantes. |
+| `sem_permissao` | Qualquer (403) | Seu perfil de acesso não permite abrir esta página. Se precisar dela, fale com quem administra o painel. |
+| `login_em_uso` | Criar operador | Já existe um operador com esse login. Logins não se repetem, nem de operadores desativados. |
+| `propria_conta` | Operador | Você não pode mudar o próprio papel nem se desativar. Peça a outra pessoa administradora. |
+| `operador_nao_encontrado` | Usuários | Não encontramos esse operador. Volte para a lista de usuários. |
+| `nao_autenticado` (Minha senha) | Minha senha | Senha atual incorreta. |
+| sessão encerrada | Entrar | Sua sessão foi encerrada. Entre de novo. |
 
 ## Validação de campos (RN-04 e cadastro)
 
@@ -54,10 +60,11 @@ Valide no navegador (atributos HTML: `required`, `min`, `max`, `step`) para dar 
 | Conceder | Conceder consentimento | A partir de agora, os eventos deste cliente podem ser usados para perfil, segmento e recomendação, com a finalidade "{finalidade}" e o termo {versão}. | Conceder (primário) · Cancelar |
 | Revogar | Revogar consentimento | O processamento dos dados deste cliente para imediatamente. Os dados já registrados continuam guardados. Você pode conceder de novo depois. | Revogar consentimento (danger) · Cancelar (foco inicial) |
 | Expirar | Expirar recomendações vencidas | Recomendações ativas com validade até agora passam a Expirada e deixam de ser exibidas. | Expirar agora (primário) · Cancelar |
+| Desativar operador | Desativar {login} | O acesso ao painel acaba agora, inclusive nas sessões abertas. Você pode ativar de novo depois. | Desativar (danger) · Cancelar (foco inicial) |
 
 ## Toasts
 
-"Cliente cadastrado" · "Consentimento concedido" · "Consentimento revogado" · "Evento registrado" · "Processamento concluído" · "Processamento concluído sem recomendação" · "{n} recomendações expiradas" / "Nenhuma recomendação vencida" · "ID copiado".
+"Cliente cadastrado" · "Consentimento concedido" · "Consentimento revogado" · "Evento registrado" · "Processamento concluído" · "Processamento concluído sem recomendação" · "{n} recomendações expiradas" / "Nenhuma recomendação vencida" · "ID copiado" · "Operador criado" · "Papel alterado" · "Operador desativado" · "Operador ativado" · "Senha provisória definida" · "Senha trocada" (v1.5).
 
 ## Formatos
 
