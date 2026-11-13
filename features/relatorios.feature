@@ -1,5 +1,5 @@
 # language: pt
-@UC-05 @UC-07 @RN-15 @Q-46 @wip
+@UC-05 @UC-07 @RN-15 @Q-46
 Funcionalidade: Relatórios agregados de segmentação e comportamento
   O analista vê números agregados sobre os clientes, sem identificar ninguém: o comportamento
   só entra de quem tem consentimento válido, e grupos de 1 a 4 clientes aparecem como
@@ -161,7 +161,7 @@ Funcionalidade: Relatórios agregados de segmentação e comportamento
       | 3       |
       | 24      |
 
-  @web
+  @web @wip
   Cenário: A tela Relatórios mostra indicadores, gráficos e tabelas sem identificar ninguém
     Dado que o painel está no ar com o operador "operador" e a senha "s3nha-forte"
     E que o operador entrou no painel
@@ -171,7 +171,7 @@ Funcionalidade: Relatórios agregados de segmentação e comportamento
     E a página tem o gráfico e a tabela "meses"
     E a página não mostra "@exemplo.test"
 
-  @web
+  @web @wip
   Cenário: Um grupo pequeno aparece por extenso na tela
     Dado que o painel está no ar com o operador "operador" e a senha "s3nha-forte"
     E que o operador entrou no painel
@@ -180,7 +180,7 @@ Funcionalidade: Relatórios agregados de segmentação e comportamento
     Então a página mostra "menos de 5"
     E a página mostra "Últimos 12 meses"
 
-  @web
+  @web @wip
   Cenário: O relatório agregado é exportado em CSV, sem identificadores
     Dado que o painel está no ar com o operador "operador" e a senha "s3nha-forte"
     E que o operador entrou no painel
@@ -190,7 +190,7 @@ Funcionalidade: Relatórios agregados de segmentação e comportamento
     E o arquivo tem a linha "segmentos;padrao;clientes;5"
     E a página não mostra "@exemplo.test"
 
-  @web
+  @web @wip
   Cenário: Um período fora de 6 e 12 meses é recusado
     Dado que o painel está no ar com o operador "operador" e a senha "s3nha-forte"
     E que o operador entrou no painel
