@@ -1,5 +1,5 @@
 # language: pt
-@UC-01 @RN-16 @Q-47 @wip
+@UC-01 @RN-16 @Q-47
 Funcionalidade: Importação de eventos em lote
   Lojas mandam eventos em lote. Cada linha passa pelas regras de UC-01 (RN-01 e RN-04):
   as aceitas entram, as outras ficam no relatório com o motivo, sem parar o lote.
@@ -216,7 +216,7 @@ Funcionalidade: Importação de eventos em lote
 
   # ---- API (JSON) ----
 
-  @api
+  @api @wip
   Cenário: Lote em JSON pela API usa as mesmas regras
     Dado que a API está no ar e exige o token "t-123"
     E que existe o cliente "c-002" ativo
@@ -232,7 +232,7 @@ Funcionalidade: Importação de eventos em lote
     E o corpo informa a linha 2 com o código "consentimento_invalido"
     E a coleta do cliente "c-001" retorna 1 evento
 
-  @api
+  @api @wip
   Cenário: A prévia pela API não grava nada
     Dado que a API está no ar e exige o token "t-123"
     Quando o lote de eventos é enviado à API com o token "t-123" só para conferir:
@@ -243,7 +243,7 @@ Funcionalidade: Importação de eventos em lote
     E o corpo informa 1 aceita, 0 duplicadas e 0 rejeitadas
     E nenhum evento é gravado
 
-  @api
+  @api @wip
   Esquema do Cenário: Lote vazio ou sem token é recusado
     Dado que a API está no ar e exige o token "t-123"
     Quando o lote de eventos é enviado à API com o token "<token>":
@@ -259,7 +259,7 @@ Funcionalidade: Importação de eventos em lote
 
   # ---- Painel ----
 
-  @web
+  @web @wip
   Cenário: Enviar o arquivo pelo painel mostra a prévia sem gravar
     Dado que o operador entrou no painel
     E que o arquivo de eventos é:
@@ -275,7 +275,7 @@ Funcionalidade: Importação de eventos em lote
     E a página mostra "Uma compra precisa ter valor maior que zero."
     E nenhum evento é gravado
 
-  @web
+  @web @wip
   Cenário: Confirmar a importação grava as linhas aceitas e mostra o relatório
     Dado que o operador entrou no painel
     E que o arquivo de eventos é:
@@ -290,7 +290,7 @@ Funcionalidade: Importação de eventos em lote
     E a página mostra 2 prontas, 0 duplicadas e 0 com erro
     E a coleta do cliente "c-001" retorna 2 eventos
 
-  @web @lgpd
+  @web @lgpd @wip
   Cenário: Sem consentimento, a linha aparece recusada na prévia
     Dado que o operador entrou no painel
     E que o consentimento do cliente "c-001" está no estado "REVOGADO"
@@ -304,7 +304,7 @@ Funcionalidade: Importação de eventos em lote
     E a página mostra "Sem consentimento válido. O evento não pode ser usado."
     E a página não oferece "Importar"
 
-  @web
+  @web @wip
   Esquema do Cenário: Arquivo grande é recusado com o motivo
     Dado que o operador entrou no painel
     E que o arquivo de eventos é maior que <tamanho> KiB
@@ -317,14 +317,14 @@ Funcionalidade: Importação de eventos em lote
       | 256     |
       | 600     |
 
-  @web
+  @web @wip
   Cenário: O modelo do arquivo pode ser baixado
     Dado que o operador entrou no painel
     Quando a página "/painel/eventos/modelo.csv" é aberta
     Então a resposta tem status 200
     E a resposta é um CSV que começa com "cliente_id,tipo,origem,timestamp,valor,categoria"
 
-  @web @C-09
+  @web @C-09 @wip
   Cenário: A auditoria do lote registra o operador e as quantidades, sem dado pessoal
     Dado que o operador entrou no painel
     E que o arquivo de eventos é:
