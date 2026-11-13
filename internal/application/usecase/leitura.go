@@ -130,7 +130,6 @@ func (uc *ListarClientesUseCase) nomeDoSegmento(ctx context.Context, clienteID u
 type FichaCliente struct {
 	Cliente       entity.Cliente
 	Consentimento entity.ConsentimentoLGPD
-	Historico     []entity.MovimentoConsentimento // ordem cronológica; vazio = sem movimentos (v1.4, RN-10)
 }
 
 // ConsultarClienteUseCase lê cadastro e consentimento sem exigir consentimento, como UC-08.
@@ -155,11 +154,7 @@ func (uc *ConsultarClienteUseCase) Executar(ctx context.Context, clienteID uuid.
 	if err != nil {
 		return FichaCliente{}, err
 	}
-	hist, err := uc.consentimento.Historico(ctx, clienteID)
-	if err != nil {
-		return FichaCliente{}, err
-	}
-	return FichaCliente{Cliente: c, Consentimento: cons, Historico: hist}, nil
+	return FichaCliente{Cliente: c, Consentimento: cons}, nil
 }
 
 // ResultadoCliente é o comportamento do cliente: só sai com consentimento válido (RN-01).

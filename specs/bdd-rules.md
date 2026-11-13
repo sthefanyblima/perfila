@@ -98,11 +98,11 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 
 ## 6. Features em Gherkin
 
-As features vivem em `features/` e são a versão executável deste documento. Estado em 12/11/2026:
+As features vivem em `features/` e são a versão executável deste documento. Estado em 11/11/2026:
 
 | Arquivo | UC / regra | Camada | Cenários executados | Fase |
 |---|---|---|---|---|
-| `consentimento.feature` | UC-08, RN-02, RN-03, RN-10 | `@aplicacao` | 21 | Core ✅ (+8 do histórico, Q-34) |
+| `consentimento.feature` | UC-08, RN-02, RN-03 | `@aplicacao` | 13 | Core ✅ |
 | `evento.feature` | UC-01, RN-01, RN-04 | `@aplicacao` | 21 | Core ✅ (+4 limites de Q-15 e Q-16) |
 | `perfilamento.feature` | UC-02, RN-05 | `@aplicacao` | 9 | Core ✅ |
 | `segmentacao.feature` | UC-03, RN-06 | `@aplicacao` e `@dominio` | 20 | Core ✅ (+1 Q-17) |
@@ -113,9 +113,9 @@ As features vivem em `features/` e são a versão executável deste documento. E
 | `implantacao.feature` | UML8 | `@implantacao @slow` | 4 | Generic ✅ (T-24; +1 do painel na T-38) |
 | `processamento.feature` | RN-09, Q-26 | `@aplicacao` | 4 | Painel web ✅ (T-32) |
 | `leitura.feature` | RN-01, Q-21, Q-23, Q-31 | `@aplicacao` | 18 | Painel web ✅ (T-34) |
-| `painel.feature` | 3.7.1, UC-01, UC-08, UC-09, RN-01, RN-09, Q-21 a Q-24, Q-31, Q-32, RN-10, Q-34 | `@web` | 33 | Painel web ✅ (T-35 a T-38; +4 do histórico, T-45) |
+| `painel.feature` | 3.7.1, UC-01, UC-08, UC-09, RN-01, RN-09, Q-21 a Q-24, Q-31, Q-32 | `@web` | 29 | Painel web ✅ (T-35 a T-38) |
 
-Total no `make verify`: **170 cenários, todos verdes** (107 até a v1.2, os do painel e 12 do histórico do consentimento, v1.4); mais 3 cenários `@implantacao` (11 passos) em `make bdd-implantacao`.
+Total no `make verify`: **154 cenários, todos verdes** (107 até a v1.2, mais 47 do painel); mais 3 cenários `@implantacao` (11 passos) em `make bdd-implantacao`.
 
 ### 6.1 Mudanças da v1.0 nas features (aprovadas junto com a Spec v1.0, B-14)
 

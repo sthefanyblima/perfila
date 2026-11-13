@@ -53,7 +53,6 @@ func Executar(t *testing.T, nova Fabrica) {
 		{"Segmento", testarSegmento},
 		{"Recomendacao", testarRecomendacao},
 		{"Consentimento", testarConsentimento},
-		{"MovimentoConsentimento", testarMovimentos},
 		{"Produto", testarProduto},
 	}
 	for _, c := range casos {
@@ -311,55 +310,6 @@ func testarConsentimento(t *testing.T, r Repositorios) {
 	ok(t, err)
 	cons.ID = original
 	igual(t, "CONCEDIDO após revogação", obtido, cons)
-	movs, err := r.Consentimentos.ListarMovimentos(ctx, c.ID)
-	ok(t, err)
-	igual(t, "Salvar não gera movimento", movs, []entity.MovimentoConsentimento{})
-}
-
-// Spec: RN-10, Q-34 — registro e movimento gravados juntos; histórico em ordem cronológica.
-func testarMovimentos(t *testing.T, r Repositorios) {
-	ctx := context.Background()
-	c, outro := cliente(t, r), cliente(t, r)
-	cons := entity.NovoConsentimento(uuid.New(), c.ID, agora)
-	var esperados []entity.MovimentoConsentimento
-	registrar := func(tipo entity.TipoMovimento, origem entity.OrigemMovimento, operador string) {
-		t.Helper()
-		m, err := entity.NovoMovimento(uuid.New(), cons, tipo, origem, operador)
-		ok(t, err)
-		ok(t, r.Consentimentos.Registrar(ctx, cons, m))
-		esperados = append(esperados, m)
-	}
-	ok(t, cons.Conceder("segmentacao", "v1", agora.Add(time.Minute)))
-	registrar(entity.MovimentoConcessao, entity.OrigemAPI, "")
-	ok(t, cons.Revogar(agora.Add(2*time.Minute)))
-	registrar(entity.MovimentoRevogacao, entity.OrigemPainel, "op-01")
-	ok(t, cons.Conceder("segmentacao", "v2", agora.Add(2*time.Minute))) // mesma data: vale a ordem de gravação
-	registrar(entity.MovimentoConcessao, entity.OrigemPortal, "")
-
-	obtido, err := r.Consentimentos.BuscarPorCliente(ctx, c.ID)
-	ok(t, err)
-	igual(t, "registro gravado por Registrar", obtido, cons)
-	movs, err := r.Consentimentos.ListarMovimentos(ctx, c.ID)
-	ok(t, err)
-	igual(t, "histórico", movs, esperados)
-	vazio, err := r.Consentimentos.ListarMovimentos(ctx, outro.ID)
-	ok(t, err)
-	igual(t, "histórico de outro cliente", vazio, []entity.MovimentoConsentimento{})
-
-	// Atomicidade: movimento com ID repetido falha e não altera o registro nem o histórico.
-	antes := cons
-	ok(t, cons.Revogar(agora.Add(time.Hour)))
-	repetido, err := entity.NovoMovimento(esperados[0].ID, cons, entity.MovimentoRevogacao, entity.OrigemAPI, "")
-	ok(t, err)
-	if err := r.Consentimentos.Registrar(ctx, cons, repetido); err == nil {
-		t.Fatal("Registrar com ID de movimento repetido deveria falhar")
-	}
-	obtido, err = r.Consentimentos.BuscarPorCliente(ctx, c.ID)
-	ok(t, err)
-	igual(t, "registro depois da falha", obtido, antes)
-	movs, err = r.Consentimentos.ListarMovimentos(ctx, c.ID)
-	ok(t, err)
-	igual(t, "histórico depois da falha", movs, esperados)
 }
 
 // Spec: D-05, RN-07.

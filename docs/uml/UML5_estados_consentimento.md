@@ -3,7 +3,7 @@
 > **Fonte:** Módulo 4 · imagem original: [`img/UML5_estados_consentimento.png`](img/UML5_estados_consentimento.png)
 > **Imagem corrigida (v1, gerada do Mermaid abaixo):** [`img/v1/UML5_estados_consentimento.png`](img/v1/UML5_estados_consentimento.png)
 > **Fonte da verdade para:** ciclo de vida do consentimento (Spec 3.4.1).
-> **Versão:** v1.4 (histórico) · **Decisões relacionadas:** D-02, D-03, Q-34.
+> **Versão:** v1.0 (Core) · **Decisões relacionadas:** D-02, D-03.
 
 ## Diagrama (v1.0)
 
@@ -15,9 +15,9 @@ stateDiagram-v2
   REVOGADO --> CONCEDIDO : Conceder [finalidade e versaoTermo não vazias]
 
   NAO_CONCEDIDO : entry / Status = NAO_CONCEDIDO
-  CONCEDIDO : entry / Status = CONCEDIDO, DataConsentimento = agora, registra movimento CONCESSAO
+  CONCEDIDO : entry / Status = CONCEDIDO, DataConsentimento = agora
   CONCEDIDO : do / tratamento de dados permitido
-  REVOGADO : entry / Status = REVOGADO, DataRevogacao = agora, registra movimento REVOGACAO
+  REVOGADO : entry / Status = REVOGADO, DataRevogacao = agora
   REVOGADO : do / interromperProcessamento (RN-03)
 ```
 
@@ -33,14 +33,13 @@ Não há estado final (D-03). `EstaValido()` é **consulta** (`Status == CONCEDI
 | qualquer outra | — | — | (sem mudança) | `ErrTransicaoInvalida` |
 | guarda violada | — | — | (sem mudança) | `ErrDadosInvalidos` |
 
-`DataAtualizacao = agora` em toda transição. **v1.4 (Q-34, RN-10):** cada transição aplicada por UC-08 grava, na mesma operação atômica, um `MovimentoConsentimento` (CONCESSAO ou REVOGACAO) com finalidade, versão do termo, data e origem. Transição inválida ou guarda violada não gera movimento. Os movimentos nunca são alterados nem apagados; o estado continua vindo do registro. A transição é checada **antes** da guarda (CONCEDIDO + Conceder com finalidade vazia → `transicao_invalida`).
+`DataAtualizacao = agora` em toda transição. A transição é checada **antes** da guarda (CONCEDIDO + Conceder com finalidade vazia → `transicao_invalida`).
 
 ## Regras para o agente
 
 1. Estados são o tipo `StatusConsentimento`, nunca string solta (C-05).
 2. Ausência de registro = NAO_CONCEDIDO; `Consultar` devolve um consentimento sintético.
 3. A finalidade é registrada, mas no MVP não filtra o uso dos dados (RN-02).
-4. O movimento é montado depois da transição (`NovoMovimento`) e gravado com o registro por `ConsentimentoRepository.Registrar` (v1.4).
 
 ## Divergências registradas
 

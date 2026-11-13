@@ -2,7 +2,7 @@
 
 **Perfila — Sistema de Segmentação e Perfilamento do Comportamento do Cliente — Go**
 
-Equipe Omega · GoLang & CLP · Documento 1 de 3 · **Versão 1.4 (12/11/2026)** · Base: Módulos 1 a 5 (casos de uso, classes, pacotes, sequência, estados, componentes e implantação), transcritos em `docs/uml/UML1..UML8`
+Equipe Omega · GoLang & CLP · Documento 1 de 3 · **Versão 1.3 (12/11/2026)** · Base: Módulos 1 a 5 (casos de uso, classes, pacotes, sequência, estados, componentes e implantação), transcritos em `docs/uml/UML1..UML8`
 
 ## Como usar este documento
 
@@ -98,21 +98,6 @@ type ConsentimentoLGPD struct {
     DataAtualizacao   time.Time           // [ADIÇÃO]
 }
 
-// [ADIÇÃO, v1.4, Q-34] Prova de cada concessão e revogação (RN-10). Só inclusão.
-type TipoMovimento string   // CONCESSAO, REVOGACAO
-type OrigemMovimento string // api, painel, portal, sistema, migracao
-
-type MovimentoConsentimento struct {
-    ID          uuid.UUID
-    ClienteID   uuid.UUID
-    Tipo        TipoMovimento
-    Finalidade  string          // a concedida ou a que foi revogada
-    VersaoTermo string          // idem; vazia só em revogação reconstruída sem termo conhecido
-    Data        time.Time       // DataAtualizacao da transição
-    Origem      OrigemMovimento
-    Operador    string          // login do operador; obrigatório só com Origem painel
-}
-
 type EventoComportamental struct {
     ID        uuid.UUID
     ClienteID uuid.UUID
@@ -167,7 +152,6 @@ type Produto struct {
 |---|---|---|
 | Cliente | `NovoCliente(id uuid.UUID, nome, email string, agora time.Time) (Cliente, error)` (construtor, D-22), `AtualizarDados(nome, email string) error`, `Ativar()`, `Desativar()` | Nome e e-mail não podem ser vazios; nasce ativo, com DataCadastro = agora |
 | ConsentimentoLGPD | `NovoConsentimento(id, clienteID uuid.UUID, agora time.Time)` (construtor, estado NAO_CONCEDIDO), `Conceder(finalidade, versaoTermo string, agora time.Time) error`, `Revogar(agora time.Time) error`, `EstaValido() bool` | Transições da seção 3.4.1 |
-| MovimentoConsentimento [ADIÇÃO, Q-34] | `NovoMovimento(id uuid.UUID, c ConsentimentoLGPD, tipo TipoMovimento, origem OrigemMovimento, operador string) (MovimentoConsentimento, error)` | Construído logo depois da transição, com Finalidade, VersaoTermo e Data (= `DataAtualizacao`) do consentimento. Tipo e Origem fora dos enumerados, ou Origem painel sem operador: `ErrDadosInvalidos`. Não tem métodos de alteração |
 | EventoComportamental | `Validar(agora time.Time) error` | RN-04 |
 | PerfilCliente | `CalcularScore(eventos []EventoComportamental, agora time.Time, meta int)`, `AtualizarPerfil(novo PerfilCliente)` | RN-05. `AtualizarPerfil` copia as métricas e preserva ID, ClienteID e SegmentoID. `meta <= 0` resulta em score 0 |
 | Segmento | `ClassificarPerfil(p PerfilCliente) (bool, error)` | RN-06. Nome corrigido na v1.0 para o do UML2 (era `ClassificaPerfil`, contrariando C-04) |
@@ -202,7 +186,6 @@ Desvios idiomáticos em relação aos diagramas (não são lacunas): `context.Co
 - **RN-07 Recomendação (regra provisória, D-05).** Candidatos são os produtos ativos da CategoriaPreferida do perfil; escolhe-se o primeiro por Nome em ordem alfabética, com desempate por ID. Sem categoria ou sem candidatos: `ErrSemProdutoElegivel`, que não é falha (a API devolve recomendação nula). O Motivo segue o formato `segmento:<nome>;categoria:<categoria>`.
 - **RN-08 Ciclo da recomendação.** UC-04 cria e já disponibiliza: GERADA é transitória e a recomendação é persistida uma única vez, já em ATIVA. Há no máximo uma recomendação ATIVA por cliente: antes de gravar a nova, UC-04 aplica `Expirar` às ATIVA anteriores do cliente (Q-18). Validade é DataAtivacao mais `RECOMENDACAO_VALIDADE_DIAS` (padrão 30). Expira quando Validade é menor ou igual a agora, pelo comando `expirar-recomendacoes` (D-08).
 - **RN-09 Processamento.** `ProcessarClienteUseCase` orquestra, nesta ordem, UC-01 (Executar), UC-02, UC-03 e UC-04 (v1.3, Q-26; antes ficava no handler da API) e devolve o resultado consolidado (sequência, passo 23) com o estado de cada etapa: concluída, atenção, falhou ou pendente. Erro em qualquer etapa interrompe o fluxo: a etapa fica como falhou, as seguintes como pendentes, e o que já foi persistido permanece. `ErrSemProdutoElegivel` não interrompe: a etapa 4 fica em atenção, sem recomendação. A API e o painel usam o mesmo caso de uso.
-- **RN-10 Histórico do consentimento (v1.4, Q-34).** Toda transição de 3.4.1 aplicada por UC-08 gera um `MovimentoConsentimento`, gravado junto com o registro do consentimento numa única operação atômica (`ConsentimentoRepository.Registrar`): ou os dois ficam gravados, ou nenhum. Movimentos são só de inclusão: nunca alterados nem apagados. O histórico é a lista dos movimentos do cliente em ordem cronológica (desempate pela ordem de gravação). O registro de `consentimentos_lgpd` continua sendo a fonte do estado (RN-02); o histórico é prova e não decide a validade. Transição inválida ou guarda violada não gera movimento. A origem vem do adaptador que chamou o caso de uso (API: `api`; painel: `painel` com o login do operador; portal do titular, fase 2: `portal`); sem origem informada (subcomandos, exemplos, testes): `sistema`. Movimentos criados pela migração 006 a partir das datas existentes têm origem `migracao`.
 
 ### 3.4 Máquinas de estado
 
@@ -214,7 +197,7 @@ Desvios idiomáticos em relação aos diagramas (não são lacunas): `context.Co
 | CONCEDIDO | Revogar | — | REVOGADO | DataRevogacao = agora; interrompe o processamento (RN-03) |
 | REVOGADO | Conceder | Finalidade e VersaoTermo não vazias | CONCEDIDO | DataConsentimento = agora |
 
-DataAtualizacao = agora em toda transição; cada transição aplicada por UC-08 gera um movimento (RN-10: Conceder gera CONCESSAO, Revogar gera REVOGACAO). Qualquer outra combinação de estado e evento: `ErrTransicaoInvalida`. Guarda violada: `ErrDadosInvalidos`. Não existe estado final (D-03) e `EstaValido()` é uma consulta, não uma transição.
+DataAtualizacao = agora em toda transição. Qualquer outra combinação de estado e evento: `ErrTransicaoInvalida`. Guarda violada: `ErrDadosInvalidos`. Não existe estado final (D-03) e `EstaValido()` é uma consulta, não uma transição.
 
 #### 3.4.2 RecomendacaoProduto
 
@@ -247,12 +230,10 @@ Qualquer outra combinação: `ErrTransicaoInvalida`. O comando `expirar-recomend
 
 **UC-08 `GerenciarConsentimentoUseCase`** (não exige consentimento válido, pois é quem o gerencia)
 
-- `Conceder(ctx, clienteID, finalidade, versaoTermo string) error`: cria o registro se não existir, aplica a transição 3.4.1, monta o movimento CONCESSAO (`NovoMovimento`) e persiste os dois com `ConsentimentoRepository.Registrar` (v1.4, RN-10; antes `Salvar`).
-- `Revogar(ctx, clienteID) error`: idem, com o movimento REVOGACAO.
+- `Conceder(ctx, clienteID, finalidade, versaoTermo string) error`: cria o registro se não existir, aplica a transição 3.4.1 e persiste com `ConsentimentoRepository.Salvar`.
+- `Revogar(ctx, clienteID) error`.
 - `Consultar(ctx, clienteID) (ConsentimentoLGPD, error)` [ADIÇÃO]: sem registro, devolve um consentimento sintético em NAO_CONCEDIDO.
-- `Historico(ctx, clienteID) ([]MovimentoConsentimento, error)` [ADIÇÃO, v1.4]: os movimentos em ordem cronológica (RN-10); vazio se não houver.
 - Pré-condição: cliente existe (`ErrClienteNaoEncontrado`).
-- **Origem (v1.4, Q-34):** as assinaturas não mudam. O adaptador põe a origem no `context.Context` com `usecase.ComOrigem(ctx, origem, operador)`; o caso de uso a lê ao montar o movimento. Sem valor no contexto: `sistema`. Origem `painel` sem operador: `ErrDadosInvalidos`, e nada é gravado.
 
 **UC-01 `ColetarDadosUseCase`**
 
@@ -284,7 +265,7 @@ Qualquer outra combinação: `ErrTransicaoInvalida`. O comando `expirar-recomend
 **Casos de uso de leitura do painel** [ADIÇÃO, Q-21, Q-23]
 
 - `ListarClientesUseCase.Executar(ctx, FiltroListagem) (PaginaClientes, error)`: `FiltroListagem` tem `Busca` (nome ou ID), `Consentimento` (`*StatusConsentimento`, opcional) e `Pagina` (a partir de 1; 20 por página). `PaginaClientes` traz `Linhas` (cliente, estado do consentimento e nome do segmento, este só com cliente ativo e consentimento válido), `Total` e `Pagina`. O filtro de consentimento é aplicado pelo caso de uso sobre a busca do repositório (volume do MVP).
-- `ConsultarClienteUseCase.Executar(ctx, clienteID) (FichaCliente, error)`: cadastro, consentimento (sem registro: sintético em NAO_CONCEDIDO, como UC-08) e, desde a v1.4, `Historico` (os movimentos de UC-08 `Historico`, RN-10). Não exige consentimento (Q-21); `ErrClienteNaoEncontrado`.
+- `ConsultarClienteUseCase.Executar(ctx, clienteID) (FichaCliente, error)`: cadastro e consentimento (sem registro: sintético em NAO_CONCEDIDO, como UC-08). Não exige consentimento (Q-21); `ErrClienteNaoEncontrado`.
 - `ConsultarResultadoUseCase.Executar(ctx, clienteID) (ResultadoCliente, error)`: cliente existe e consentimento válido primeiro (`Precondicoes.VerificarLeitura`: RN-01 sem a exigência de cliente ativo, Q-31; cliente inativo é só leitura); depois eventos (mais recente primeiro), perfil e segmento (nulos se ainda não processado), recomendações (`ListarPorCliente`, mais recente primeiro) e os produtos que elas citam. Nada de comportamento é lido sem consentimento válido (C-03).
 - `ListarSegmentosUseCase.Executar(ctx) ([]Segmento, error)`: segmentos ativos em ordem de Prioridade.
 - `ListarCatalogoUseCase.Executar(ctx) ([]Produto, error)`: todos os produtos, por Categoria e depois por Nome.
@@ -324,10 +305,8 @@ type RecomendacaoRepository interface {
     ListarPorCliente(ctx context.Context, clienteID uuid.UUID) ([]entity.RecomendacaoProduto, error) // [ADIÇÃO] Q-23: DataGeracao decrescente
 }
 type ConsentimentoRepository interface {
-    Salvar(ctx context.Context, c entity.ConsentimentoLGPD) error // upsert por ClienteID, sem movimento (cargas e testes)
+    Salvar(ctx context.Context, c entity.ConsentimentoLGPD) error // upsert por ClienteID
     BuscarPorCliente(ctx context.Context, clienteID uuid.UUID) (entity.ConsentimentoLGPD, error) // ErrConsentimentoNaoEncontrado
-    Registrar(ctx context.Context, c entity.ConsentimentoLGPD, m entity.MovimentoConsentimento) error // [ADIÇÃO] v1.4 RN-10: upsert + inclusão do movimento, atômico; ID de movimento repetido falha sem gravar nada
-    ListarMovimentos(ctx context.Context, clienteID uuid.UUID) ([]entity.MovimentoConsentimento, error) // [ADIÇÃO] v1.4: Data crescente, desempate pela ordem de gravação
 }
 type ProdutoRepository interface { // [ADIÇÃO] (D-05)
     ListarAtivosPorCategoria(ctx context.Context, categoria string) ([]entity.Produto, error)
@@ -366,7 +345,6 @@ Proposta da equipe: os diagramas citam handlers, rotas e DTOs, mas não as defin
 
 - Autenticação por cabeçalho `Authorization: Bearer` com o valor de `AUTH_TOKEN` (D-16); ausente ou inválido responde 401.
 - Middleware LGPD: extrai o clienteID da rota e consulta `ValidadorLGPD`; sem consentimento válido responde 403 antes do handler. Os casos de uso repetem a checagem (C-03).
-- Conceder e revogar pela API gravam o movimento com origem `api` (RN-10); as respostas não mudam.
 - Erros: corpo JSON com as chaves `codigo` e `mensagem`, conforme a tabela da seção 3.5. Erros inesperados viram 500 sem detalhes internos.
 - Corpo de requisição: um único objeto JSON, sem campos desconhecidos e sem conteúdo depois dele; caso contrário, `dados_invalidos` (Q-19). Uma resposta que não puder ser serializada vira 500, nunca 200 com corpo vazio (Q-15).
 - Campos JSON em camelCase, com os mesmos nomes dos campos Go.
@@ -396,7 +374,6 @@ Adaptador de apresentação HTML em `internal/web` (irmão de `internal/api`, Q-
 - **CSRF:** todo POST confere o token da sessão, vindo do campo `_csrf` ou do cabeçalho `X-CSRF-Token`; ausente ou diferente responde 403.
 - **Cabeçalhos em toda resposta:** `Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin`, `X-Frame-Options: DENY`; `Cache-Control: no-store` nas páginas; estáticos com `max-age` de um ano e versão na URL.
 - **Consentimento (C-03, Q-21):** sem consentimento válido, a ficha mostra só cadastro e consentimento, com o aviso de bloqueio; nenhum caso de uso de comportamento é chamado para montar a tela.
-- **Histórico do consentimento (v1.4, Q-34):** conceder e revogar pelo painel gravam o movimento com origem `painel` e o login da sessão. A linha do tempo da aba Consentimento mostra o cadastro e cada movimento, do mais recente para o mais antigo, com finalidade, versão do termo e origem ("pela API", "pelo painel, por {operador}", "pelo portal do titular", "pelo sistema", "reconstruído das datas"). Cliente sem nenhum movimento continua com a linha montada pelas datas do registro, com o aviso de que ela não é o histórico completo.
 - **Sem JavaScript:** formulários comuns com redirecionamento 303 no sucesso (PRG) e confirmação em página própria. Com JavaScript, o htmx (`hx-boost`) faz as mesmas requisições e troca só a área do painel (`#app`), sem recarregar a página; os diálogos usam `<dialog>` nativo. Respostas de erro (4xx e 5xx) também são exibidas.
 - **Erros:** o código estável (`errs.Codigo`) escolhe a mensagem de `docs/design/03-textos.md`; o texto técnico nunca aparece. Falha inesperada mostra o código da requisição (`X-Request-ID` do Nginx).
 - **Logs (C-09, Q-24):** método, caminho (só UUIDs) e status; nas ações, operador, ação e `clienteId`. Nunca nome, e-mail, senha nem o termo de busca.
@@ -446,10 +423,9 @@ perfila/                          módulo Go `perfila`
 
 Persistência e implantação:
 
-- PostgreSQL via `database/sql` com o driver `pgx/v5/stdlib` (Q-10); migrações em SQL versionado, embutidas no binário e aplicadas pelo `omega-server` ao subir, sob `pg_advisory_lock` e registradas em `schema_migracoes` (Q-09); uma tabela por entidade (clientes, eventos_comportamentais, perfis_cliente, segmentos, recomendacoes_produto, consentimentos_lgpd, produtos e, desde a v1.4, movimentos_consentimento), em snake_case.
+- PostgreSQL via `database/sql` com o driver `pgx/v5/stdlib` (Q-10); migrações em SQL versionado, embutidas no binário e aplicadas pelo `omega-server` ao subir, sob `pg_advisory_lock` e registradas em `schema_migracoes` (Q-09); uma tabela por entidade (clientes, eventos_comportamentais, perfis_cliente, segmentos, recomendacoes_produto, consentimentos_lgpd, produtos), em snake_case.
 - Chaves UUID; timestamps em `timestamptz` (UTC); `UNIQUE(cliente_id)` em perfis_cliente e consentimentos_lgpd; `CHECK` nos enums de status; chaves estrangeiras para clientes. Reforços de integridade que só repetem regras já existentes: chaves estrangeiras `perfis_cliente.segmento_id → segmentos` (D-06) e `recomendacoes_produto.produto_id → produtos` (D-05); `CHECK` de valor ≥ 0 nos eventos (RN-04), score entre 0 e 1 (RN-05) e preço ≥ 0 (`Produto.AtualizarPreco`).
 - Clientes de exemplo (Q-30, Q-32): catorze clientes sintéticos com história (datas de cadastro, consentimento, revogação, eventos e recomendações ao longo de meses), criados pelos casos de uso com um relógio de carga; no modo memória ao subir, no PostgreSQL por `carregar-exemplos`, e só com o banco sem clientes.
-- A migração 006 (v1.4, Q-34) cria `movimentos_consentimento` (chave UUID, coluna de ordem de gravação, `CHECK` em tipo e origem, operador obrigatório com origem painel, chave estrangeira para clientes) com um gatilho que recusa `UPDATE` e `DELETE` (só inclusão, RN-10), e reconstrói os movimentos dos clientes antigos a partir das datas que o registro prova: a última concessão (com finalidade e termo) e a última revogação (com finalidade e termo só se o estado ainda for REVOGADO; senão, em branco), com origem `migracao`.
 - A migração 005 (Q-32) amplia a demonstração: segmentos vip, fiel, ocasional e explorador e catálogo de 7 categorias, iguais aos do modo memória.
 - A migração 004 (v1.3) cria os índices da listagem de clientes: `data_cadastro DESC` e o nome normalizado (minúsculas e sem acentos), Q-23.
 - A migração inicial cria o segmento padrao (critério vazio, Prioridade 99). Uma segunda migração carrega os segmentos e o catálogo sintéticos de demonstração, com os mesmos IDs do modo memória (Q-08). Dados de teste são sintéticos.
@@ -492,7 +468,6 @@ Prioridade Alta: impede gerar código correto. Média: gera comportamento ambíg
 | Versão | Data | Mudanças |
 |---|---|---|
 | v0 | 27/10/2026 | Documento único (PDF) e depois dividido em três `.md` |
-| v1.4 | 12/11/2026 | Histórico completo do consentimento (Q-34): entidade `MovimentoConsentimento` (3.2), RN-10, UC-08 `Historico` e origem pelo contexto (3.5), `FichaCliente.Historico`, `ConsentimentoRepository.Registrar` e `ListarMovimentos` (3.6), origem nas rotas da API e do painel e linha do tempo pelo histórico (3.7, 3.7.1), migração 006 (3.8) |
 | v1.3 | 12/11/2026 | Painel web do operador (Q-20 a Q-29): seção 3.7.1, casos de uso de aplicação do painel (3.1 e 3.5), `ProcessarClienteUseCase` com o estado por etapa (RN-09, Q-26), `ClienteRepository.Listar`, `RecomendacaoRepository.ListarPorCliente` e `ProdutoRepository.ListarTodos` (3.6), configuração `PAINEL_*` (3.8), migração 004, subcomando `hash-senha` (Q-28); camada BDD `@web` |
 | v1.2 | 11/11/2026 | Fase Generic (T-19): `DATABASE_URL` vazia mantém o modo memória fora da implantação (Q-07); dados de demonstração por migração (Q-08); migrações aplicadas pelo servidor com trava (Q-09); driver pgx (Q-10); suíte de contrato dos repositórios; reforços de integridade no esquema (FKs para segmentos e produtos, CHECKs de faixa); erro de `SegmentoRepository.BuscarPorID` explicitado. T-24: implantação com Nginx, duas réplicas e banco isolado (Q-11 a Q-14). Correções do mapeamento de bugs (Q-15 a Q-19): limite de Valor, tolerância de relógio, falhas de configuração como 500, uma recomendação ATIVA por cliente, `/saude` com o banco e corpo JSON único |
 | v1.1 | 07/11/2026 | UC-09 Cadastrar Cliente (D-22), `NovoCliente` e rota `POST /v1/clientes`; Support implementado (API, middlewares, CMD, gateways, configuração); D-01 a D-23 adotadas como finais; Q-01 a Q-06 decididas (Q-02 muda o erro de "nenhum segmento" para falha de configuração) |

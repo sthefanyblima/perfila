@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"io"
-	"strings"
 	"testing"
 
 	"perfila/internal/application/usecase"
@@ -70,19 +69,6 @@ func TestCarregarExemplos(t *testing.T) {
 		karina, _ := r.consentimentos.BuscarPorCliente(ctx, porEmail["c-011@exemplo.test"].ID)
 		if karina.VersaoTermo != "v2" || karina.DataRevogacao == nil || !karina.DataRevogacao.Before(karina.DataConsentimento) {
 			t.Errorf("Karina deveria ter concedido de novo, termo v2: %+v", karina)
-		}
-		// Histórico (Q-34): concede v1 pela API, revoga e concede v2 pelo painel; os outros, pelo sistema.
-		movs, _ := r.consentimentos.ListarMovimentos(ctx, porEmail["c-011@exemplo.test"].ID)
-		var resumo []string
-		for _, m := range movs {
-			resumo = append(resumo, string(m.Tipo)+" "+m.VersaoTermo+" "+string(m.Origem)+" "+m.Operador)
-		}
-		quer := []string{"CONCESSAO v1 api ", "REVOGACAO v1 painel operador", "CONCESSAO v2 painel operador"}
-		if strings.Join(resumo, "|") != strings.Join(quer, "|") {
-			t.Errorf("Karina: histórico %q, esperado %q", resumo, quer)
-		}
-		if fabio, _ := r.consentimentos.ListarMovimentos(ctx, porEmail["c-006@exemplo.test"].ID); len(fabio) != 2 || fabio[1].Origem != entity.OrigemSistema {
-			t.Errorf("Fábio: histórico %+v", fabio)
 		}
 		// Histórico de recomendações: Ana tem expiradas e uma ativa; Marina, só expirada.
 		recs, _ := r.recomendacoes.ListarPorCliente(ctx, porEmail["c-001@exemplo.test"].ID)

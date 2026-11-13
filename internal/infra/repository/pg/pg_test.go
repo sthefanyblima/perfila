@@ -8,9 +8,6 @@ import (
 	"reflect"
 	"sort"
 	"testing"
-	"time"
-
-	"github.com/google/uuid"
 
 	"perfila/internal/domain/entity"
 	"perfila/internal/infra/memoria"
@@ -59,7 +56,7 @@ func bancoDeTeste(t *testing.T, esquema string) *sql.DB {
 func esvaziar(t *testing.T, db *sql.DB) {
 	t.Helper()
 	_, err := db.Exec(`TRUNCATE recomendacoes_produto, perfis_cliente, eventos_comportamentais,
-		movimentos_consentimento, consentimentos_lgpd, clientes, produtos, segmentos`)
+		consentimentos_lgpd, clientes, produtos, segmentos`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,7 +106,7 @@ func TestMigracoes(t *testing.T) {
 		versoes = append(versoes, v)
 	}
 	linhas.Close()
-	if !reflect.DeepEqual(versoes, []string{"001_inicial", "002_dados_demonstracao", "003_recomendacoes_ativas_por_cliente", "004_listagem_de_clientes", "005_demonstracao_ampliada", "006_movimentos_consentimento"}) {
+	if !reflect.DeepEqual(versoes, []string{"001_inicial", "002_dados_demonstracao", "003_recomendacoes_ativas_por_cliente", "004_listagem_de_clientes", "005_demonstracao_ampliada"}) {
 		t.Fatalf("migrações registradas: %v", versoes)
 	}
 	aplicadas, err := pg.Migrar(ctx, db)
@@ -137,73 +134,6 @@ func TestMigracoes(t *testing.T) {
 		sort.Slice(esperado, func(i, j int) bool { return esperado[i].Nome < esperado[j].Nome })
 		if err != nil || !reflect.DeepEqual(obtido, esperado) {
 			t.Fatalf("catálogo %s (%v):\n obtido   %+v\n esperado %+v", categoria, err, obtido, esperado)
-		}
-	}
-}
-
-// Spec: RN-10, Q-34 — a 006 reconstrói só o que as datas provam, com origem migracao, e o banco
-// recusa alterar ou apagar um movimento.
-func TestMigracaoReconstroiMovimentos(t *testing.T) {
-	db := bancoDeTeste(t, "teste_movimentos")
-	ctx := context.Background()
-	dia := func(d int) time.Time { return time.Date(2026, 1, d, 10, 0, 0, 0, time.UTC) }
-	clientes := pg.NovoPgClienteRepository(db)
-	cons := pg.NovoPgConsentimentoRepository(db)
-	revogado, reconcedido, nunca := uuid.New(), uuid.New(), uuid.New()
-	for _, id := range []uuid.UUID{revogado, reconcedido, nunca} {
-		c := entity.Cliente{ID: id, Nome: "Cliente Sintético", Email: "c-001@exemplo.test", DataCadastro: dia(1), Ativo: true}
-		if err := clientes.Salvar(ctx, c); err != nil {
-			t.Fatal(err)
-		}
-	}
-	a := entity.NovoConsentimento(uuid.New(), revogado, dia(1))
-	_ = a.Conceder("segmentacao", "v1", dia(2))
-	_ = a.Revogar(dia(3))
-	b := entity.NovoConsentimento(uuid.New(), reconcedido, dia(1))
-	_ = b.Conceder("segmentacao", "v1", dia(2))
-	_ = b.Revogar(dia(3))
-	_ = b.Conceder("segmentacao", "v2", dia(4))
-	for _, c := range []entity.ConsentimentoLGPD{a, b, entity.NovoConsentimento(uuid.New(), nunca, dia(1))} {
-		if err := cons.Salvar(ctx, c); err != nil {
-			t.Fatal(err)
-		}
-	}
-	// Simula um banco anterior à 006 e aplica a migração de novo sobre esses registros.
-	if _, err := db.Exec(`DROP TABLE movimentos_consentimento; DROP FUNCTION movimentos_consentimento_so_inclusao();
-		DELETE FROM schema_migracoes WHERE versao = '006_movimentos_consentimento'`); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := pg.Migrar(ctx, db); err != nil {
-		t.Fatal(err)
-	}
-	mov := func(cliente uuid.UUID, tipo entity.TipoMovimento, termo string, d int) entity.MovimentoConsentimento {
-		fin := "segmentacao"
-		if termo == "" {
-			fin = ""
-		}
-		return entity.MovimentoConsentimento{ClienteID: cliente, Tipo: tipo, Finalidade: fin, VersaoTermo: termo,
-			Data: dia(d), Origem: entity.OrigemMigracao}
-	}
-	esperado := map[uuid.UUID][]entity.MovimentoConsentimento{
-		revogado:    {mov(revogado, entity.MovimentoConcessao, "v1", 2), mov(revogado, entity.MovimentoRevogacao, "v1", 3)},
-		reconcedido: {mov(reconcedido, entity.MovimentoRevogacao, "", 3), mov(reconcedido, entity.MovimentoConcessao, "v2", 4)},
-		nunca:       {},
-	}
-	for id, quer := range esperado {
-		obtido, err := cons.ListarMovimentos(ctx, id)
-		if err != nil {
-			t.Fatal(err)
-		}
-		for i := range obtido {
-			obtido[i].ID = uuid.Nil
-		}
-		if !reflect.DeepEqual(obtido, quer) {
-			t.Fatalf("movimentos reconstruídos:\n obtido   %+v\n esperado %+v", obtido, quer)
-		}
-	}
-	for _, sqlTexto := range []string{`UPDATE movimentos_consentimento SET versao_termo = 'v9'`, `DELETE FROM movimentos_consentimento`} {
-		if _, err := db.Exec(sqlTexto); err == nil {
-			t.Fatalf("o banco aceitou %q em movimentos_consentimento", sqlTexto)
 		}
 	}
 }

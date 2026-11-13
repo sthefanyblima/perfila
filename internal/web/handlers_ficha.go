@@ -48,11 +48,10 @@ type dadosFicha struct {
 	Aba           string
 	Cliente       entity.Cliente
 	Consentimento entity.ConsentimentoLGPD
-	Movimentos    []entity.MovimentoConsentimento // ordem cronológica (RN-10); vazio = linha pelas datas
-	Valido        bool                            // consentimento CONCEDIDO: comportamento pode ser lido (inativo: só leitura, Q-31)
-	Bloqueio      *alerta                         // sem consentimento: nada de comportamento é lido
-	Inativo       *alerta                         // cadastro inativo com consentimento: histórico só para leitura
-	Falha         *alerta                         // processamento ou registro que acabou de falhar
+	Valido        bool    // consentimento CONCEDIDO: comportamento pode ser lido (inativo: só leitura, Q-31)
+	Bloqueio      *alerta // sem consentimento: nada de comportamento é lido
+	Inativo       *alerta // cadastro inativo com consentimento: histórico só para leitura
+	Falha         *alerta // processamento ou registro que acabou de falhar
 
 	Resultado     *usecase.ResultadoCliente
 	Processado    bool
@@ -83,71 +82,11 @@ type marco struct {
 	Icone           string
 }
 
-// PelasDatas: há datas de consentimento, mas nenhum movimento; a linha do tempo é a montada pelo
-// registro e não o histórico completo (v1.4, Q-34).
-func (d dadosFicha) PelasDatas() bool {
-	return len(d.Movimentos) == 0 && d.Consentimento.Status != entity.StatusNaoConcedido
-}
-
-// LinhaConsentimento mostra o cadastro e o que aconteceu com o consentimento, do mais recente para
-// o mais antigo: pelo histórico de movimentos (RN-10) ou, sem movimentos, pelas datas (Q-01).
+// LinhaConsentimento monta, a partir das datas guardadas (Q-01), o que aconteceu com o
+// consentimento, do mais recente para o mais antigo.
 func (d dadosFicha) LinhaConsentimento() []marco {
-	ms := []marco{{Data: d.Cliente.DataCadastro, Titulo: "Cadastro", Detalhe: "Nome e e-mail registrados, sem autorização de uso.", Icone: "vazado"}}
-	if len(d.Movimentos) == 0 {
-		ms = append(ms, d.marcosPelasDatas()...)
-		sort.SliceStable(ms, func(i, j int) bool { return ms[i].Data.After(ms[j].Data) })
-		return ms
-	}
-	for i, m := range d.Movimentos {
-		mc := marco{Data: m.Data, Titulo: "Consentimento revogado", Icone: "barra", Detalhe: detalheMovimento(m)}
-		if m.Tipo == entity.MovimentoConcessao {
-			mc.Titulo, mc.Icone = "Consentimento concedido", "ok"
-			if i > 0 {
-				mc.Titulo = "Consentimento concedido novamente"
-			}
-		}
-		ms = append(ms, mc)
-	}
-	// Do mais antigo ao mais recente e depois invertido: no empate de datas, o mais recente fica em cima.
-	sort.SliceStable(ms, func(i, j int) bool { return ms[i].Data.Before(ms[j].Data) })
-	for i, j := 0, len(ms)-1; i < j; i, j = i+1, j-1 {
-		ms[i], ms[j] = ms[j], ms[i]
-	}
-	return ms
-}
-
-// detalheMovimento: finalidade, termo e origem, em frases curtas (docs/design/03-textos.md).
-func detalheMovimento(m entity.MovimentoConsentimento) string {
-	var partes []string
-	if m.Finalidade != "" {
-		partes = append(partes, "Finalidade "+m.Finalidade)
-	}
-	if m.VersaoTermo != "" {
-		partes = append(partes, "termo "+m.VersaoTermo)
-	} else {
-		partes = append(partes, "termo não registrado")
-	}
-	return strings.Join(append(partes, textoOrigem(m)), " · ")
-}
-
-func textoOrigem(m entity.MovimentoConsentimento) string {
-	switch m.Origem {
-	case entity.OrigemAPI:
-		return "pela API"
-	case entity.OrigemPainel:
-		return "pelo painel, por " + m.Operador
-	case entity.OrigemPortal:
-		return "pelo portal do titular"
-	case entity.OrigemMigracao:
-		return "reconstruído das datas"
-	}
-	return "pelo sistema"
-}
-
-// marcosPelasDatas monta a linha a partir das datas guardadas no registro (Q-01).
-func (d dadosFicha) marcosPelasDatas() []marco {
 	c := d.Consentimento
-	var ms []marco
+	ms := []marco{{Data: d.Cliente.DataCadastro, Titulo: "Cadastro", Detalhe: "Nome e e-mail registrados, sem autorização de uso.", Icone: "vazado"}}
 	if !c.DataConsentimento.IsZero() {
 		m := marco{Data: c.DataConsentimento, Titulo: "Consentimento concedido", Icone: "ok",
 			Detalhe: "Finalidade " + c.Finalidade + " · termo " + c.VersaoTermo}
@@ -160,6 +99,7 @@ func (d dadosFicha) marcosPelasDatas() []marco {
 		ms = append(ms, marco{Data: *c.DataRevogacao, Titulo: "Consentimento revogado", Icone: "barra",
 			Detalhe: "O processamento parou na hora; os dados registrados até aqui continuam guardados."})
 	}
+	sort.SliceStable(ms, func(i, j int) bool { return ms[i].Data.After(ms[j].Data) })
 	return ms
 }
 
@@ -185,7 +125,7 @@ func (p *painel) carregarFicha(w http.ResponseWriter, r *http.Request, aba strin
 		p.falha(w, r, err, "")
 		return dadosFicha{}, false
 	}
-	d := dadosFicha{Aba: aba, Cliente: ficha.Cliente, Consentimento: ficha.Consentimento, Movimentos: ficha.Historico, MetaEventos: p.d.MetaEventos,
+	d := dadosFicha{Aba: aba, Cliente: ficha.Cliente, Consentimento: ficha.Consentimento, MetaEventos: p.d.MetaEventos,
 		Concessao: formConsentimento{Finalidade: p.d.Finalidade, VersaoTermo: p.d.VersaoTermo}}
 	d.Valido = ficha.Consentimento.EstaValido()
 	if !d.Valido {
