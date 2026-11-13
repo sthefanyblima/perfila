@@ -46,6 +46,8 @@ type PerfilRepository interface {
 type SegmentoRepository interface {
 	ListarAtivos(ctx context.Context) ([]entity.Segmento, error)
 	BuscarPorID(ctx context.Context, id uuid.UUID) (entity.Segmento, error) // [ADIÇÃO] errs.ErrDadosInvalidos se inexistente
+	ListarTodos(ctx context.Context) ([]entity.Segmento, error)             // [ADIÇÃO] v1.6: ativos e inativos, Prioridade crescente, desempate por ID
+	Salvar(ctx context.Context, s entity.Segmento) error                    // [ADIÇÃO] v1.6 RN-14: insere ou atualiza por ID; nome repetido ou prioridade repetida entre ativos: errs.ErroCampo
 }
 
 // RecomendacaoRepository. Salvar insere ou atualiza por ID.
@@ -67,12 +69,15 @@ type ConsentimentoRepository interface {
 	Registrar(ctx context.Context, c entity.ConsentimentoLGPD, m entity.MovimentoConsentimento) error
 	// ListarMovimentos [ADIÇÃO] v1.4: Data crescente, desempate pela ordem de gravação.
 	ListarMovimentos(ctx context.Context, clienteID uuid.UUID) ([]entity.MovimentoConsentimento, error)
+	ListarConcedidos(ctx context.Context) ([]entity.ConsentimentoLGPD, error) // [ADIÇÃO] v1.6 Q-42: Status CONCEDIDO, por ClienteID
 }
 
 // ProdutoRepository [ADIÇÃO] (D-05).
 type ProdutoRepository interface {
 	ListarAtivosPorCategoria(ctx context.Context, categoria string) ([]entity.Produto, error)
-	ListarTodos(ctx context.Context) ([]entity.Produto, error) // [ADIÇÃO] Q-23: por Categoria e Nome
+	ListarTodos(ctx context.Context) ([]entity.Produto, error)             // [ADIÇÃO] Q-23: por Categoria e Nome
+	BuscarPorID(ctx context.Context, id uuid.UUID) (entity.Produto, error) // [ADIÇÃO] v1.6: errs.ErrProdutoNaoEncontrado
+	Salvar(ctx context.Context, p entity.Produto) error                    // [ADIÇÃO] v1.6: insere ou atualiza por ID
 }
 
 // ConsentimentoGateway — MVP: implementação local sobre ConsentimentoRepository (fase Support).

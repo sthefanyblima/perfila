@@ -20,8 +20,8 @@ import (
 	"perfila/internal/shared/errs"
 )
 
-// Repositorios é um backend completo e vazio. Segmentos e produtos não têm escrita no port
-// (entram por migração), então o backend informa como inseri-los para o teste.
+// Repositorios é um backend completo e vazio. AdicionarSegmento e AdicionarProduto inserem sem
+// as validações dos ports (carga de teste); desde a v1.6 os ports também gravam.
 type Repositorios struct {
 	Clientes       port.ClienteRepository
 	Eventos        port.EventoRepository
@@ -59,6 +59,9 @@ func Executar(t *testing.T, nova Fabrica) {
 		{"Produto", testarProduto},
 		{"Operador", testarOperador},
 		{"Auditoria", testarAuditoria},
+		{"SegmentoGravacao", testarSegmentoGravacao},   // v1.6
+		{"ProdutoGravacao", testarProdutoGravacao},     // v1.6
+		{"ConsentimentosConcedidos", testarConcedidos}, // v1.6
 	}
 	for _, c := range casos {
 		t.Run(c.nome, func(t *testing.T) { c.fn(t, nova(t)) })
