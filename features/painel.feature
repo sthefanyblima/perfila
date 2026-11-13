@@ -355,7 +355,7 @@ Funcionalidade: Painel web do operador
 
   # ---- Edição de segmentos e catálogo (v1.6, Q-33, Q-42 a Q-44, RN-14) ----
 
-  @RN-11 @Q-33 @wip
+  @RN-11 @Q-33
   Esquema do Cenário: Só quem edita a configuração abre os formulários
     Dado que o operador "rita" com o papel "<papel>" entrou no painel
     Quando a página "<pagina>" é aberta
@@ -369,7 +369,7 @@ Funcionalidade: Painel web do operador
       | ANALISTA      | /painel/catalogo/novo    | 200    |
       | ATENDIMENTO   | /painel/catalogo/novo    | 403    |
 
-  @RN-11 @Q-33 @wip
+  @RN-11 @Q-33
   Esquema do Cenário: A lista de segmentos só oferece edição a quem pode editar
     Dado que o operador "rita" com o papel "<papel>" entrou no painel
     Quando a página "/painel/segmentos" é aberta
@@ -380,7 +380,7 @@ Funcionalidade: Painel web do operador
       | ANALISTA    | oferece    |
       | ATENDIMENTO | não oferece |
 
-  @RN-14 @Q-33 @wip
+  @RN-14 @Q-33
   Cenário: O formulário mostra o critério gravado e uma linha por condição
     Dado que o operador "caio" com o papel "ANALISTA" entrou no painel
     E que existe o segmento ativo "premium" com prioridade 1 e critério "ticketMedio >= 500 && frequenciaCompras >= 3"
@@ -388,7 +388,7 @@ Funcionalidade: Painel web do operador
     Então a página mostra "ticketMedio &gt;= 500 &amp;&amp; frequenciaCompras &gt;= 3"
     E o formulário tem 2 condições preenchidas
 
-  @RN-14 @Q-42 @lgpd @wip
+  @RN-14 @Q-42 @lgpd
   Cenário: Salvar passa pela prévia, que mostra só contagens
     Dado que o consentimento do cliente "c-001" está no estado "CONCEDIDO"
     E que o cliente "c-001" foi processado
@@ -401,7 +401,7 @@ Funcionalidade: Painel web do operador
     E o segmento "engajado" continua com o critério "scoreEngajamento >= 0.7"
     E o último registro da auditoria é "prever_segmentacao" do operador "caio" sobre o segmento "engajado" com o resultado "SUCESSO"
 
-  @RN-14 @RN-13 @Q-44 @wip
+  @RN-14 @RN-13 @Q-44
   Cenário: Confirmar a prévia salva o segmento e registra os campos alterados
     Dado que o operador "caio" com o papel "ANALISTA" entrou no painel
     E que existe o segmento ativo "engajado" com prioridade 2 e critério "scoreEngajamento >= 0.7"
@@ -411,7 +411,7 @@ Funcionalidade: Painel web do operador
     E o último registro da auditoria é "editar_segmento" do operador "caio" sobre o segmento "engajado" com o resultado "SUCESSO"
     E o último registro da auditoria tem os campos "criterio"
 
-  @RN-14 @Q-33 @wip
+  @RN-14 @Q-33
   Cenário: Critério inválido volta ao formulário com a condição errada
     Dado que o operador "caio" com o papel "ANALISTA" entrou no painel
     E que existe o segmento ativo "engajado" com prioridade 2 e critério "scoreEngajamento >= 0.7"
@@ -420,14 +420,14 @@ Funcionalidade: Painel web do operador
     E a página mostra "idade &gt; 18"
     E o segmento "engajado" continua com o critério "scoreEngajamento >= 0.7"
 
-  @RN-14 @Q-33 @wip
+  @RN-14 @Q-33
   Cenário: O segmento padrao recusa a desativação
     Dado que o operador "caio" com o papel "ANALISTA" entrou no painel
     Quando o operador confirma a desativação do segmento "padrao"
     Então a resposta tem status 422
     E os segmentos ativos são "padrao"
 
-  @RN-14 @Q-33 @wip
+  @RN-14 @Q-33
   Cenário: Desativar um segmento pede confirmação com a prévia
     Dado que o operador "caio" com o papel "ANALISTA" entrou no painel
     E que existe o segmento ativo "engajado" com prioridade 2 e critério "scoreEngajamento >= 0.7"
@@ -436,13 +436,13 @@ Funcionalidade: Painel web do operador
     E a página de destino oferece "desativar-segmento"
     E os segmentos ativos são "engajado" e "padrao"
 
-  @RN-14 @Q-42 @wip
+  @RN-14 @Q-42
   Cenário: Testar critério pelo painel
     Dado que o operador "caio" com o papel "ANALISTA" entrou no painel
     Quando o operador testa o critério "ticketMedio >= 500" com frequência de compras 1, ticket médio 600 e score 0
     Então a página mostra "O critério casa com estes valores."
 
-  @RN-14 @RN-13 @Q-43 @Q-44 @wip
+  @RN-14 @RN-13 @Q-43 @Q-44
   Cenário: Criar um produto pelo catálogo
     Dado que o operador "caio" com o papel "ANALISTA" entrou no painel
     Quando o operador cria pelo painel o produto "Atlas" na categoria "Livros" com preço "90,50"
@@ -450,7 +450,7 @@ Funcionalidade: Painel web do operador
     E o produto "Atlas" está gravado na categoria "livros" com o preço 90.5
     E o último registro da auditoria é "criar_produto" do operador "caio" sobre o produto "Atlas" com o resultado "SUCESSO"
 
-  @RN-14 @RN-13 @Q-43 @Q-44 @wip
+  @RN-14 @RN-13 @Q-43 @Q-44
   Cenário: Desativar um produto pede confirmação e fica na auditoria
     Dado que o operador "caio" com o papel "ANALISTA" entrou no painel
     Quando o operador confirma a desativação do produto "Item 1"

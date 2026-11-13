@@ -33,10 +33,11 @@ type estadoWeb struct {
 }
 
 var (
-	reCSRF      = regexp.MustCompile(`name="_csrf" value="([^"]+)"`)
-	reEtapa     = regexp.MustCompile(`data-teste="etapa" data-estado="([a-z]+)"`)
-	reFicha     = regexp.MustCompile(`^/painel/clientes/[0-9a-f-]{36}$`)
-	reSintetico = regexp.MustCompile(`c-\d{3}`)
+	reCSRF  = regexp.MustCompile(`name="_csrf" value="([^"]+)"`)
+	reEtapa = regexp.MustCompile(`data-teste="etapa" data-estado="([a-z]+)"`)
+	reFicha = regexp.MustCompile(`^/painel/clientes/[0-9a-f-]{36}$`)
+	// Limites de palavra: não troca um "…2c-568a…" que aparece dentro de um UUID (v1.6).
+	reSintetico = regexp.MustCompile(`\bc-\d{3}\b`)
 )
 
 func registrarPassosWeb(sc *godog.ScenarioContext, m *Mundo) {
@@ -186,7 +187,8 @@ func (m *Mundo) painelNoAr(usuario, senha string) error {
 		ChaveSessao: chave, Finalidade: "segmentacao", VersaoTermo: "v1",
 		Autenticar: c.autenticar, Operadores: c.operadores, RegistrarAuditoria: c.registrarAuditoria,
 		ListarAuditoria: c.listarAuditoria,
-		Cadastrar:       c.cadastrar, Consentimento: c.consentimento, Coletar: c.coletar, Processar: c.processar,
+		SalvarSegmento:  c.salvarSegmento, PreverSegmentacao: c.prever, SalvarProduto: c.salvarProduto,
+		Cadastrar: c.cadastrar, Consentimento: c.consentimento, Coletar: c.coletar, Processar: c.processar,
 		ListarClientes: c.listarClientes, ConsultarCliente: c.consultarCliente, ConsultarResultado: c.consultarResultado,
 		ListarSegmentos: c.listarSegmentos, ListarCatalogo: c.listarCatalogo, Expirar: c.expirar,
 		MetaEventos: m.metaEventos, Clock: m.clock, Log: slog.New(slog.NewTextHandler(&m.web.log, nil)),

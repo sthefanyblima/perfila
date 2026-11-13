@@ -168,10 +168,10 @@ func registrarPassosOperadores(sc *godog.ScenarioContext, m *Mundo) {
 		}
 		return nil
 	})
-	sc.Step(`^o último registro da auditoria é "([^"]*)" do operador "([^"]*)" sobre o (cliente|operador) "([^"]*)" com o resultado "([^"]*)"$`,
+	sc.Step(`^o último registro da auditoria é "([^"]*)" do operador "([^"]*)" sobre o (cliente|operador|segmento|produto) "([^"]*)" com o resultado "([^"]*)"$`,
 		m.ultimoRegistro)
 	// Depois de uma ação, o painel redireciona para a ficha (PRG), e abrir a ficha também é registrado.
-	sc.Step(`^a auditoria tem um registro "([^"]*)" do operador "([^"]*)" sobre o (cliente|operador) "([^"]*)" com o resultado "([^"]*)"$`,
+	sc.Step(`^a auditoria tem um registro "([^"]*)" do operador "([^"]*)" sobre o (cliente|operador|segmento|produto) "([^"]*)" com o resultado "([^"]*)"$`,
 		func(acao, login, tipo, alvo, resultado string) error {
 			regs := m.auditoria.Todos()
 			for i := len(regs) - 1; i >= 0; i-- {
@@ -287,12 +287,25 @@ func (m *Mundo) ultimoRegistro(acao, login, tipo, alvo, resultado string) error 
 
 func (m *Mundo) conferirRegistro(r entity.RegistroAuditoria, acao, login, tipo, alvo, resultado string) error {
 	alvoID := id(alvo)
-	if tipo == "operador" {
+	switch tipo {
+	case "operador":
 		o, err := m.operador(alvo)
 		if err != nil {
 			return err
 		}
 		alvoID = o.ID
+	case "segmento": // v1.6
+		s, err := m.segmentoPorNome(alvo)
+		if err != nil {
+			return err
+		}
+		alvoID = s.ID
+	case "produto":
+		p, err := m.produtoPorNome(alvo)
+		if err != nil {
+			return err
+		}
+		alvoID = p.ID
 	}
 	if string(r.Acao) != acao || r.Operador != login || string(r.AlvoTipo) != tipo || r.AlvoID != alvoID ||
 		string(r.Resultado) != resultado {

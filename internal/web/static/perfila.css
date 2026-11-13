@@ -424,3 +424,12 @@ body.pf {
   .pf-toast { min-width: 0; width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { .pf *, .pf *::before { transition: none !important; animation: none !important; } }
+
+/* Critério por linhas (v1.6, RN-14) --------------------------------- */
+.pf-condicoes { display: grid; gap: var(--space-3); }
+.pf-condicao { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-2); align-items: center; }
+.pf-condicao:first-child { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr); }
+.pf-row--fim { justify-content: flex-end; }
+@media (max-width: 640px) {
+  .pf-condicao, .pf-condicao:first-child { grid-template-columns: 1fr; }
+}
