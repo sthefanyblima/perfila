@@ -41,3 +41,26 @@ func Codigo(err error) string {
 	}
 	return ""
 }
+
+// Configuração de segmentos e catálogo (v1.6, Spec 3.5, RN-14).
+var (
+	ErrSegmentoNaoEncontrado = &Erro{"segmento_nao_encontrado", "segmento inexistente"}
+	ErrProdutoNaoEncontrado  = &Erro{"produto_nao_encontrado", "produto inexistente"}
+)
+
+// ErroCampo é um erro de validação de um campo de formulário, com a mensagem em português para a
+// tela. Embrulha ErrDadosInvalidos: o código continua dados_invalidos. Spec: 3.5, RN-14.
+type ErroCampo struct {
+	Campo    string
+	Mensagem string
+}
+
+func (e *ErroCampo) Error() string {
+	return ErrDadosInvalidos.Codigo + ": " + e.Campo + ": " + e.Mensagem
+}
+
+// Unwrap liga o erro à sentinela ErrDadosInvalidos (C-06).
+func (e *ErroCampo) Unwrap() error { return ErrDadosInvalidos }
+
+// NovoErroCampo monta um ErroCampo.
+func NovoErroCampo(campo, mensagem string) error { return &ErroCampo{Campo: campo, Mensagem: mensagem} }
