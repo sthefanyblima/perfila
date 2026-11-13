@@ -80,6 +80,13 @@ func executar(args []string, getenv func(string) string, saida io.Writer) error 
 			if err := carregarExemplos(ctx, app); err != nil {
 				return err
 			}
+			if cfg.PainelLigado() { // operadores de exemplo: só no modo memória (Q-41)
+				n, err := app.exemplos.carregarOperadoresExemplo(ctx, senha.Bcrypt{})
+				if err != nil {
+					return err
+				}
+				app.log.Info("operadores_exemplo_carregados", "quantidade", n)
+			}
 		}
 		return servir(ctx, cfg, app)
 	case "carregar-exemplos":

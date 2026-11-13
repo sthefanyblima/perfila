@@ -10,6 +10,7 @@ import (
 	"perfila/internal/domain/entity"
 	"perfila/internal/domain/port"
 	"perfila/internal/infra/config"
+	"perfila/internal/infra/senha"
 )
 
 // Spec: Q-30, Q-32 — clientes de exemplo com história, um por situação, carregados uma única vez.
@@ -77,7 +78,7 @@ func TestCarregarExemplos(t *testing.T) {
 		for _, m := range movs {
 			resumo = append(resumo, string(m.Tipo)+" "+m.VersaoTermo+" "+string(m.Origem)+" "+m.Operador)
 		}
-		quer := []string{"CONCESSAO v1 api ", "REVOGACAO v1 painel operador", "CONCESSAO v2 painel operador"}
+		quer := []string{"CONCESSAO v1 api ", "REVOGACAO v1 painel atendimento", "CONCESSAO v2 painel atendimento"}
 		if strings.Join(resumo, "|") != strings.Join(quer, "|") {
 			t.Errorf("Karina: histórico %q, esperado %q", resumo, quer)
 		}
@@ -92,6 +93,28 @@ func TestCarregarExemplos(t *testing.T) {
 		marina, _ := r.recomendacoes.ListarPorCliente(ctx, porEmail["c-013@exemplo.test"].ID)
 		if len(marina) != 1 || marina[0].Status != entity.StatusExpirada {
 			t.Errorf("Marina deveria ter só uma recomendação expirada: %+v", marina)
+		}
+	}
+}
+
+// Spec: Q-41 — um operador de exemplo por papel, sem senha provisória, criados uma vez só.
+func TestOperadoresExemplo(t *testing.T) {
+	ctx := context.Background()
+	app, err := montar(ctx, config.Config{AuthToken: "x", LogLevel: "info", RecomendacaoValidadeDias: 30, EngajamentoMetaEventos: 30}, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hash := senha.NovoBcrypt(4)
+	if n, err := app.exemplos.carregarOperadoresExemplo(ctx, hash); err != nil || n != 2 {
+		t.Fatalf("criou %d (%v)", n, err)
+	}
+	if n, _ := app.exemplos.carregarOperadoresExemplo(ctx, hash); n != 0 {
+		t.Fatalf("segunda carga criou %d", n)
+	}
+	for _, x := range operadoresExemplo() {
+		o, err := app.repos.operadores.BuscarPorLogin(ctx, x.login)
+		if err != nil || o.Papel != x.papel || o.TrocarSenha || !o.Ativo || !hash.Conferir(o.SenhaHash, x.senha) {
+			t.Fatalf("%s: %+v (%v)", x.login, o, err)
 		}
 	}
 }

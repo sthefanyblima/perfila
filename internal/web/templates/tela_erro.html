@@ -5,6 +5,6 @@
 <div class="pf-alert pf-alert--critical" role="alert" data-teste="aviso-erro">
   <span class="pf-alert__badge" aria-hidden="true">{{icone "barra"}}</span>
   <div><p class="pf-alert__text">{{.Texto}}</p></div>
-  <a class="pf-btn pf-btn--sm pf-alert__acao" href="/painel/clientes">Voltar para clientes</a>
+  {{if or $.Pode.clientes (not $.Operador)}}<a class="pf-btn pf-btn--sm pf-alert__acao" href="/painel/clientes">Voltar para clientes</a>{{else}}<a class="pf-btn pf-btn--sm pf-alert__acao" href="/painel/">Voltar ao início</a>{{end}}
 </div>
 {{end}}{{end}}

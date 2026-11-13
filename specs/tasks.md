@@ -101,7 +101,7 @@ Operadores no banco com papel (ADMINISTRADOR, ANALISTA, ATENDIMENTO), matriz de 
 | T-51 | Painel: Entrar pelo caso de uso, sessão com o ID do operador conferida a cada requisição, permissão por rota (403), menu por papel, auditoria das ações e das leituras de ficha | T-50 | cenários `@web` de papéis e sessão | ✅ `usuarios.feature` verde (`@aplicacao`); cobertura de domínio + aplicação 88,2%. `TrocarSenha` devolve o operador para o painel renovar a sessão (Spec 3.5 ajustada) |
 | T-52 | Telas Usuários (criar, mudar papel, desativar, ativar, redefinir senha) e Minha senha | T-51 | cenários `@web` de usuários | ✅ 11 cenários `@web` novos (menu por papel, ação sem permissão, sessão encerrada, mudança de papel, auditoria das ações e leituras, auditoria sem dado pessoal); `TestAdministradorInicial` |
 | T-53 | Tela Auditoria (filtros e paginação) e subcomando `expurgar-auditoria` | T-51 | cenários `@web` da auditoria; `TestExpurgarAuditoria` | ✅ 11 cenários `@web` novos (menu por papel, ação sem permissão, sessão encerrada, mudança de papel, auditoria das ações e leituras, auditoria sem dado pessoal); `TestAdministradorInicial` |
-| T-54 | Exemplos (um operador por papel, só no modo memória), README, roteiro, checklist (L-12, L-23, L-28); fluxo no navegador | T-52, T-53 | `TestCarregarExemplos`; painel conferido | ⬜ |
+| T-54 | Exemplos (um operador por papel, só no modo memória), README, roteiro, checklist (L-12, L-23, L-28); fluxo no navegador | T-52, T-53 | `TestCarregarExemplos`; painel conferido | ✅ `TestOperadoresExemplo`; atendimento e analista só no modo memória; README, roteiro (passo 5c), checklist (L-12, L-23, L-28, L-29) e textos do design; fluxo conferido no navegador |
 
 ## Fechamento
 
