@@ -48,6 +48,7 @@ type Mundo struct {
 	processamento          usecase.ResultadoProcessamento
 	leitura                estadoLeitura
 	web                    estadoWeb
+	direitos               estadoDireitos
 
 	api estadoAPI
 }
@@ -71,6 +72,7 @@ func novoMundo() *Mundo {
 		produtos:       memoria.NovoProdutoRepository(),
 		metaEventos:    metaPadrao,
 		validadeDias:   validadePadrao,
+		direitos:       estadoDireitos{prazoDias: prazoRetencaoPadrao},
 	}
 }
 
@@ -90,6 +92,12 @@ type casos struct {
 	listarSegmentos    *usecase.ListarSegmentosUseCase
 	listarCatalogo     *usecase.ListarCatalogoUseCase
 	expirar            *usecase.ExpirarRecomendacoesUseCase
+
+	// direitos do titular e retenção (v1.9)
+	atualizarCadastro *usecase.AtualizarCadastroUseCase
+	exportar          *usecase.ExportarDadosTitularUseCase
+	eliminar          *usecase.EliminarDadosTitularUseCase
+	retencao          *usecase.AplicarRetencaoUseCase
 }
 
 func (m *Mundo) uc() casos {
@@ -112,6 +120,11 @@ func (m *Mundo) uc() casos {
 	c.consultarResultado = usecase.NovoConsultarResultadoUseCase(pre, m.eventos, m.perfis, m.segmentos, m.recomendacoes, m.produtos)
 	c.listarSegmentos = usecase.NovoListarSegmentosUseCase(m.segmentos)
 	c.listarCatalogo = usecase.NovoListarCatalogoUseCase(m.produtos)
+	c.atualizarCadastro = usecase.NovoAtualizarCadastroUseCase(m.clientes)
+	c.exportar = usecase.NovoExportarDadosTitularUseCase(m.clientes, c.consentimento, m.eventos, m.perfis, m.segmentos,
+		m.recomendacoes, m.produtos, m.clock)
+	c.eliminar = usecase.NovoEliminarDadosTitularUseCase(m.clientes, m.consentimentos, m.eventos, m.perfis, m.recomendacoes, m.clock)
+	c.retencao = usecase.NovoAplicarRetencaoUseCase(m.consentimentos, m.eventos, m.perfis, m.recomendacoes, m.clock, m.direitos.prazoDias)
 	return c
 }
 

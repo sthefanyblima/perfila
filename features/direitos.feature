@@ -1,5 +1,5 @@
 # language: pt
-@wip @Q-48 @Q-49 @Q-50 @Q-51
+@Q-48 @Q-49 @Q-50 @Q-51
 Funcionalidade: Direitos do titular e retenção após a revogação
   O titular pede a correção, uma cópia ou a eliminação dos seus dados (art. 18 da LGPD), e o
   comportamento de quem revogou é apagado depois do prazo de retenção. A prova do consentimento
@@ -216,7 +216,7 @@ Funcionalidade: Direitos do titular e retenção após a revogação
 
   # ---- Painel (web) ----
 
-  @web @UC-09 @Q-48
+  @wip @web @UC-09 @Q-48
   Cenário: Corrigir o cadastro pela ficha, sem consentimento
     Dado que o operador entrou no painel
     Quando o operador corrige o cadastro do cliente "c-001" para o nome "Ana Souza Sintética" e o e-mail "ana.souza@exemplo.test"
@@ -224,14 +224,14 @@ Funcionalidade: Direitos do titular e retenção após a revogação
     E a página de destino mostra "Ana Souza Sintética"
     E o cadastro do cliente "c-001" tem o e-mail "ana.souza@exemplo.test"
 
-  @web @UC-09 @Q-48
+  @wip @web @UC-09 @Q-48
   Cenário: Correção sem nome mostra o erro ao lado do campo
     Dado que o operador entrou no painel
     Quando o operador corrige o cadastro do cliente "c-001" para o nome "" e o e-mail "ana.souza@exemplo.test"
     Então a resposta tem status 422
     E a página mostra "Informe o nome do cliente."
 
-  @web @lgpd @Q-49
+  @wip @web @lgpd @Q-49
   Cenário: Baixar os dados entrega um arquivo JSON, mesmo depois da revogação
     Dado que o operador entrou no painel
     E que o cliente "c-001" tem dados de comportamento desde "2026-11-01T10:00:00Z"
@@ -240,7 +240,7 @@ Funcionalidade: Direitos do titular e retenção após a revogação
     Então a resposta tem status 200
     E a resposta é um arquivo JSON anexo com o cadastro de "Ana Sintética" e 2 eventos
 
-  @web @RN-17
+  @wip @web @RN-17
   Cenário: Eliminar exige a confirmação com o nome do cliente
     Dado que o operador entrou no painel
     Quando a página "/painel/clientes/c-001/eliminar" é aberta
@@ -248,7 +248,7 @@ Funcionalidade: Direitos do titular e retenção após a revogação
     E a página pede a confirmação "eliminar"
     E o cadastro do cliente "c-001" tem o nome "Ana Sintética"
 
-  @web @lgpd @RN-17
+  @wip @web @lgpd @RN-17
   Cenário: Eliminar pela ficha com o nome digitado
     Dado que o operador entrou no painel
     E que o cliente "c-001" tem dados de comportamento desde "2026-11-01T10:00:00Z"
@@ -258,7 +258,7 @@ Funcionalidade: Direitos do titular e retenção após a revogação
     E a página de destino mostra o selo "Eliminado"
     E o cliente "c-001" não tem eventos, perfil nem recomendações
 
-  @web @RN-17
+  @wip @web @RN-17
   Cenário: Nome errado na confirmação mostra o erro e não elimina nada
     Dado que o operador entrou no painel
     Quando o operador confirma a eliminação dos dados do cliente "c-001" digitando "Outra Pessoa"
@@ -266,7 +266,7 @@ Funcionalidade: Direitos do titular e retenção após a revogação
     E a página mostra "O nome digitado não confere com o cadastro."
     E o cadastro do cliente "c-001" tem o nome "Ana Sintética"
 
-  @web @lgpd @RN-17 @Q-27
+  @wip @web @lgpd @RN-17 @Q-27
   Cenário: Com consentimento concedido, a ficha pede a revogação antes de eliminar
     Dado que o operador entrou no painel
     E que o consentimento do cliente "c-001" está no estado "CONCEDIDO"
@@ -274,7 +274,7 @@ Funcionalidade: Direitos do titular e retenção após a revogação
     Então a página mostra o aviso "Revogue o consentimento antes de eliminar os dados."
     E a página de destino não oferece "Eliminar dados"
 
-  @web @lgpd @RN-17
+  @wip @web @lgpd @RN-17
   Cenário: A ficha do cliente eliminado mostra só a prova do consentimento
     Dado que o operador entrou no painel
     E que os dados do cliente "c-001" foram eliminados
@@ -283,7 +283,7 @@ Funcionalidade: Direitos do titular e retenção após a revogação
     E a página de destino não oferece "Processar agora"
     E a página de destino não oferece "Conceder consentimento"
 
-  @web @lgpd @RN-18
+  @wip @web @lgpd @RN-18
   Cenário: Aplicar a retenção pela Operação
     Dado que o operador entrou no painel
     E que o cliente "c-001" tem dados de comportamento desde "2026-01-10T10:00:00Z"
@@ -293,7 +293,7 @@ Funcionalidade: Direitos do titular e retenção após a revogação
     E a página de destino mostra "Retenção aplicada a 1 cliente"
     E o cliente "c-001" não tem eventos, perfil nem recomendações
 
-  @web @lgpd @Q-53
+  @wip @web @lgpd @Q-53
   Cenário: Cada pedido atendido fica no log, sem nome nem e-mail
     Dado que o operador entrou no painel
     Quando o operador corrige o cadastro do cliente "c-001" para o nome "Bia Sintética" e o e-mail "bia@exemplo.test"
