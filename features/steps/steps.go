@@ -27,6 +27,7 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 	registrarPassosImplantacao(sc)
 	registrarPassosConfiguracao(sc, m)
 	registrarPassosOperadores(sc, m)
+	registrarPassosSegmentos(sc, m)
 
 	// ---- comuns ----
 	sc.Step(`^que a data atual é "([^"]*)"$`, m.dataAtual)
@@ -604,8 +605,10 @@ func (m *Mundo) produtoRecomendado(nome string) error {
 	if err := m.semErro(); err != nil {
 		return err
 	}
-	if m.recomendacao.ProdutoID != id("prod:"+nome) {
-		return fmt.Errorf("produto recomendado diferente de %q", nome)
+	// Compara pelo nome do produto gravado: os criados pelo painel (v1.6) têm ID novo.
+	p, err := m.produtos.BuscarPorID(m.ctx, m.recomendacao.ProdutoID)
+	if err != nil || p.Nome != nome {
+		return fmt.Errorf("produto recomendado %q diferente de %q", p.Nome, nome)
 	}
 	return nil
 }
