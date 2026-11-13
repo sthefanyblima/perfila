@@ -15,6 +15,7 @@ import (
 	"github.com/cucumber/godog"
 
 	"perfila/internal/domain/entity"
+	"perfila/internal/domain/port"
 	"perfila/internal/web"
 )
 
@@ -63,6 +64,36 @@ func registrarPassosWeb(sc *godog.ScenarioContext, m *Mundo) {
 		m.web.usuario, m.web.senha = login, senha
 		return m.entrouNoPainel()
 	})
+	sc.Step(`^o menu mostra só os itens "([^"]*)"$`, func(itens string) error {
+		esperados := map[string]bool{}
+		for _, i := range strings.Split(itens, ",") {
+			esperados[strings.TrimSpace(i)] = true
+		}
+		for _, i := range []string{"clientes", "segmentos", "catalogo", "operacao", "usuarios", "auditoria"} {
+			if err := m.paginaTemMarcador(`data-teste="menu-`+i+`"`, esperados[i]); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	sc.Step(`^o operador envia "([^"]*)"$`, func(req string) error {
+		_, caminho, _ := strings.Cut(req, " ")
+		return m.webPOST(caminho, url.Values{}, true)
+	})
+	sc.Step(`^o cliente "([^"]*)" não tem perfil$`, func(c string) error {
+		if _, err := m.perfis.BuscarPorCliente(m.ctx, id(c)); err == nil {
+			return fmt.Errorf("o cliente %s tem perfil", c)
+		}
+		return nil
+	})
+	sc.Step(`^a página da ficha do cliente cadastrado é aberta$`, func() error {
+		cliente, _, err := m.clientes.Listar(m.ctx, port.FiltroClientes{Limite: 1})
+		if err != nil || len(cliente) == 0 {
+			return fmt.Errorf("nenhum cliente cadastrado: %v", err)
+		}
+		return m.webGET("/painel/clientes/"+cliente[0].ID.String(), true)
+	})
+	sc.Step(`^que a página "([^"]*)" foi aberta$`, func(c string) error { return m.webGET(c, true) })
 	sc.Step(`^o operador "([^"]*)" entra com a senha "([^"]*)"$`, func(login, senha string) error {
 		m.web.usuario = login
 		return m.entrar(senha, "")

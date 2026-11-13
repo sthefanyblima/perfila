@@ -170,6 +170,17 @@ func registrarPassosOperadores(sc *godog.ScenarioContext, m *Mundo) {
 	})
 	sc.Step(`^o último registro da auditoria é "([^"]*)" do operador "([^"]*)" sobre o (cliente|operador) "([^"]*)" com o resultado "([^"]*)"$`,
 		m.ultimoRegistro)
+	// Depois de uma ação, o painel redireciona para a ficha (PRG), e abrir a ficha também é registrado.
+	sc.Step(`^a auditoria tem um registro "([^"]*)" do operador "([^"]*)" sobre o (cliente|operador) "([^"]*)" com o resultado "([^"]*)"$`,
+		func(acao, login, tipo, alvo, resultado string) error {
+			regs := m.auditoria.Todos()
+			for i := len(regs) - 1; i >= 0; i-- {
+				if string(regs[i].Acao) == acao {
+					return m.conferirRegistro(regs[i], acao, login, tipo, alvo, resultado)
+				}
+			}
+			return fmt.Errorf("nenhum registro %q na auditoria", acao)
+		})
 	sc.Step(`^a auditoria tem registros das ações "([^"]*)" e "([^"]*)"$`, func(a, b string) error {
 		achou := map[string]bool{}
 		for _, r := range m.auditoria.Todos() {
@@ -271,7 +282,10 @@ func (m *Mundo) ultimoRegistro(acao, login, tipo, alvo, resultado string) error 
 	if len(regs) == 0 {
 		return fmt.Errorf("auditoria vazia")
 	}
-	r := regs[len(regs)-1]
+	return m.conferirRegistro(regs[len(regs)-1], acao, login, tipo, alvo, resultado)
+}
+
+func (m *Mundo) conferirRegistro(r entity.RegistroAuditoria, acao, login, tipo, alvo, resultado string) error {
 	alvoID := id(alvo)
 	if tipo == "operador" {
 		o, err := m.operador(alvo)

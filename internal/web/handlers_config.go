@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/google/uuid"
+
 	"perfila/internal/domain/entity"
 )
 
@@ -81,6 +83,7 @@ func (p *painel) confirmarExpiracao(w http.ResponseWriter, r *http.Request) {
 // POST /painel/operacao/expirar — ExpirarRecomendacoesUseCase; o total vai no toast (PRG).
 func (p *painel) expirar(w http.ResponseWriter, r *http.Request) {
 	n, err := p.d.Expirar.Executar(r.Context())
+	p.auditar(r, entity.AcaoExpirarRecomendacoes, entity.AlvoNenhum, uuid.Nil, err)
 	if err != nil {
 		p.falha(w, r, err, "")
 		return
