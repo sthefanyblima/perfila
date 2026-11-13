@@ -66,3 +66,39 @@ Funcionalidade: Recomendação de produtos personalizados
     Quando a recomendação do cliente "c-001" é gerada
     Então a operação falha com o erro "consentimento_invalido"
     E nenhuma recomendação é gravada
+
+  # ---- Edição do catálogo pelo painel (v1.6, Q-43, RN-14) ----
+
+  @RN-07 @RN-14 @Q-43 @wip
+  Cenário: Produto desativado deixa de ser recomendado
+    Dado que o operador "caio" com o papel "ANALISTA" desativou o produto "Livro A"
+    Quando a recomendação do cliente "c-001" é gerada
+    Então o produto recomendado é "Livro B"
+
+  @RN-07 @RN-14 @Q-43 @wip
+  Cenário: Produto criado com a categoria normalizada entra na recomendação
+    Dado que o operador "caio" com o papel "ANALISTA" criou o produto "Atlas" na categoria "  Livros " com preço 90
+    Quando a recomendação do cliente "c-001" é gerada
+    Então o produto recomendado é "Atlas"
+
+  @RN-14 @Q-43 @wip
+  Esquema do Cenário: Produto com dados fora dos limites é recusado
+    Quando o operador "caio" com o papel "ANALISTA" cria o produto "<nome>" na categoria "<categoria>" com preço <preco>
+    Então a operação falha com o erro "dados_invalidos" no campo "<campo>"
+
+    Exemplos:
+      | nome   | categoria | preco      | campo     |
+      | Atlas  | livros    | -1         | preco     |
+      | Atlas  | livros    | 1000000.01 | preco     |
+      |        | livros    | 10         | nome      |
+      | Atlas  |           | 10         | categoria |
+
+  @RN-14 @Q-43 @wip
+  Cenário: O preço editado vale para o produto gravado
+    Quando o operador "caio" com o papel "ANALISTA" muda o preço do produto "Livro B" para 1000000
+    Então o produto "Livro B" está gravado com o preço 1000000
+
+  @RN-11 @Q-43 @wip
+  Cenário: Quem só atende não edita o catálogo
+    Quando o operador "rita" com o papel "ATENDIMENTO" muda o preço do produto "Livro B" para 10
+    Então a operação falha com o erro "sem_permissao"

@@ -76,6 +76,8 @@ classDiagram
     -Prioridade int «ADIÇÃO»
     -Ativo bool «ADIÇÃO»
     +ClassificarPerfil(perfil) (bool, error)
+    +Validar() error «ADIÇÃO v1.6 RN-14»
+    +EhPadrao() bool «ADIÇÃO v1.6»
   }
   class RecomendacaoProduto {
     -ID uuid
@@ -97,7 +99,8 @@ classDiagram
     -Categoria string
     -Preco float64
     -Ativo bool
-    +AtualizarPreco(preco) error
+    +AtualizarPreco(preco) error «0 a 1.000.000 desde a v1.6»
+    +Validar() error «ADIÇÃO v1.6 RN-14»
   }
   class Operador {
     -ID uuid
@@ -123,7 +126,8 @@ classDiagram
     -AlvoTipo TipoAlvo
     -AlvoID uuid
     -Resultado ResultadoAuditoria
-    +NovoRegistroAuditoria(id, data, operador, acao, alvoTipo, alvoID, resultado) «ADIÇÃO Q-39»
+    -Campos []string «ADIÇÃO v1.6 Q-44»
+    +NovoRegistroAuditoria(id, data, operador, acao, alvoTipo, alvoID, resultado, campos...) «ADIÇÃO Q-39»
   }
 
   Cliente "1" --> "0..1" ConsentimentoLGPD : possui
@@ -136,7 +140,9 @@ classDiagram
   Operador "1" ..> "0..*" RegistroAuditoria : pelo Login (Q-39)
 ```
 
-Enumerações (C-05): `TipoEvento` = navegacao | compra | interacao · `StatusConsentimento` = NAO_CONCEDIDO | CONCEDIDO | REVOGADO · `StatusRecomendacao` = GERADA | ATIVA | EXPIRADA · `TipoMovimento` = CONCESSAO | REVOGACAO · `OrigemMovimento` = api | painel | portal | sistema | migracao (v1.4, Q-34) · `PapelOperador` = ADMINISTRADOR | ATENDIMENTO | ANALISTA, com `Pode(Permissao) bool` (matriz da RN-11) · `Permissao` = clientes | consentimento | eventos | processamento | configuracao | operacao | usuarios | auditoria | relatorios | eliminacao · `AcaoAuditoria` (lista na RN-13) · `TipoAlvo` = cliente | segmento | produto | operador · `ResultadoAuditoria` = SUCESSO | NEGADO | FALHA (v1.5).
+Enumerações (C-05): `TipoEvento` = navegacao | compra | interacao · `StatusConsentimento` = NAO_CONCEDIDO | CONCEDIDO | REVOGADO · `StatusRecomendacao` = GERADA | ATIVA | EXPIRADA · `TipoMovimento` = CONCESSAO | REVOGACAO · `OrigemMovimento` = api | painel | portal | sistema | migracao (v1.4, Q-34) · `PapelOperador` = ADMINISTRADOR | ATENDIMENTO | ANALISTA, com `Pode(Permissao) bool` (matriz da RN-11) · `Permissao` = clientes | consentimento | eventos | processamento | configuracao | editar_configuracao (v1.6) | operacao | usuarios | auditoria | relatorios | eliminacao · `AcaoAuditoria` (lista na RN-13) · `TipoAlvo` = cliente | segmento | produto | operador · `ResultadoAuditoria` = SUCESSO | NEGADO | FALHA (v1.5).
+
+Funções puras da configuração (v1.6, RN-14, Q-33): `ValidarCriterio(criterio) error`, `ValidarSegmentos(lista) error` e `NormalizarCategoria(categoria) string` no pacote `entity`; `EscolherSegmento(lista, perfil)` no pacote `service` (a RN-06 sobre uma lista, usada por `Segmentar` e pela prévia).
 
 `Operador` e `RegistroAuditoria` «ADIÇÃO v1.5, Q-35, Q-39» não existem na imagem original: representam quem opera o painel e a trilha do que cada um fez. O registro de auditoria cita o operador pelo login (imutável) e o alvo só por tipo e ID, sem dado pessoal; é só de inclusão.
 

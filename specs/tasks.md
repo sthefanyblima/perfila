@@ -113,3 +113,15 @@ Operadores no banco com papel (ADMINISTRADOR, ANALISTA, ATENDIMENTO), matriz de 
 | 24/11 | Evento final |
 
 Trello: cards atualizados toda sexta (13/11, 20/11).
+
+## Edição de segmentos e catálogo — Spec v1.6
+
+Segmentos e produtos editados pelo painel, com prévia, proteções do `padrao` e auditoria dos campos alterados (Q-33, Q-42 a Q-44; Q-45 aberta). Aprovadas em 13/11.
+
+| ID | Tarefa | Depende de | Prova | Status |
+|---|---|---|---|---|
+| T-55 | Spec v1.6 (RN-14, RN-11, RN-13, 3.2, 3.5, 3.6, 3.7.1, 3.8), UML2 e UML7 em texto, Q-33 decidida e Q-42 a Q-45; cenários novos em `segmentacao.feature`, `recomendacao.feature` e `painel.feature` (`@wip`) | T-54 | Spec, UML e features revisados | ✅ 35 cenários novos (`@wip`) |
+| T-56 | Domínio da RN-14 (`Segmento.Validar`, `ValidarCriterio`, `ValidarSegmentos`, `Produto.Validar`, `NormalizarCategoria`, `EscolherSegmento`, `errs.ErroCampo`); ports `SegmentoRepository.ListarTodos` e `Salvar`, `ProdutoRepository.BuscarPorID` e `Salvar`, `ConsentimentoRepository.ListarConcedidos`; memória, PostgreSQL, migração 008 e contrato | T-55 | testes de tabela; contrato nos dois backends; `TestMigracoes` | ⬜ |
+| T-57 | Casos de uso `SalvarSegmento`, `PreverSegmentacao`, `SalvarProduto`; `ListarSegmentos.Todos` e `Consultar`, `ListarCatalogo.Consultar` e `Categorias`; permissão `editar_configuracao`; `RegistroAuditoria.Campos` e ações novas | T-56 | cenários `@aplicacao` e `@dominio` novos | ⬜ |
+| T-58 | Painel: formulários de segmento (critério por linhas) e de produto, prévia e confirmação, testar critério, ativar e desativar, auditoria com os campos | T-57 | cenários `@web` novos | ⬜ |
+| T-59 | Exemplos, README, roteiro, checklist LGPD e textos do design; fluxo no navegador | T-58 | painel conferido; cobertura ≥ 80% | ⬜ |
