@@ -184,7 +184,7 @@ classDiagram
     +Desativar(ctx, ator, id) error
     +Ativar(ctx, ator, id) error
     +RedefinirSenha(ctx, ator, id, senha) error
-    +TrocarSenha(ctx, ator, atual, nova) error
+    +TrocarSenha(ctx, ator, atual, nova) Operador, error
     +CriarAdministradorInicial(ctx, login, senhaHash) bool, error «ADIÇÃO Q-35»
   }
   class RegistrarAuditoriaUseCase {

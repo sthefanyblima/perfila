@@ -391,7 +391,7 @@ Qualquer outra combinação: `ErrTransicaoInvalida`. O comando `expirar-recomend
     - `Criar(ctx, ator, login, nome string, papel PapelOperador, senha string) (Operador, error)`: RN-12; nasce com `TrocarSenha`; `ErrLoginEmUso`.
     - `MudarPapel(ctx, ator, id, papel) error`, `Desativar(ctx, ator, id) error`, `Ativar(ctx, ator, id) error`: `ErrPropriaConta` quando `id` é o do ator (menos em `Ativar`, que nunca se aplica a si mesmo).
     - `RedefinirSenha(ctx, ator, id, senha string) error`: senha provisória, `TrocarSenha` e novo `SenhaAtualizadaEm`.
-    - `TrocarSenha(ctx, ator, atual, nova string) error`: qualquer papel, só a própria; `ErrCredenciaisInvalidas` se `atual` não confere.
+    - `TrocarSenha(ctx, ator, atual, nova string) (Operador, error)`: qualquer papel, só a própria; `ErrCredenciaisInvalidas` se `atual` não confere. Devolve o operador com o novo carimbo, para o painel renovar a sessão de quem trocou.
     - `CriarAdministradorInicial(ctx, login, senhaHash string) (bool, error)`: RN-12; devolve se criou.
 - `RegistrarAuditoriaUseCase.Executar(ctx, operador string, acao AcaoAuditoria, alvoTipo TipoAlvo, alvoID uuid.UUID, resultado ResultadoAuditoria) error`: RN-13; ID novo e Data do `Clock`.
 - `ListarAuditoriaUseCase.Executar(ctx, ator, FiltroListagemAuditoria) (PaginaAuditoria, error)`: permissão `auditoria`. O filtro tem `Operador`, `Acao`, `De` e `Ate` (instantes; vazios = sem limite; `De` ≤ Data < `Ate`) e `Pagina` (a partir de 1; 50 por página). `PaginaAuditoria` traz `Registros` (mais recente primeiro), `Total` e `Pagina`.

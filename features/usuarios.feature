@@ -1,5 +1,5 @@
 # language: pt
-@aplicacao @wip
+@aplicacao
 Funcionalidade: Operadores, papéis e auditoria
   Cada pessoa que opera o painel tem um papel que define o que ela alcança; toda ação fica
   numa trilha de auditoria sem dado pessoal (Spec 3.3 RN-11 a RN-13, Q-35 a Q-41)

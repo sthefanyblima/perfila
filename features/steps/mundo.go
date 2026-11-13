@@ -15,6 +15,7 @@ import (
 	"perfila/internal/domain/service"
 	"perfila/internal/infra/memoria"
 	"perfila/internal/infra/relogio"
+	"perfila/internal/infra/senha"
 )
 
 // Mundo guarda o estado de um cenário: relógio fixo, fakes em memória e último resultado.
@@ -29,6 +30,9 @@ type Mundo struct {
 	recomendacoes  *memoria.RecomendacaoRepository
 	consentimentos *memoria.ConsentimentoRepository
 	produtos       *memoria.ProdutoRepository
+	operadores     *memoria.OperadorRepository  // v1.5
+	auditoria      *memoria.AuditoriaRepository // v1.5
+	hash           senha.Bcrypt
 
 	metaEventos  int
 	validadeDias int
@@ -48,6 +52,7 @@ type Mundo struct {
 	processamento          usecase.ResultadoProcessamento
 	leitura                estadoLeitura
 	web                    estadoWeb
+	ops                    estadoOperadores
 
 	api estadoAPI
 }
@@ -69,6 +74,10 @@ func novoMundo() *Mundo {
 		recomendacoes:  memoria.NovoRecomendacaoRepository(),
 		consentimentos: memoria.NovoConsentimentoRepository(),
 		produtos:       memoria.NovoProdutoRepository(),
+		operadores:     memoria.NovoOperadorRepository(),
+		auditoria:      memoria.NovoAuditoriaRepository(),
+		hash:           senha.NovoBcrypt(4), // custo mínimo do bcrypt: cenários rápidos
+		ops:            estadoOperadores{sessoes: map[string]time.Time{}},
 		metaEventos:    metaPadrao,
 		validadeDias:   validadePadrao,
 	}
@@ -90,6 +99,12 @@ type casos struct {
 	listarSegmentos    *usecase.ListarSegmentosUseCase
 	listarCatalogo     *usecase.ListarCatalogoUseCase
 	expirar            *usecase.ExpirarRecomendacoesUseCase
+
+	autenticar         *usecase.AutenticarOperadorUseCase
+	operadores         *usecase.GerenciarOperadoresUseCase
+	registrarAuditoria *usecase.RegistrarAuditoriaUseCase
+	listarAuditoria    *usecase.ListarAuditoriaUseCase
+	expurgarAuditoria  *usecase.ExpurgarAuditoriaUseCase
 }
 
 func (m *Mundo) uc() casos {
@@ -112,6 +127,11 @@ func (m *Mundo) uc() casos {
 	c.consultarResultado = usecase.NovoConsultarResultadoUseCase(pre, m.eventos, m.perfis, m.segmentos, m.recomendacoes, m.produtos)
 	c.listarSegmentos = usecase.NovoListarSegmentosUseCase(m.segmentos)
 	c.listarCatalogo = usecase.NovoListarCatalogoUseCase(m.produtos)
+	c.autenticar = usecase.NovoAutenticarOperadorUseCase(m.operadores, m.hash)
+	c.operadores = usecase.NovoGerenciarOperadoresUseCase(m.operadores, m.hash, m.clock)
+	c.registrarAuditoria = usecase.NovoRegistrarAuditoriaUseCase(m.auditoria, m.clock)
+	c.listarAuditoria = usecase.NovoListarAuditoriaUseCase(m.auditoria)
+	c.expurgarAuditoria = usecase.NovoExpurgarAuditoriaUseCase(m.auditoria, m.clock, retencaoPadrao)
 	return c
 }
 
