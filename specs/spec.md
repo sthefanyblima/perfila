@@ -2,7 +2,7 @@
 
 **Perfila — Sistema de Segmentação e Perfilamento do Comportamento do Cliente — Go**
 
-Equipe Omega · GoLang & CLP · Documento 1 de 3 · **Versão 1.4 (12/11/2026)** · Base: Módulos 1 a 5 (casos de uso, classes, pacotes, sequência, estados, componentes e implantação), transcritos em `docs/uml/UML1..UML8`
+Equipe Omega · GoLang & CLP · Documento 1 de 3 · **Versão 1.8 (13/11/2026)** · Base: Módulos 1 a 5 (casos de uso, classes, pacotes, sequência, estados, componentes e implantação), transcritos em `docs/uml/UML1..UML8`
 
 ## Como usar este documento
 
@@ -34,7 +34,7 @@ Os diagramas foram feitos em módulos diferentes e nem sempre concordam. Para o 
 | Servidores, contêineres e configuração | Diagrama de Implantação (Mód. 5) | UML8 | Ver D-21 |
 | Trechos de código dos Mód. 2 e 3 | Nenhuma | — | São didáticos e divergem do modelo (D-11) |
 
-**Dentro do MVP:** UC-01, UC-02, UC-03, UC-04, UC-08 e UC-09 (cadastro, D-22) de ponta a ponta, como no diagrama de sequência, com consentimento obrigatório, API HTTP, PostgreSQL e implantação em contêineres; desde a v1.3, também o **painel web do operador** (`/painel`, Q-20), com as regras visuais e de texto do design system "Perfila Console" (`docs/design/`, ajustado pela Q-27).
+**Dentro do MVP:** UC-01, UC-02, UC-03, UC-04, UC-08 e UC-09 (cadastro, D-22) de ponta a ponta, como no diagrama de sequência, com consentimento obrigatório, API HTTP, PostgreSQL e implantação em contêineres; desde a v1.3, também o **painel web do operador** (`/painel`, Q-20), com as regras visuais e de texto do design system "Perfila Console" (`docs/design/`, ajustado pela Q-27); desde a v1.8, a **importação de eventos em lote** (CSV pelo painel e JSON pela API), linha a linha e com o consentimento conferido em cada uma (RN-16, Q-47).
 
 **Fora do MVP:** UC-05, UC-06 e UC-07 (D-04); portal do titular (fase 2, Q-20); notificação real ao cliente; autenticação JWT e perfis de acesso; gestão de segmentos pela API (segmentos entram por migração); política de retenção e eliminação de dados (D-13).
 
@@ -68,7 +68,10 @@ Casos de uso de aplicação do painel [ADIÇÃO, Q-23, Q-26]. Não são casos de
 | `ListarClientesUseCase` | Não; o segmento de cada linha só aparece com consentimento válido (Q-21) | Painel |
 | `ConsultarClienteUseCase` | Não: só cadastro e consentimento (Q-21), como UC-08 | Painel |
 | `ConsultarResultadoUseCase` | Sim (RN-01, exceto cliente ativo: inativo é só leitura, Q-31) | Painel |
-| `ListarSegmentosUseCase`, `ListarCatalogoUseCase` | Não: configuração, sem dado pessoal | Painel | Agente Inteligente: ator de automação [ADIÇÃO] que dispara UC-03 e UC-04 (D-17).
+| `ListarSegmentosUseCase`, `ListarCatalogoUseCase` | Não: configuração, sem dado pessoal | Painel |
+| `ImportarEventosUseCase` (v1.8, RN-16) | Sim, em cada linha: as regras de UC-01 `Registrar` (RN-01 e RN-04) | Painel (tela Importar eventos) e API (`POST /v1/eventos/lote`) |
+
+Agente Inteligente: ator de automação [ADIÇÃO] que dispara UC-03 e UC-04 (D-17).
 
 ### 3.2 Modelo de domínio
 
@@ -204,6 +207,16 @@ Desvios idiomáticos em relação aos diagramas (não são lacunas): `context.Co
 - **RN-09 Processamento.** `ProcessarClienteUseCase` orquestra, nesta ordem, UC-01 (Executar), UC-02, UC-03 e UC-04 (v1.3, Q-26; antes ficava no handler da API) e devolve o resultado consolidado (sequência, passo 23) com o estado de cada etapa: concluída, atenção, falhou ou pendente. Erro em qualquer etapa interrompe o fluxo: a etapa fica como falhou, as seguintes como pendentes, e o que já foi persistido permanece. `ErrSemProdutoElegivel` não interrompe: a etapa 4 fica em atenção, sem recomendação. A API e o painel usam o mesmo caso de uso.
 - **RN-10 Histórico do consentimento (v1.4, Q-34).** Toda transição de 3.4.1 aplicada por UC-08 gera um `MovimentoConsentimento`, gravado junto com o registro do consentimento numa única operação atômica (`ConsentimentoRepository.Registrar`): ou os dois ficam gravados, ou nenhum. Movimentos são só de inclusão: nunca alterados nem apagados. O histórico é a lista dos movimentos do cliente em ordem cronológica (desempate pela ordem de gravação). O registro de `consentimentos_lgpd` continua sendo a fonte do estado (RN-02); o histórico é prova e não decide a validade. Transição inválida ou guarda violada não gera movimento. A origem vem do adaptador que chamou o caso de uso (API: `api`; painel: `painel` com o login do operador; portal do titular, fase 2: `portal`); sem origem informada (subcomandos, exemplos, testes): `sistema`. Movimentos criados pela migração 006 a partir das datas existentes têm origem `migracao`.
 
+- **RN-16 Importação de eventos em lote (v1.8, Q-47).** Um lote é uma lista de linhas de evento (CSV pelo painel, JSON pela API) tratada **linha a linha**: as linhas aceitas são gravadas e as outras ficam no relatório, sem interromper o lote.
+    - **Arquivo CSV.** UTF-8 (BOM inicial aceito e ignorado), vírgula como separador, aspas duplas do RFC 4180. A primeira linha é o cabeçalho, com as colunas por nome, em qualquer ordem: `cliente_id`, `tipo`, `origem`, `timestamp` e `valor` obrigatórias, `categoria` opcional; coluna repetida, desconhecida ou faltando torna o arquivo inválido. Linhas em branco são ignoradas. Cada linha é identificada pelo número da linha no arquivo (o cabeçalho é a linha 1).
+    - **Limites.** Até 256 KiB por arquivo e até 1.000 linhas de evento por lote (CSV ou JSON). Arquivo vazio ou só com o cabeçalho, maior que o limite, com mais linhas, fora de UTF-8, com cabeçalho inválido ou com aspas mal formadas é recusado inteiro, sem gravar nada (`ErrDadosInvalidos`, com o motivo do arquivo).
+    - **Formato de cada linha.** `cliente_id` é um UUID; `timestamp` segue o ISO 8601 com data, hora e fuso (RFC 3339, por exemplo `2026-11-10T14:30:00-03:00`), guardado em UTC; `valor` é decimal com ponto (vazio vale 0); `tipo` é `compra`, `navegacao` ou `interacao`. Linha com número de colunas diferente do cabeçalho, ou com campo fora do formato, é recusada com `dados_invalidos` e o motivo.
+    - **Regras de cada linha, na ordem de UC-01 `Registrar`:** formato; RN-01 (cliente existe, está ativo e tem consentimento válido: `cliente_nao_encontrado`, `cliente_inativo`, `consentimento_invalido`); RN-04 (`dados_invalidos`, com o motivo do campo); duplicado.
+    - **Duplicado.** Mesmo cliente, tipo, instante (UTC, em microssegundos) e valor de um evento já gravado ou de uma linha anterior aceita no mesmo lote. É ignorado, sem erro, e contado à parte; categoria e origem não entram na comparação. Assim, reenviar o mesmo lote não grava nada de novo.
+    - **Prévia e confirmação.** A prévia aplica todas as regras e não grava nada. A confirmação aplica tudo de novo (o consentimento ou os eventos podem ter mudado depois da prévia) e grava cada linha aceita por UC-01 `Registrar`. O relatório traz, para cada linha não aceita, o número, a situação (duplicada ou rejeitada), o ID do cliente quando legível, o código do erro e o motivo; e os totais de aceitas, duplicadas e rejeitadas.
+    - **Falha de infraestrutura** ao gravar interrompe o lote com o erro (500): as linhas já gravadas permanecem, e o reenvio as reconhece como duplicadas.
+    - **Sem guardar o arquivo.** Nem o arquivo nem o lote ficam guardados no servidor; só os eventos aceitos. O registro do lote é a auditoria: operador, quantidades aceitas, duplicadas e rejeitadas, sem ID de cliente nem dado pessoal (C-09).
+
 ### 3.4 Máquinas de estado
 
 #### 3.4.1 ConsentimentoLGPD
@@ -289,6 +302,13 @@ Qualquer outra combinação: `ErrTransicaoInvalida`. O comando `expirar-recomend
 - `ListarSegmentosUseCase.Executar(ctx) ([]Segmento, error)`: segmentos ativos em ordem de Prioridade.
 - `ListarCatalogoUseCase.Executar(ctx) ([]Produto, error)`: todos os produtos, por Categoria e depois por Nome.
 
+**`ImportarEventosUseCase`** [ADIÇÃO, v1.8, Q-47]
+
+- `LerCSVEventos(conteudo []byte) ([]EntradaEvento, error)` (função do pacote `usecase`): lê o arquivo de RN-16 e devolve uma `EntradaEvento` por linha de dados, com `Numero` (linha no arquivo) e os campos em texto (`ClienteID`, `Tipo`, `Origem`, `Timestamp`, `Valor`, `Categoria`); a linha com número de colunas errado vem com `ColunasErradas`. Arquivo recusado: `*ErroArquivo` com `Motivo` (`MotivoArquivo`: `arquivo_vazio`, `arquivo_grande`, `linhas_demais`, `codificacao_invalida`, `cabecalho_invalido`, `formato_invalido`), que embrulha `ErrDadosInvalidos`.
+- `Previa(ctx, entradas []EntradaEvento) (ResultadoImportacao, error)`: RN-16 sem gravar. `Importar(ctx, entradas []EntradaEvento) (ResultadoImportacao, error)`: RN-16, gravando cada linha aceita com UC-01 `Registrar`. Lote vazio ou com mais de 1.000 entradas: `*ErroArquivo` (`arquivo_vazio` ou `linhas_demais`).
+- `ResultadoImportacao` traz `Linhas` (só as não aceitas, na ordem do lote: `LinhaImportacao` com `Numero`, `ClienteID` (nulo se ilegível), `Situacao` (`SituacaoLinha`: `duplicada` ou `rejeitada`), `Erro` (a sentinela, para `errs.Codigo`) e `Motivo` (`cliente_id`, `tipo`, `origem`, `timestamp`, `timestamp_futuro`, `valor`, `valor_compra`, `colunas`; vazio fora de `dados_invalidos`)), `Aceitas`, `Duplicadas`, `Rejeitadas` e `Gravado` (verdadeiro em `Importar`).
+- O motivo de `dados_invalidos` em RN-04 só detalha a mensagem: quem decide é `Validar`.
+
 Serviços de domínio calculam e só leem ports quando precisam (segmentos e produtos). Quem persiste resultados são os casos de uso (D-09).
 
 ### 3.6 Ports e serviços (assinaturas)
@@ -362,11 +382,13 @@ Proposta da equipe: os diagramas citam handlers, rotas e DTOs, mas não as defin
 | `PUT /v1/clientes/{clienteID}/consentimento` | UC-08 Conceder | finalidade e versaoTermo | 200 | Autenticação |
 | `POST /v1/clientes/{clienteID}/consentimento/revogacao` | UC-08 Revogar | — | 200 | Autenticação |
 | `GET /v1/clientes/{clienteID}/consentimento` | UC-08 Consultar | — | 200 com status e valido | Autenticação |
+| `POST /v1/eventos/lote` [v1.8, Q-47] | `ImportarEventos` (RN-16) | `{"eventos": [{clienteId, tipo, origem, timestamp, valor, categoria}]}`, até 1.000; `?previa=true` só confere | 200 com `gravado`, `aceitas`, `duplicadas`, `rejeitadas` e `linhas` (`numero` a partir de 1, `clienteId`, `situacao`, `codigo`, `motivo`) | Autenticação (o caso de uso aplica RN-01 em cada linha) |
 | `GET /saude` | — | — | 200 com `status: ok`; 503 com `status: indisponivel` se o banco não responder (Q-19) | Nenhum (usado pelo balanceador) |
 
 - Autenticação por cabeçalho `Authorization: Bearer` com o valor de `AUTH_TOKEN` (D-16); ausente ou inválido responde 401.
 - Middleware LGPD: extrai o clienteID da rota e consulta `ValidadorLGPD`; sem consentimento válido responde 403 antes do handler. Os casos de uso repetem a checagem (C-03).
 - Conceder e revogar pela API gravam o movimento com origem `api` (RN-10); as respostas não mudam.
+- Lote de eventos (v1.8, RN-16): no JSON, `timestamp` é texto RFC 3339 e `valor` é número; lote vazio ou com mais de 1.000 eventos responde 422 `dados_invalidos`. A resposta é 200 mesmo com linhas rejeitadas: o resultado de cada linha está no corpo. O log `importacao_eventos` registra só as quantidades.
 - Erros: corpo JSON com as chaves `codigo` e `mensagem`, conforme a tabela da seção 3.5. Erros inesperados viram 500 sem detalhes internos.
 - Corpo de requisição: um único objeto JSON, sem campos desconhecidos e sem conteúdo depois dele; caso contrário, `dados_invalidos` (Q-19). Uma resposta que não puder ser serializada vira 500, nunca 200 com corpo vazio (Q-15).
 - Campos JSON em camelCase, com os mesmos nomes dos campos Go.
@@ -389,6 +411,10 @@ Adaptador de apresentação HTML em `internal/web` (irmão de `internal/api`, Q-
 | `GET` e `POST /painel/clientes/{id}/consentimento/revogar` | Confirmar e revogar | UC-08 Revogar |
 | `GET /painel/segmentos`, `GET /painel/catalogo` | Configuração (somente leitura) | `ListarSegmentos`, `ListarCatalogo` |
 | `GET /painel/operacao`, `GET` e `POST /painel/operacao/expirar` | Saúde e expiração | `ExpirarRecomendacoes` |
+| `GET /painel/eventos/importar` | Importar eventos: enviar o arquivo (v1.8) | — |
+| `POST /painel/eventos/importar` | Prévia: totais e linhas não aceitas, sem gravar (campo `arquivo`, `multipart/form-data`) | `ImportarEventos` `Previa` |
+| `POST /painel/eventos/importar/confirmar` | Grava e mostra o relatório (campo oculto `conteudo`) | `ImportarEventos` `Importar` |
+| `GET /painel/eventos/modelo.csv` | Modelo do arquivo para baixar | — |
 | `GET /painel/static/{arquivo}` | CSS, JS, fontes | — |
 
 - **Sessão (Q-22):** cookie `perfila_sessao` com `operador|expiraEm|csrf` assinado por HMAC-SHA256 (`PAINEL_CHAVE_SESSAO`), `HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/painel`, 8 h renovadas a cada uso; sem estado no servidor. Sem sessão válida, toda rota (menos Entrar e estáticos) leva a Entrar com o destino guardado; sessão vencida mostra "Sua sessão expirou." Em requisição htmx, a resposta é `HX-Redirect`.
@@ -398,6 +424,7 @@ Adaptador de apresentação HTML em `internal/web` (irmão de `internal/api`, Q-
 - **Consentimento (C-03, Q-21):** sem consentimento válido, a ficha mostra só cadastro e consentimento, com o aviso de bloqueio; nenhum caso de uso de comportamento é chamado para montar a tela.
 - **Histórico do consentimento (v1.4, Q-34):** conceder e revogar pelo painel gravam o movimento com origem `painel` e o login da sessão. A linha do tempo da aba Consentimento mostra o cadastro e cada movimento, do mais recente para o mais antigo, com finalidade, versão do termo e origem ("pela API", "pelo painel, por {operador}", "pelo portal do titular", "pelo sistema", "reconstruído das datas"). Cliente sem nenhum movimento continua com a linha montada pelas datas do registro, com o aviso de que ela não é o histórico completo.
 - **Sem JavaScript:** formulários comuns com redirecionamento 303 no sucesso (PRG) e confirmação em página própria. Com JavaScript, o htmx (`hx-boost`) faz as mesmas requisições e troca só a área do painel (`#app`), sem recarregar a página; os diálogos usam `<dialog>` nativo. Respostas de erro (4xx e 5xx) também são exibidas.
+- **Importar eventos (v1.8, RN-16, Q-47):** item "Importar eventos" no grupo Clientes da navegação. O operador envia o CSV; a prévia mostra os totais (aceitas, duplicadas, rejeitadas) e a tabela das linhas não aceitas (linha, ID do cliente truncado, situação e a mensagem de `03-textos.md` pelo código e motivo), sem gravar; "Importar {n} eventos" confirma, com o conteúdo do arquivo num campo oculto (a página é `no-store` e o arquivo não fica no servidor). A confirmação mostra o relatório direto (sem PRG: reenviar só gera duplicados). Sem nenhuma linha aceita, não há botão de confirmar. Pedido acima de 512 KiB é recusado antes de ler o corpo, com redirecionamento para a tela com o aviso de arquivo grande. O log `painel_acao` com a ação `importar_eventos` leva operador e quantidades, nunca IDs de cliente nem conteúdo do arquivo. Funciona sem JavaScript; com htmx, o envio do arquivo usa o mesmo formulário.
 - **Erros:** o código estável (`errs.Codigo`) escolhe a mensagem de `docs/design/03-textos.md`; o texto técnico nunca aparece. Falha inesperada mostra o código da requisição (`X-Request-ID` do Nginx).
 - **Logs (C-09, Q-24):** método, caminho (só UUIDs) e status; nas ações, operador, ação e `clienteId`. Nunca nome, e-mail, senha nem o termo de busca.
 
@@ -448,7 +475,7 @@ Persistência e implantação:
 
 - PostgreSQL via `database/sql` com o driver `pgx/v5/stdlib` (Q-10); migrações em SQL versionado, embutidas no binário e aplicadas pelo `omega-server` ao subir, sob `pg_advisory_lock` e registradas em `schema_migracoes` (Q-09); uma tabela por entidade (clientes, eventos_comportamentais, perfis_cliente, segmentos, recomendacoes_produto, consentimentos_lgpd, produtos e, desde a v1.4, movimentos_consentimento), em snake_case.
 - Chaves UUID; timestamps em `timestamptz` (UTC); `UNIQUE(cliente_id)` em perfis_cliente e consentimentos_lgpd; `CHECK` nos enums de status; chaves estrangeiras para clientes. Reforços de integridade que só repetem regras já existentes: chaves estrangeiras `perfis_cliente.segmento_id → segmentos` (D-06) e `recomendacoes_produto.produto_id → produtos` (D-05); `CHECK` de valor ≥ 0 nos eventos (RN-04), score entre 0 e 1 (RN-05) e preço ≥ 0 (`Produto.AtualizarPreco`).
-- Clientes de exemplo (Q-30, Q-32): catorze clientes sintéticos com história (datas de cadastro, consentimento, revogação, eventos e recomendações ao longo de meses), criados pelos casos de uso com um relógio de carga; no modo memória ao subir, no PostgreSQL por `carregar-exemplos`, e só com o banco sem clientes.
+- Clientes de exemplo (Q-30, Q-32): catorze clientes sintéticos com história; desde a v1.8 (Q-47), cada um com ID fixo derivado do e-mail sintético (UUID v5 de `perfila:exemplo:<e-mail>`), usado pelo arquivo de exemplo `docs/exemplos/eventos-lote.csv`; (datas de cadastro, consentimento, revogação, eventos e recomendações ao longo de meses), criados pelos casos de uso com um relógio de carga; no modo memória ao subir, no PostgreSQL por `carregar-exemplos`, e só com o banco sem clientes.
 - A migração 006 (v1.4, Q-34) cria `movimentos_consentimento` (chave UUID, coluna de ordem de gravação, `CHECK` em tipo e origem, operador obrigatório com origem painel, chave estrangeira para clientes) com um gatilho que recusa `UPDATE` e `DELETE` (só inclusão, RN-10), e reconstrói os movimentos dos clientes antigos a partir das datas que o registro prova: a última concessão (com finalidade e termo) e a última revogação (com finalidade e termo só se o estado ainda for REVOGADO; senão, em branco), com origem `migracao`.
 - A migração 005 (Q-32) amplia a demonstração: segmentos vip, fiel, ocasional e explorador e catálogo de 7 categorias, iguais aos do modo memória.
 - A migração 004 (v1.3) cria os índices da listagem de clientes: `data_cadastro DESC` e o nome normalizado (minúsculas e sem acentos), Q-23.
@@ -492,6 +519,7 @@ Prioridade Alta: impede gerar código correto. Média: gera comportamento ambíg
 | Versão | Data | Mudanças |
 |---|---|---|
 | v0 | 27/10/2026 | Documento único (PDF) e depois dividido em três `.md` |
+| v1.8 | 13/11/2026 | Importação de eventos em lote (Q-47): RN-16 (CSV com cabeçalho, até 1.000 linhas e 256 KiB, linha a linha com RN-01 e RN-04, duplicados ignorados, prévia sem gravar); `ImportarEventosUseCase` e `LerCSVEventos` (3.1, 3.5); rota `POST /v1/eventos/lote` (3.7); tela Importar eventos e modelo CSV (3.7.1); IDs fixos nos clientes de exemplo (3.8). Numeração a partir de Q-47, T-65 e RN-16 para não colidir com as branches abertas (v1.5 a v1.7) |
 | v1.4 | 12/11/2026 | Histórico completo do consentimento (Q-34): entidade `MovimentoConsentimento` (3.2), RN-10, UC-08 `Historico` e origem pelo contexto (3.5), `FichaCliente.Historico`, `ConsentimentoRepository.Registrar` e `ListarMovimentos` (3.6), origem nas rotas da API e do painel e linha do tempo pelo histórico (3.7, 3.7.1), migração 006 (3.8) |
 | v1.3 | 12/11/2026 | Painel web do operador (Q-20 a Q-29): seção 3.7.1, casos de uso de aplicação do painel (3.1 e 3.5), `ProcessarClienteUseCase` com o estado por etapa (RN-09, Q-26), `ClienteRepository.Listar`, `RecomendacaoRepository.ListarPorCliente` e `ProdutoRepository.ListarTodos` (3.6), configuração `PAINEL_*` (3.8), migração 004, subcomando `hash-senha` (Q-28); camada BDD `@web` |
 | v1.2 | 11/11/2026 | Fase Generic (T-19): `DATABASE_URL` vazia mantém o modo memória fora da implantação (Q-07); dados de demonstração por migração (Q-08); migrações aplicadas pelo servidor com trava (Q-09); driver pgx (Q-10); suíte de contrato dos repositórios; reforços de integridade no esquema (FKs para segmentos e produtos, CHECKs de faixa); erro de `SegmentoRepository.BuscarPorID` explicitado. T-24: implantação com Nginx, duas réplicas e banco isolado (Q-11 a Q-14). Correções do mapeamento de bugs (Q-15 a Q-19): limite de Valor, tolerância de relógio, falhas de configuração como 500, uma recomendação ATIVA por cliente, `/saude` com o banco e corpo JSON único |

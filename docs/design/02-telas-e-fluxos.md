@@ -12,6 +12,8 @@ Clientes
   /painel/clientes/{id}                Ficha: visão geral
   /painel/clientes/{id}/eventos        Ficha: eventos (UC-01)
   /painel/clientes/{id}/consentimento  Ficha: consentimento (UC-08)
+  /painel/eventos/importar             Importar eventos em lote (UC-01, RN-16, v1.8)
+  /painel/eventos/modelo.csv           Modelo do arquivo
 Configuração (somente leitura no MVP)
   /painel/segmentos                    Segmentos e critérios (RN-06)
   /painel/catalogo                     Produtos por categoria (RN-07)
@@ -60,6 +62,16 @@ O centro do produto.
 - **Visão geral, sem consentimento:** os quatro painéis são trocados por um único `Alert` crítico: "Sem consentimento válido. Os dados de comportamento deste cliente não podem ser usados. [Conceder consentimento]". Nenhum dado de comportamento é buscado no servidor (C-03).
 - **Eventos:** formulário em linha para registrar (Tipo, Valor em R$, Categoria, Origem, Data e hora, que vem preenchida com agora) + `EventTimeline` do mais recente para o mais antigo. Sem consentimento: o formulário fica desabilitado, com o motivo escrito ao lado.
 - **Consentimento:** o `ConsentRecord` completo (estado, finalidade, versão do termo, datas de consentimento, de revogação e de atualização) com as ações. Fica disponível sempre, inclusive sem consentimento: é o UC-08.
+
+### Importar eventos (v1.8, Q-47)
+
+Três passos na mesma tela, sem guardar o arquivo no servidor:
+
+1. **Enviar:** painel "Arquivo de eventos" com o campo de arquivo (`.csv`), a explicação curta do formato (colunas, data com fuso, valor com ponto, até 1.000 linhas e 256 KiB), o link "Baixar modelo" e o botão **Conferir arquivo** (primário). Nada é gravado neste passo.
+2. **Prévia:** três números no topo (**Prontas para importar**, **Duplicadas**, **Com erro**) e a tabela das linhas não aceitas: **Linha**, **Cliente** (`UuidTag`, ou "—" se o ID não é legível), **Situação** (`StatusTag`: Duplicada em neutral, Com erro em critical) e **Motivo** (a mensagem de `03-textos.md`). Ação primária: **Importar {n} eventos**; ao lado, "Enviar outro arquivo". Sem nenhuma linha pronta, o botão não aparece e um `Alert` explica.
+3. **Relatório:** os mesmos números, agora como **Importados**, **Duplicados ignorados** e **Com erro**, e a mesma tabela; `Alert` ok "Importação concluída". Reenviar o mesmo arquivo é seguro: o que já entrou aparece como duplicado.
+
+Arquivo recusado inteiro (vazio, grande, cabeçalho errado, codificação) volta ao passo 1 com um `Alert` crítico que diz o motivo e como corrigir.
 
 ### Segmentos
 

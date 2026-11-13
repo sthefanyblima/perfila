@@ -47,12 +47,43 @@ O código estável (`errs.Codigo`) define a mensagem; o texto técnico do servid
 
 Valide no navegador (atributos HTML: `required`, `min`, `max`, `step`) para dar retorno imediato, e sempre de novo no servidor, que é quem decide.
 
+## Importação de eventos (v1.8, RN-16)
+
+Cada linha não aceita mostra a mensagem pelo código do erro; em `dados_invalidos`, pelo motivo.
+
+| Código / motivo | Mensagem |
+| --- | --- |
+| `cliente_nao_encontrado` | Cliente não encontrado. Confira o ID. |
+| `cliente_inativo` | Cadastro inativo. Eventos ficam bloqueados. |
+| `consentimento_invalido` | Sem consentimento válido. O evento não pode ser usado. |
+| `dados_invalidos` / `cliente_id` | Informe o ID do cliente no formato UUID. |
+| `dados_invalidos` / `tipo` | Use compra, navegacao ou interacao. |
+| `dados_invalidos` / `origem` | Informe de onde veio o evento. |
+| `dados_invalidos` / `timestamp` | Informe data, hora e fuso, por exemplo 2026-11-10T14:30:00-03:00. |
+| `dados_invalidos` / `timestamp_futuro` | A data não pode estar no futuro. |
+| `dados_invalidos` / `valor` | O valor deve estar entre 0 e 1000000, com ponto decimal. |
+| `dados_invalidos` / `valor_compra` | Uma compra precisa ter valor maior que zero. |
+| `dados_invalidos` / `colunas` | A linha não tem as mesmas colunas do cabeçalho. |
+| duplicada | Já registrado: mesmo cliente, tipo, data e valor. |
+
+Arquivo recusado inteiro:
+
+| Motivo | Mensagem |
+| --- | --- |
+| `arquivo_vazio` | O arquivo não tem nenhuma linha de evento. Confira se ele tem o cabeçalho e pelo menos uma linha. |
+| `arquivo_grande` | O arquivo passa de 256 KiB. Divida em arquivos menores. |
+| `linhas_demais` | O arquivo passa de 1.000 linhas. Divida em arquivos menores. |
+| `codificacao_invalida` | O arquivo não está em UTF-8. Salve de novo como "CSV UTF-8". |
+| `cabecalho_invalido` | O cabeçalho deve ter as colunas cliente_id, tipo, origem, timestamp e valor (categoria é opcional), separadas por vírgula. |
+| `formato_invalido` | O arquivo tem aspas mal fechadas. Confira o arquivo e envie de novo. |
+
 ## Confirmações
 
 | Ação | Título do diálogo | Corpo | Botões |
 | --- | --- | --- | --- |
 | Conceder | Conceder consentimento | A partir de agora, os eventos deste cliente podem ser usados para perfil, segmento e recomendação, com a finalidade "{finalidade}" e o termo {versão}. | Conceder (primário) · Cancelar |
 | Revogar | Revogar consentimento | O processamento dos dados deste cliente para imediatamente. Os dados já registrados continuam guardados. Você pode conceder de novo depois. | Revogar consentimento (danger) · Cancelar (foco inicial) |
+| Importar eventos | (sem diálogo: a prévia já é a confirmação) | {n} eventos prontos para importar. Linhas duplicadas e com erro ficam de fora. | Importar {n} eventos (primário) · Enviar outro arquivo |
 | Expirar | Expirar recomendações vencidas | Recomendações ativas com validade até agora passam a Expirada e deixam de ser exibidas. | Expirar agora (primário) · Cancelar |
 
 ## Toasts
