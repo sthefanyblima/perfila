@@ -33,7 +33,7 @@ var regras = []regra{
 		[]string{"github.com/google/uuid", "golang.org/x/crypto/bcrypt"}},
 	// infra → domain (C-01, C-02); o driver PostgreSQL só entra aqui (Q-10).
 	{"infra", []string{modulo + "api", modulo + "web", modulo + "application"},
-		[]string{"github.com/google/uuid", "github.com/jackc/pgx/v5/stdlib"}},
+		[]string{"github.com/google/uuid", "github.com/jackc/pgx/v5/stdlib", "golang.org/x/crypto/bcrypt"}}, // bcrypt só em infra/senha (Q-36)
 }
 
 func arquivosGo(t *testing.T, dir string, incluirTestes bool) []string {

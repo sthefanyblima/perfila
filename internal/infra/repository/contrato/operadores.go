@@ -24,7 +24,7 @@ func operador(t *testing.T, login string, papel entity.PapelOperador) entity.Ope
 func testarOperador(t *testing.T, r Repositorios) {
 	ctx := context.Background()
 	if r.Operadores == nil {
-		t.Skip("backend sem OperadorRepository")
+		t.Fatal("backend sem OperadorRepository (v1.5)")
 	}
 	_, err := r.Operadores.BuscarPorID(ctx, uuid.New())
 	erroEsperado(t, err, errs.ErrOperadorNaoEncontrado)
@@ -79,7 +79,7 @@ func ids(rs []entity.RegistroAuditoria) []uuid.UUID {
 func testarAuditoria(t *testing.T, r Repositorios) {
 	ctx := context.Background()
 	if r.Auditoria == nil {
-		t.Skip("backend sem AuditoriaRepository")
+		t.Fatal("backend sem AuditoriaRepository (v1.5)")
 	}
 	a := registro(t, agora.Add(-2*time.Hour), "admin", entity.AcaoEntrar)
 	b := registro(t, agora.Add(-time.Hour), "rita", entity.AcaoLerFicha)
