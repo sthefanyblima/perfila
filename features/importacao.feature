@@ -216,7 +216,7 @@ Funcionalidade: Importação de eventos em lote
 
   # ---- API (JSON) ----
 
-  @api @wip
+  @api
   Cenário: Lote em JSON pela API usa as mesmas regras
     Dado que a API está no ar e exige o token "t-123"
     E que existe o cliente "c-002" ativo
@@ -232,7 +232,7 @@ Funcionalidade: Importação de eventos em lote
     E o corpo informa a linha 2 com o código "consentimento_invalido"
     E a coleta do cliente "c-001" retorna 1 evento
 
-  @api @wip
+  @api
   Cenário: A prévia pela API não grava nada
     Dado que a API está no ar e exige o token "t-123"
     Quando o lote de eventos é enviado à API com o token "t-123" só para conferir:
@@ -243,7 +243,7 @@ Funcionalidade: Importação de eventos em lote
     E o corpo informa 1 aceita, 0 duplicadas e 0 rejeitadas
     E nenhum evento é gravado
 
-  @api @wip
+  @api
   Esquema do Cenário: Lote vazio ou sem token é recusado
     Dado que a API está no ar e exige o token "t-123"
     Quando o lote de eventos é enviado à API com o token "<token>":
