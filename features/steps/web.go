@@ -91,7 +91,9 @@ func registrarPassosWeb(sc *godog.ScenarioContext, m *Mundo) {
 		if err != nil || len(cliente) == 0 {
 			return fmt.Errorf("nenhum cliente cadastrado: %v", err)
 		}
-		return m.webGET("/painel/clientes/"+cliente[0].ID.String(), true)
+		// Sem caminhoSintetico: o UUID aleatório pode conter "c-NNN".
+		m.requisitar(httptest.NewRequest(http.MethodGet, "/painel/clientes/"+cliente[0].ID.String(), nil), true)
+		return nil
 	})
 	sc.Step(`^que a página "([^"]*)" foi aberta$`, func(c string) error { return m.webGET(c, true) })
 	sc.Step(`^o operador cria pelo painel o operador "([^"]*)" com o papel "([^"]*)" e a senha "([^"]*)"$`,
@@ -107,7 +109,12 @@ func registrarPassosWeb(sc *godog.ScenarioContext, m *Mundo) {
 		if err != nil {
 			return err
 		}
-		return m.levaA("/painel/usuarios/" + o.ID.String())
+		// Sem caminhoSintetico: um UUID aleatório pode conter "c-NNN" e seria trocado.
+		u, err := url.Parse(m.api.resposta.Header().Get("Location"))
+		if m.api.resposta.Code != http.StatusSeeOther || err != nil || u.Path != "/painel/usuarios/"+o.ID.String() {
+			return fmt.Errorf("esperava a página do operador %s, obtido %d %v", login, m.api.resposta.Code, u)
+		}
+		return nil
 	})
 	sc.Step(`^o operador "([^"]*)" entra com a senha "([^"]*)"$`, func(login, senha string) error {
 		m.web.usuario = login
