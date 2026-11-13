@@ -1,6 +1,6 @@
 # Checklist LGPD e auditoria de logs (T-25)
 
-Perfila · Equipe Omega · 12/11/2026 · Spec v1.4 (com o painel web, seção 4b, e o histórico do consentimento, Q-34)
+Perfila · Equipe Omega · 13/11/2026 · Spec v1.8 (com o painel web, seção 4b, o histórico do consentimento, Q-34, e a importação de eventos, seção 4c)
 
 Interpretação técnica da equipe sobre a Lei 13.709/2018, **não é parecer jurídico** (CLAUDE.md, seção 4). Cada item aponta a evidência que o prova: um cenário BDD, um teste automático ou um arquivo de configuração. ✅ atendido no MVP · ⚠️ atendido com limitação · ⬜ fora do MVP (requisito futuro).
 
@@ -56,6 +56,15 @@ Interpretação técnica da equipe sobre a Lei 13.709/2018, **não é parecer ju
 | L-26 | Proteção contra envio forjado e enquadramento | CSRF em todo POST, cookies `HttpOnly`, `Secure`, `SameSite=Strict`; `frame-ancestors 'none'` e `X-Frame-Options: DENY` | cenário "Envio sem o token CSRF é recusado" | ✅ |
 | L-27 | Atos com efeito jurídico deliberados | Conceder e revogar passam por confirmação que diz o efeito (diálogo ou página própria); em revogar, o foco inicial fica em Cancelar | cenário "Revogar exige confirmação" | ✅ |
 
+## 4c. Importação de eventos em lote (Spec v1.8, RN-16, Q-47)
+
+| # | Requisito | Como o Perfila atende | Evidência | |
+|---|---|---|---|---|
+| L-33 | Lote não contorna o consentimento | Cada linha passa por RN-01 (cliente existe, ativo, consentimento válido) antes de gravar; a recusa é só daquela linha. Na API, sem cliente na rota, o caso de uso confere cada linha (C-03) | `importacao.feature` (`@lgpd`: não concedido, revogado e revogado entre a prévia e a confirmação); `TestArquivoDeExemploImporta` | ✅ |
+| L-34 | O arquivo enviado não fica guardado | A prévia não grava nada; o conteúdo volta ao navegador num campo oculto de página `no-store` e só os eventos aceitos são gravados | cenário "Enviar o arquivo pelo painel mostra a prévia sem gravar"; Spec RN-16 | ✅ |
+| L-35 | Auditoria do lote sem dado pessoal | Log `painel_acao` com operador, `importar_eventos` e as quantidades; na API, `importacao_eventos` só com as quantidades. Nenhum ID de cliente nem conteúdo do arquivo | cenário "A auditoria do lote registra o operador e as quantidades, sem dado pessoal" | ✅ (tabela de auditoria quando o PR de usuários entrar) |
+| L-36 | Reenvio não duplica dados | Duplicado (cliente, tipo, instante e valor) é ignorado e contado à parte | cenários "Reenviar o mesmo arquivo não grava nada de novo" e de duplicados | ✅ |
+
 ## 5. Auditoria de logs (C-09)
 
 Todos os eventos de log do sistema, conferidos no código em 11/11/2026 (`grep` por chamadas de `slog` em `cmd/` e `internal/`):
@@ -69,7 +78,8 @@ Todos os eventos de log do sistema, conferidos no código em 11/11/2026 (`grep` 
 | `postgres_conectado` | `cmd/omega-server` | versões de migração aplicadas | Não. A URL do banco não é registrada |
 | `recomendacoes_expiradas` | subcomando `expirar-recomendacoes` | quantidade | Não |
 | `painel_http` | `web.registro` | método, caminho (só UUIDs), status | Não. Sem query string (termo de busca) |
-| `painel_acao` | handlers do painel | operador, ação, `clienteId` | Não. O operador é o login da equipe, não o titular |
+| `painel_acao` | handlers do painel | operador, ação, `clienteId`; em `importar_eventos`, só as quantidades (sem `clienteId`) | Não. O operador é o login da equipe, não o titular |
+| `importacao_eventos` | `api.importarLote` | gravado, aceitas, duplicadas, rejeitadas | Não |
 | `painel_erro_interno`, `painel_template` | painel (só falhas 500) | caminho, mensagem do erro | Não |
 | `painel_desligado` | `cmd/omega-server` | aviso fixo | Não |
 | acesso do Nginx | `deploy/nginx/nginx.conf` (`log_format omega`) | horário, método, caminho sem query string, status, tempo, réplica, id da requisição | Não. **Sem IP do cliente** (IP é dado pessoal, Q-14) |

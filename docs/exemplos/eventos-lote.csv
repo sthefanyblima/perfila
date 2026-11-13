@@ -1,0 +1,11 @@
+cliente_id,tipo,origem,timestamp,valor,categoria
+b98c77bb-65e2-540e-b118-75677b0e59f6,compra,loja on-line,2026-11-10T14:30:00-03:00,89.90,livros
+b98c77bb-65e2-540e-b118-75677b0e59f6,navegacao,aplicativo,2026-11-10T14:35:00-03:00,0,
+b98c77bb-65e2-540e-b118-75677b0e59f6,compra,loja on-line,2026-11-11T09:10:00-03:00,124.50,livros
+7de0e4a9-f004-55fe-be26-f8f8c8f9340e,compra,loja física,2026-11-11T18:00:00-03:00,199.00,games
+7de0e4a9-f004-55fe-be26-f8f8c8f9340e,compra,loja física,2026-11-11T18:00:00-03:00,199.00,games
+e676aef1-0f49-5408-9ae0-910b858654d6,compra,loja on-line,2026-11-11T10:00:00-03:00,59.90,moda
+bda25eea-0fbf-508b-a7bf-ecfeff6de987,navegacao,aplicativo,2026-11-11T11:00:00-03:00,0,
+d3994317-fc28-5022-b47c-7bf2073ab7c6,compra,loja on-line,2026-11-11T12:00:00-03:00,150.00,games
+9ca5904d-c8ea-5946-8d16-99ac6d228689,compra,loja on-line,2026-11-11T13:00:00-03:00,0,esportes
+e2646bfd-2885-5bf5-b128-98c6ae1035ad,interacao,aplicativo,2026-11-11 14:00,0,

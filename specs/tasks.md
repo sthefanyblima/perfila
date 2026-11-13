@@ -97,7 +97,7 @@ Lotes de eventos por CSV no painel e JSON na API, linha a linha, com RN-01 e RN-
 | T-65 | Spec v1.8, Q-47, UML7 em texto, `03-textos.md` e `02-telas-e-fluxos.md`; `features/importacao.feature` (`@wip` até a tarefa que a implementa) | T-46 | Spec, UML e feature revisados | ✅ 45 cenários escritos (`@wip`) |
 | T-66 | `LerCSVEventos` e `ImportarEventosUseCase` (`Previa`, `Importar`); rota `POST /v1/eventos/lote` | T-65 | cenários `@aplicacao` e `@api` de `importacao.feature`; testes de tabela do CSV | ✅ 38 cenários (34 `@aplicacao`, 4 `@api`); `TestLerCSVEventos`, `TestLerCSVEventosRecusa`, `TestDecimalComPonto`; `@wip` só nos 7 `@web` |
 | T-67 | Painel: tela Importar eventos (enviar, prévia, confirmar, relatório) e modelo CSV | T-66 | cenários `@web` de `importacao.feature`; `@wip` retirado | ✅ 7 cenários `@web` (45 no total da feature); prévia, confirmação, arquivo recusado e celular conferidos no navegador |
-| T-68 | IDs fixos nos clientes de exemplo e `docs/exemplos/eventos-lote.csv`; README, roteiro e checklist LGPD; fluxo no navegador | T-67 | `TestCarregarExemplos`; arquivo de exemplo importado no painel | ⬜ |
+| T-68 | IDs fixos nos clientes de exemplo e `docs/exemplos/eventos-lote.csv`; README, roteiro e checklist LGPD; fluxo no navegador | T-67 | `TestCarregarExemplos`; arquivo de exemplo importado no painel | ✅ `TestArquivoDeExemploImporta` (4 aceitas, 1 duplicada, 5 rejeitadas); L-33 a L-36; arquivo de exemplo importado no navegador |
 
 ## Fechamento
 
