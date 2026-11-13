@@ -1,8 +1,8 @@
-// Package contrato define a suíte de contrato dos sete ports de repositório: o comportamento
+// Package contrato define a suíte de contrato dos nove ports de repositório: o comportamento
 // observável que toda implementação (fakes em memória e PostgreSQL) precisa ter para que os
 // casos de uso funcionem igual nos dois backends. Usado apenas por testes.
 //
-// Spec: T-19, 3.6, RN-05, RN-06, RN-08, D-02. Fonte: UML7 (ports).
+// Spec: T-19, 3.6, Q-35, Q-39, RN-05, RN-06, RN-08, D-02. Fonte: UML7 (ports).
 package contrato
 
 import (
@@ -20,8 +20,8 @@ import (
 	"perfila/internal/shared/errs"
 )
 
-// Repositorios é um backend completo e vazio. Segmentos e produtos não têm escrita no port
-// (entram por migração), então o backend informa como inseri-los para o teste.
+// Repositorios é um backend completo e vazio. AdicionarSegmento e AdicionarProduto inserem sem
+// as validações dos ports (carga de teste); desde a v1.6 os ports também gravam.
 type Repositorios struct {
 	Clientes       port.ClienteRepository
 	Eventos        port.EventoRepository
@@ -30,6 +30,8 @@ type Repositorios struct {
 	Recomendacoes  port.RecomendacaoRepository
 	Consentimentos port.ConsentimentoRepository
 	Produtos       port.ProdutoRepository
+	Operadores     port.OperadorRepository  // v1.5
+	Auditoria      port.AuditoriaRepository // v1.5
 
 	AdicionarSegmento func(t *testing.T, s entity.Segmento)
 	AdicionarProduto  func(t *testing.T, p entity.Produto)
@@ -55,6 +57,12 @@ func Executar(t *testing.T, nova Fabrica) {
 		{"Consentimento", testarConsentimento},
 		{"MovimentoConsentimento", testarMovimentos},
 		{"Produto", testarProduto},
+		{"Operador", testarOperador},
+		{"Auditoria", testarAuditoria},
+		{"SegmentoGravacao", testarSegmentoGravacao}, // v1.6
+		{"ProdutoGravacao", testarProdutoGravacao},   // v1.6
+		{"ConsentimentosConcedidos", testarConcedidos},
+		{"AuditoriaCampos", testarAuditoriaCampos}, // v1.6
 	}
 	for _, c := range casos {
 		t.Run(c.nome, func(t *testing.T) { c.fn(t, nova(t)) })

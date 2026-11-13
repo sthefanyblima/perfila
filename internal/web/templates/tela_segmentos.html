@@ -1,30 +1,59 @@
-{{define "conteudo"}}
+{{define "conteudo"}}{{$pode := $.Pode.editar_configuracao}}
 <header class="pf-header">
   <ol class="pf-crumbs"><li>Configuração</li><li aria-current="page">Segmentos</li></ol>
-  <div class="pf-header__row"><h1 class="pf-header__title">Segmentos</h1></div>
+  <div class="pf-header__row">
+    <h1 class="pf-header__title">Segmentos</h1>
+    {{if $pode}}<div class="pf-header__actions"><a class="pf-btn pf-btn--primary" href="/painel/segmentos/novo" data-teste="acao-novo-segmento">{{icone "mais"}} Novo segmento</a></div>{{end}}
+  </div>
 </header>
-{{template "alerta" (alertaInfo "Somente leitura" "Segmentos entram por migração; para alterar, fale com a equipe técnica. A segmentação avalia em ordem de prioridade e o primeiro critério que casa vence.")}}
-{{if .Dados}}
+{{with .Dados.Erro}}{{template "alerta" .}}{{end}}
+{{if $pode}}
+{{template "alerta" (alertaInfo "Como a segmentação usa esta lista" "Os segmentos ativos são avaliados em ordem de prioridade e o primeiro critério que casa vence. Uma mudança vale para cada cliente no próximo processamento dele; quem já foi segmentado fica como está até lá.")}}
+{{else}}
+{{template "alerta" (alertaInfo "Somente leitura" "A segmentação avalia em ordem de prioridade e o primeiro critério que casa vence. Seu perfil só consulta os segmentos.")}}
+{{end}}
+{{if .Dados.Ativos}}
 <div class="pf-tablewrap">
   <table class="pf-table" data-teste="lista-segmentos">
-    <thead><tr><th scope="col" class="pf-r">Prioridade</th><th scope="col">Nome</th><th scope="col">Descrição</th><th scope="col">Critério</th></tr></thead>
+    <caption class="pf-sr">Segmentos ativos, por prioridade</caption>
+    <thead><tr><th scope="col" class="pf-r">Prioridade</th><th scope="col">Nome</th><th scope="col">Descrição</th><th scope="col">Critério</th>{{if $pode}}<th scope="col"><span class="pf-sr">Ações</span></th>{{end}}</tr></thead>
     <tbody>
-    {{range .Dados}}{{$seg := .}}
-      <tr>
-        <td class="pf-r pf-num">{{.Prioridade}}</td>
-        <td><span class="pf-tag pf-tag--accent">{{.Nome}}</span></td>
-        <td>{{if .Descricao}}{{.Descricao}}{{else}}<span class="pf-muted">—</span>{{end}}</td>
-        <td>
-          {{with condicoes .Criterio nil}}
-          <div class="pf-crit" title="{{$seg.Criterio}}">{{range $i, $c := .}}{{if $i}}<span class="pf-crit__and">E</span>{{end}}<span class="pf-crit__cond" title="{{$c.Original}}">{{$c.Campo}} {{$c.Operador}} {{$c.Numero}}</span>{{end}}</div>
-          {{else}}<span class="pf-crit__always">Critério vazio: casa sempre</span>{{end}}
-        </td>
-      </tr>
-    {{end}}
+    {{range .Dados.Ativos}}{{template "linha-segmento" (linhaSegmento . $pode)}}{{end}}
     </tbody>
   </table>
 </div>
 {{else}}
 <div class="pf-panel"><div class="pf-empty"><h2 class="pf-empty__title">Nenhum segmento ativo</h2><p class="pf-empty__text">Sem o segmento padrão, a segmentação falha por configuração. Fale com a equipe técnica.</p></div></div>
 {{end}}
+{{if .Dados.Inativos}}
+<section class="pf-panel" aria-labelledby="titulo-inativos">
+  <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-inativos">Inativos</h2><span class="pf-muted pf-small">Fora da segmentação. Não são excluídos: clientes antigos podem apontar para eles.</span></div>
+  <div class="pf-tablewrap">
+    <table class="pf-table" data-teste="lista-segmentos-inativos">
+      <thead><tr><th scope="col" class="pf-r">Prioridade</th><th scope="col">Nome</th><th scope="col">Descrição</th><th scope="col">Critério</th>{{if $pode}}<th scope="col"><span class="pf-sr">Ações</span></th>{{end}}</tr></thead>
+      <tbody>
+      {{range .Dados.Inativos}}{{template "linha-segmento" (linhaSegmento . $pode)}}{{end}}
+      </tbody>
+    </table>
+  </div>
+</section>
+{{end}}
+{{end}}
+
+{{define "linha-segmento"}}{{$seg := .Seg}}
+<tr>
+  <td class="pf-r pf-num">{{$seg.Prioridade}}</td>
+  <td><span class="pf-tag pf-tag--accent">{{$seg.Nome}}</span></td>
+  <td>{{if $seg.Descricao}}{{$seg.Descricao}}{{else}}<span class="pf-muted">—</span>{{end}}</td>
+  <td>
+    {{with condicoes $seg.Criterio nil}}
+    <div class="pf-crit" title="{{$seg.Criterio}}">{{range $i, $c := .}}{{if $i}}<span class="pf-crit__and">E</span>{{end}}<span class="pf-crit__cond" title="{{$c.Original}}">{{$c.Campo}} {{$c.Operador}} {{$c.Numero}}</span>{{end}}</div>
+    {{else}}<span class="pf-crit__always">Critério vazio: casa sempre</span>{{end}}
+  </td>
+  {{if .Pode}}<td class="pf-r"><div class="pf-row pf-row--fim">
+    <a class="pf-btn pf-btn--sm" href="/painel/segmentos/{{$seg.ID}}" data-teste="acao-editar-segmento">Editar</a>
+    {{if $seg.Ativo}}{{if not $seg.EhPadrao}}<a class="pf-btn pf-btn--sm pf-btn--quiet" href="/painel/segmentos/{{$seg.ID}}/desativar">Desativar</a>{{end}}
+    {{else}}<a class="pf-btn pf-btn--sm" href="/painel/segmentos/{{$seg.ID}}/ativar">Ativar</a>{{end}}
+  </div></td>{{end}}
+</tr>
 {{end}}

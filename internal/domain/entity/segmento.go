@@ -22,7 +22,7 @@ type Segmento struct {
 }
 
 // ClassificarPerfil informa se o perfil satisfaz o critério do segmento.
-// Critério vazio casa sempre; critério fora da gramática devolve ErrDadosInvalidos.
+// Critério vazio casa sempre; critério fora da gramática devolve errs.ErroCampo (ErrDadosInvalidos).
 // Spec: RN-06. Fonte: UML2 (ClassificarPerfil(perfil): bool).
 func (s Segmento) ClassificarPerfil(p PerfilCliente) (bool, error) {
 	return AvaliarCriterio(s.Criterio, p)
@@ -44,17 +44,21 @@ func AvaliarCriterio(criterio string, p PerfilCliente) (bool, error) {
 	reCondicao := regexp.MustCompile(`^\s*([A-Za-z]+)\s*(>=|<=|==|>|<)\s*(\d+(?:\.\d+)?)\s*$`)
 	resultado := true
 	for _, trecho := range strings.Split(criterio, "&&") {
+		cond := strings.TrimSpace(trecho)
+		if cond == "" {
+			return false, errs.NovoErroCampo("criterio", `Condição vazia antes ou depois de "&&".`)
+		}
 		m := reCondicao.FindStringSubmatch(trecho)
 		if m == nil {
-			return false, fmt.Errorf("%w: condição fora da gramática: %q", errs.ErrDadosInvalidos, strings.TrimSpace(trecho))
+			return false, errs.NovoErroCampo("criterio", fmt.Sprintf("A condição %q está fora da gramática: use campo, operador e número com ponto.", cond))
 		}
 		valorCampo, ok := valorDoCampo(m[1], p)
 		if !ok {
-			return false, fmt.Errorf("%w: campo desconhecido: %q", errs.ErrDadosInvalidos, m[1])
+			return false, errs.NovoErroCampo("criterio", fmt.Sprintf("Campo desconhecido na condição %q: use frequenciaCompras, ticketMedio ou scoreEngajamento.", cond))
 		}
 		limite, err := strconv.ParseFloat(m[3], 64)
 		if err != nil {
-			return false, fmt.Errorf("%w: número inválido: %q", errs.ErrDadosInvalidos, m[3])
+			return false, errs.NovoErroCampo("criterio", fmt.Sprintf("Número inválido na condição %q.", cond))
 		}
 		if !comparar(valorCampo, m[2], limite) {
 			resultado = false

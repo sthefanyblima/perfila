@@ -1,7 +1,10 @@
-{{define "conteudo"}}
+{{define "conteudo"}}{{$pode := $.Pode.editar_configuracao}}
 <header class="pf-header">
   <ol class="pf-crumbs"><li>Configuração</li><li aria-current="page">Catálogo</li></ol>
-  <div class="pf-header__row"><h1 class="pf-header__title">Catálogo</h1></div>
+  <div class="pf-header__row">
+    <h1 class="pf-header__title">Catálogo</h1>
+    {{if $pode}}<div class="pf-header__actions"><a class="pf-btn pf-btn--primary" href="/painel/catalogo/novo" data-teste="acao-novo-produto">{{icone "mais"}} Novo produto</a></div>{{end}}
+  </div>
 </header>
 {{template "alerta" (alertaInfo "Como a recomendação escolhe" "A recomendação escolhe o primeiro produto ativo da categoria preferida, por ordem alfabética. Produtos inativos nunca são recomendados.")}}
 {{if .Dados}}
@@ -13,7 +16,7 @@
       <tr class="pf-table__grupo"><th scope="rowgroup" colspan="3">{{.Categoria}} <span class="pf-muted pf-small">· {{len .Produtos}}</span></th></tr>
       {{range .Produtos}}
       <tr>
-        <td>{{.Nome}}</td>
+        <td>{{if $pode}}<a href="/painel/catalogo/{{.ID}}" data-teste="acao-editar-produto">{{.Nome}}</a>{{else}}{{.Nome}}{{end}}</td>
         <td class="pf-r pf-num">{{dinheiro .Preco}}</td>
         <td>{{if .Ativo}}<span class="pf-tag pf-tag--ok">{{icone "ok"}}Ativo</span>{{else}}{{template "tag" "INATIVO"}}{{end}}</td>
       </tr>
@@ -23,6 +26,6 @@
   </table>
 </div>
 {{else}}
-<div class="pf-panel"><div class="pf-empty"><h2 class="pf-empty__title">Catálogo vazio</h2><p class="pf-empty__text">Os produtos entram por migração. Sem produtos ativos, nenhuma recomendação é gerada.</p></div></div>
+<div class="pf-panel"><div class="pf-empty"><h2 class="pf-empty__title">Catálogo vazio</h2><p class="pf-empty__text">Sem produtos ativos, nenhuma recomendação é gerada.{{if $pode}} Use "Novo produto" para cadastrar.{{end}}</p></div></div>
 {{end}}
 {{end}}

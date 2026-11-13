@@ -144,6 +144,7 @@ body.pf {
 .pf .pf-nav__link[aria-current="page"] { background: var(--nav-active-bg); color: var(--nav-active-ink); font-weight: 600; box-shadow: inset 3px 0 0 var(--brand); }
 .pf-nav__foot { margin-top: auto; border-top: 1px solid var(--nav-line); padding: var(--space-4) var(--space-3) 0; display: grid; gap: var(--space-2); font-size: 12px; }
 .pf-nav__op { display: flex; align-items: center; gap: var(--space-2); color: var(--nav-ink); }
+.pf-nav__papel { display: block; font-size: 11px; line-height: 14px; color: var(--nav-muted); }
 .pf-nav__avatar { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--brand-tint); color: var(--brand-strong); border: 1px solid var(--nav-line); font-weight: 600; text-transform: uppercase; }
 .pf .pf-nav .pf-btn--quiet { color: var(--nav-ink); justify-content: flex-start; padding: 0 var(--space-2); }
 .pf .pf-nav .pf-btn--quiet:hover { background: var(--nav-hover); color: var(--nav-ink); }
@@ -423,3 +424,12 @@ body.pf {
   .pf-toast { min-width: 0; width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { .pf *, .pf *::before { transition: none !important; animation: none !important; } }
+
+/* Critério por linhas (v1.6, RN-14) --------------------------------- */
+.pf-condicoes { display: grid; gap: var(--space-3); }
+.pf-condicao { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-2); align-items: center; }
+.pf-condicao:first-child { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr); }
+.pf-row--fim { justify-content: flex-end; }
+@media (max-width: 640px) {
+  .pf-condicao, .pf-condicao:first-child { grid-template-columns: 1fr; }
+}

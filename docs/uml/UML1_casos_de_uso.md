@@ -3,9 +3,9 @@
 > **Fonte:** Módulo 2 · imagem original: [`img/UML1_casos_de_uso.png`](img/UML1_casos_de_uso.png)
 > **Imagem corrigida (v1, gerada do Mermaid abaixo):** [`img/v1/UML1_casos_de_uso.png`](img/v1/UML1_casos_de_uso.png)
 > **Fonte da verdade para:** atores e casos de uso (Spec 1).
-> **Versão:** v1.1 (Core) · **Decisões relacionadas:** D-04, D-07, D-15, D-17, D-22.
+> **Versão:** v1.5 (perfis de acesso) · **Decisões relacionadas:** D-04, D-07, D-15, D-17, D-22, Q-35, Q-37.
 
-## Diagrama (v1.0)
+## Diagrama (v1.5)
 
 ```mermaid
 flowchart LR
@@ -13,6 +13,7 @@ flowchart LR
   analista(("👤 Analista de<br/>Marketing"))
   admin(("👤 Administrador<br/>do Sistema"))
   agente(("⚙ Agente Inteligente<br/>[ADIÇÃO D-17]"))
+  atend(("👤 Atendimento<br/>[ADIÇÃO Q-35]"))
 
   subgraph sistema["«sistema» Perfila — Segmentação e Perfilamento do Comportamento do Cliente"]
     UC01(["UC-01 Coletar Dados<br/>Comportamentais do Cliente"])
@@ -30,6 +31,9 @@ flowchart LR
   cliente --- UC08
   cliente --- UC09
   admin --- UC08
+  atend --- UC01
+  atend --- UC08
+  atend --- UC09
   agente --- UC03
   analista --- UC05
   analista --- UC06
@@ -44,15 +48,17 @@ flowchart LR
 
 | ID | Caso de uso | Ator primário | Caso de uso de aplicação | MVP | Fase |
 |---|---|---|---|---|---|
-| UC-01 | Coletar Dados Comportamentais do Cliente | Cliente | `ColetarDadosUseCase` | Sim | Core |
+| UC-01 | Coletar Dados Comportamentais do Cliente | Cliente; Atendimento (painel, Q-35) | `ColetarDadosUseCase` | Sim | Core |
 | UC-02 | Gerar Perfil do Cliente | (incluído por UC-03) | `GerarPerfilUseCase` | Sim | Core |
 | UC-03 | Segmentar Clientes Automaticamente | Agente Inteligente | `SegmentarClienteUseCase` | Sim | Core |
 | UC-04 | Recomendar Produtos Personalizados («extend» de UC-03) | Agente Inteligente | `GerarRecomendacaoUseCase` | Sim | Core |
 | UC-05 | Analisar Padrões de Comportamento | Analista de Marketing | — | Não (D-04) | — |
 | UC-06 | Criar Campanha de Marketing Direcionada | Analista de Marketing | — | Não (D-04) | — |
 | UC-07 | Visualizar Relatórios de Segmentação | Analista de Marketing | — | Não (D-04) | — |
-| UC-08 | Gerenciar Consentimento de Dados (LGPD) | Cliente (titular) e Administrador | `GerenciarConsentimentoUseCase` | Sim | Core |
-| UC-09 | Cadastrar Cliente [ADIÇÃO] | Cliente / Sistema Externo | `CadastrarClienteUseCase` | Sim | Core |
+| UC-08 | Gerenciar Consentimento de Dados (LGPD) | Cliente (titular), Administrador e Atendimento (Q-35) | `GerenciarConsentimentoUseCase` | Sim | Core |
+| UC-09 | Cadastrar Cliente [ADIÇÃO] | Cliente / Sistema Externo; Atendimento (painel, Q-35) | `CadastrarClienteUseCase` | Sim | Core |
+
+**Atores humanos e papéis do painel (v1.5, Q-35, Q-37).** Cada pessoa que opera o painel tem um papel: Administrador do Sistema = `ADMINISTRADOR`, Atendimento = `ATENDIMENTO`, Analista de Marketing = `ANALISTA`. O que cada papel alcança é a matriz da RN-11 (Spec 3.3). O Administrador também administra os operadores e lê a auditoria; essas telas não são casos de uso do diagrama, e sim apoio à operação (Spec 3.1). O Analista, no MVP, só lê Segmentos e Catálogo: UC-05 a UC-07 continuam fora (D-04).
 
 ## Relações
 
@@ -73,6 +79,7 @@ flowchart LR
 |---|---|---|
 | D-07 | O diagrama está **correto** em UML (setas «include» saem do caso base para o incluído). A inversão está apenas no Diagrama de Sequência (passo 5). | Seguir a direção deste diagrama; o comportamento observável é o da sequência. |
 | D-22 | Nenhum caso de uso cria o Cliente, mas todos exigem que ele exista. | [ADIÇÃO] UC-09 Cadastrar Cliente, associado ao Cliente. **Ação da equipe:** acrescentar ao diagrama. |
+| Q-35 | O diagrama não distingue quem atende (cadastro, consentimento por telefone, eventos) de quem administra o sistema; no MVP, o painel tinha um único operador com acesso a tudo (Q-22). | [ADIÇÃO] ator **Atendimento**, ligado a UC-01, UC-08 e UC-09, com o papel `ATENDIMENTO`. **Ação da equipe:** acrescentar o ator à imagem do diagrama até a apresentação final. |
 | D-17 | O diagrama tem **Administrador do Sistema** ligado a UC-08 e **não** tem "Agente Inteligente"; UC-02 a UC-04 não têm ator. A versão anterior da Spec usava Cliente para UC-08 e Agente Inteligente para UC-02 a UC-04. | UC-08: Cliente (titular, via API) **e** Administrador. "Agente Inteligente" entra como ator de automação secundário de UC-03/UC-04 (regras determinísticas, não um LLM). **Ação da equipe:** acrescentar o ator ao diagrama até a apresentação final. |
 
 ## Rastreabilidade

@@ -2,7 +2,7 @@
 
 **Perfila — Sistema de Segmentação e Perfilamento do Comportamento do Cliente — Go**
 
-Equipe Omega · GoLang & CLP · Documento 1 de 3 · **Versão 1.4 (12/11/2026)** · Base: Módulos 1 a 5 (casos de uso, classes, pacotes, sequência, estados, componentes e implantação), transcritos em `docs/uml/UML1..UML8`
+Equipe Omega · GoLang & CLP · Documento 1 de 3 · **Versão 1.6 (13/11/2026)** · Base: Módulos 1 a 5 (casos de uso, classes, pacotes, sequência, estados, componentes e implantação), transcritos em `docs/uml/UML1..UML8`
 
 ## Como usar este documento
 
@@ -34,9 +34,9 @@ Os diagramas foram feitos em módulos diferentes e nem sempre concordam. Para o 
 | Servidores, contêineres e configuração | Diagrama de Implantação (Mód. 5) | UML8 | Ver D-21 |
 | Trechos de código dos Mód. 2 e 3 | Nenhuma | — | São didáticos e divergem do modelo (D-11) |
 
-**Dentro do MVP:** UC-01, UC-02, UC-03, UC-04, UC-08 e UC-09 (cadastro, D-22) de ponta a ponta, como no diagrama de sequência, com consentimento obrigatório, API HTTP, PostgreSQL e implantação em contêineres; desde a v1.3, também o **painel web do operador** (`/painel`, Q-20), com as regras visuais e de texto do design system "Perfila Console" (`docs/design/`, ajustado pela Q-27).
+**Dentro do MVP:** UC-01, UC-02, UC-03, UC-04, UC-08 e UC-09 (cadastro, D-22) de ponta a ponta, como no diagrama de sequência, com consentimento obrigatório, API HTTP, PostgreSQL e implantação em contêineres; desde a v1.3, também o **painel web do operador** (`/painel`, Q-20), com as regras visuais e de texto do design system "Perfila Console" (`docs/design/`, ajustado pela Q-27); desde a v1.5, **operadores com papel, matriz de permissões e trilha de auditoria** no painel (Q-35 a Q-41); desde a v1.6, **edição de segmentos e do catálogo pelo painel**, com prévia e auditoria (Q-33, Q-42 a Q-44).
 
-**Fora do MVP:** UC-05, UC-06 e UC-07 (D-04); portal do titular (fase 2, Q-20); notificação real ao cliente; autenticação JWT e perfis de acesso; gestão de segmentos pela API (segmentos entram por migração); política de retenção e eliminação de dados (D-13).
+**Fora do MVP:** UC-05, UC-06 e UC-07 (D-04); portal do titular (fase 2, Q-20); notificação real ao cliente; autenticação JWT ou OIDC e perfis de acesso na API (o `AUTH_TOKEN` continua único); gestão de segmentos e do catálogo pela API (desde a v1.6, só pelo painel; o `padrao` continua nascendo na migração inicial); reprocessamento de todos os clientes depois de mudar um critério (Q-45); política de retenção e eliminação de dados (D-13).
 
 ## 2. Constituição
 
@@ -58,7 +58,15 @@ A Constituição (regras C-01 a C-12) foi movida para **`CLAUDE.md`**, na raiz d
 | UC-08 | Gerenciar Consentimento de Dados (LGPD) | Cliente (titular) e Administrador do Sistema | `GerenciarConsentimentoUseCase` | Sim |
 | UC-09 | Cadastrar Cliente [ADIÇÃO, D-22] | Cliente / Sistema Externo | `CadastrarClienteUseCase` | Sim |
 
-Administrador do Sistema: ligado a UC-08 no UML1 e, pelo UML8, executa os subcomandos do CMD (`serve`, `expirar-recomendacoes`, `hash-senha` (Q-28) e `carregar-exemplos` (Q-30)) por SSH. No painel web (v1.3), é a pessoa **operadora**: cadastra (UC-09), registra o consentimento (UC-08), lança eventos (UC-01), processa (UC-01 a UC-04) e expira recomendações.
+Administrador do Sistema: ligado a UC-08 no UML1 e, pelo UML8, executa os subcomandos do CMD (`serve`, `expirar-recomendacoes`, `hash-senha` (Q-28), `carregar-exemplos` (Q-30) e `expurgar-auditoria` (Q-39)) por SSH.
+
+**Pessoas que operam o painel (v1.5, Q-35, Q-37).** Cada uma é um `Operador` com um papel; o que cada papel alcança está na matriz da RN-11.
+
+| Papel (`PapelOperador`) | Ator do UML1 | No painel |
+|---|---|---|
+| `ADMINISTRADOR` | Administrador do Sistema | Tudo o que o atendimento faz, mais Usuários, Auditoria e Operação (saúde e expiração) |
+| `ATENDIMENTO` | Atendimento [ADIÇÃO, Q-35] (persona Rita, `docs/design/01-design-thinking.md`), ligado a UC-01, UC-08 e UC-09 | Cadastra (UC-09), registra o consentimento (UC-08), lança eventos (UC-01) e processa (UC-01 a UC-04); lê Segmentos e Catálogo |
+| `ANALISTA` | Analista de Marketing | Lê Segmentos e Catálogo, sem nenhum dado de cliente; UC-05 a UC-07 continuam fora do MVP (D-04) |
 
 Casos de uso de aplicação do painel [ADIÇÃO, Q-23, Q-26]. Não são casos de uso novos do UML1: dão ao operador a leitura do que UC-01 a UC-09 gravaram e reúnem a orquestração de RN-09.
 
@@ -68,7 +76,11 @@ Casos de uso de aplicação do painel [ADIÇÃO, Q-23, Q-26]. Não são casos de
 | `ListarClientesUseCase` | Não; o segmento de cada linha só aparece com consentimento válido (Q-21) | Painel |
 | `ConsultarClienteUseCase` | Não: só cadastro e consentimento (Q-21), como UC-08 | Painel |
 | `ConsultarResultadoUseCase` | Sim (RN-01, exceto cliente ativo: inativo é só leitura, Q-31) | Painel |
-| `ListarSegmentosUseCase`, `ListarCatalogoUseCase` | Não: configuração, sem dado pessoal | Painel | Agente Inteligente: ator de automação [ADIÇÃO] que dispara UC-03 e UC-04 (D-17).
+| `ListarSegmentosUseCase`, `ListarCatalogoUseCase` | Não: configuração, sem dado pessoal | Painel |
+| `SalvarSegmentoUseCase`, `SalvarProdutoUseCase` [v1.6, Q-33, Q-43] | Não: configuração, sem dado pessoal | Painel |
+| `PreverSegmentacaoUseCase` [v1.6, Q-42] | Sim: só conta clientes ativos com consentimento válido, e só devolve números | Painel |
+| `AutenticarOperadorUseCase`, `GerenciarOperadoresUseCase` [v1.5, Q-35, Q-36] | Não: dados de quem opera, não do titular | Painel e CMD (administrador inicial) |
+| `RegistrarAuditoriaUseCase`, `ListarAuditoriaUseCase`, `ExpurgarAuditoriaUseCase` [v1.5, Q-39] | Não: a auditoria guarda só IDs | Painel e CMD (`expurgar-auditoria`) | Agente Inteligente: ator de automação [ADIÇÃO] que dispara UC-03 e UC-04 (D-17).
 
 ### 3.2 Modelo de domínio
 
@@ -161,6 +173,39 @@ type Produto struct {
     Preco     float64
     Ativo     bool
 }
+
+// [ADIÇÃO, v1.5, Q-35] Quem opera o painel.
+type PapelOperador string // ADMINISTRADOR, ANALISTA, ATENDIMENTO
+type Permissao string     // clientes, consentimento, eventos, processamento, configuracao,
+                          // operacao, usuarios, auditoria, relatorios, eliminacao (RN-11)
+
+type Operador struct {
+    ID                uuid.UUID
+    Login             string        // único e imutável; minúsculas (RN-12)
+    Nome              string        // para a tela Usuários; nunca vai para log nem auditoria (C-09)
+    Papel             PapelOperador
+    SenhaHash         string        // gerado pelo port HashSenha; nunca a senha
+    Ativo             bool
+    CriadoEm          time.Time
+    TrocarSenha       bool          // senha provisória: só Minha senha até trocar (Q-40)
+    SenhaAtualizadaEm time.Time     // carimbo da sessão: mudou, as sessões abertas caem (Q-38)
+}
+
+// [ADIÇÃO, v1.5, Q-39] Trilha de auditoria do painel. Só inclusão; sem dado pessoal.
+type AcaoAuditoria string      // lista na RN-13
+type TipoAlvo string           // cliente, segmento, produto, operador; vazio = sem alvo
+type ResultadoAuditoria string // SUCESSO, NEGADO, FALHA
+
+type RegistroAuditoria struct {
+    ID        uuid.UUID
+    Data      time.Time
+    Operador  string    // login; vazio em entrada com login desconhecido
+    Acao      AcaoAuditoria
+    AlvoTipo  TipoAlvo
+    AlvoID    uuid.UUID // uuid.Nil quando AlvoTipo é vazio
+    Resultado ResultadoAuditoria
+    Campos    []string  // [v1.6, Q-44] nomes dos campos alterados (lista fechada da RN-13); nunca valores
+}
 ```
 
 | Entidade | Métodos | Observação |
@@ -170,9 +215,13 @@ type Produto struct {
 | MovimentoConsentimento [ADIÇÃO, Q-34] | `NovoMovimento(id uuid.UUID, c ConsentimentoLGPD, tipo TipoMovimento, origem OrigemMovimento, operador string) (MovimentoConsentimento, error)` | Construído logo depois da transição, com Finalidade, VersaoTermo e Data (= `DataAtualizacao`) do consentimento. Tipo e Origem fora dos enumerados, ou Origem painel sem operador: `ErrDadosInvalidos`. Não tem métodos de alteração |
 | EventoComportamental | `Validar(agora time.Time) error` | RN-04 |
 | PerfilCliente | `CalcularScore(eventos []EventoComportamental, agora time.Time, meta int)`, `AtualizarPerfil(novo PerfilCliente)` | RN-05. `AtualizarPerfil` copia as métricas e preserva ID, ClienteID e SegmentoID. `meta <= 0` resulta em score 0 |
-| Segmento | `ClassificarPerfil(p PerfilCliente) (bool, error)` | RN-06. Nome corrigido na v1.0 para o do UML2 (era `ClassificaPerfil`, contrariando C-04) |
+| Segmento | `ClassificarPerfil(p PerfilCliente) (bool, error)`; [v1.6] `Validar() error`, `EhPadrao() bool` | RN-06. Nome corrigido na v1.0 para o do UML2 (era `ClassificaPerfil`, contrariando C-04). `Validar` aplica as regras de um segmento da RN-14 (nome, descrição, prioridade e critério pela gramática, com `ValidarCriterio`); `EhPadrao` é critério vazio |
+| Configuração de segmentos [ADIÇÃO, v1.6, Q-33] | `ValidarCriterio(criterio string) error`, `ValidarSegmentos(lista []Segmento) error` | Funções puras da RN-14: a primeira só confere a gramática da RN-06; a segunda, as regras do conjunto. Erro: `errs.ErroCampo` (embrulha `ErrDadosInvalidos`) |
 | RecomendacaoProduto | `NovaRecomendacao(...)` (equivale a `Gerar()`), `Disponibilizar(agora time.Time, validadeDias int) error`, `Expirar(agora time.Time) error` | Transições da seção 3.4.2 |
-| Produto | `AtualizarPreco(preco float64) error` | Preço maior ou igual a zero |
+| Produto | `AtualizarPreco(preco float64) error`; [v1.6] `Validar() error`, `NormalizarCategoria(categoria string) string` | Preço de 0 a 1.000.000 (v1.6, Q-43; antes só maior ou igual a zero). `Validar` e `NormalizarCategoria`: RN-14 |
+| Operador [ADIÇÃO, Q-35] | `NovoOperador(id uuid.UUID, login, nome string, papel PapelOperador, senhaHash string, agora time.Time) (Operador, error)`, `MudarPapel(p PapelOperador) error`, `Desativar()`, `Ativar()`, `DefinirSenha(senhaHash string, trocar bool, agora time.Time) error` | RN-12. Nasce ativo, com CriadoEm e SenhaAtualizadaEm = agora e `TrocarSenha` verdadeiro. Login, nome, papel ou hash inválidos: `ErrDadosInvalidos` |
+| PapelOperador [ADIÇÃO, Q-37] | `Pode(p Permissao) bool` | Matriz da RN-11; papel fora do enumerado não pode nada |
+| RegistroAuditoria [ADIÇÃO, Q-39] | `NovoRegistroAuditoria(id uuid.UUID, data time.Time, operador string, acao AcaoAuditoria, alvoTipo TipoAlvo, alvoID uuid.UUID, resultado ResultadoAuditoria, campos ...string) (RegistroAuditoria, error)` | RN-13. Enumerados fora da lista, alvo sem tipo ou tipo sem alvo, campo fora da lista fechada (v1.6, Q-44): `ErrDadosInvalidos`. Campos sem repetição, na ordem da lista. Sem métodos de alteração |
 
 Desvios idiomáticos em relação aos diagramas (não são lacunas): `context.Context` como primeiro parâmetro; `error` no lugar de `bool` em `Validar` para informar a causa; construtor no lugar de `Gerar()`; tempo recebido por parâmetro ou `Clock`, nunca `time.Now()` (C-07); assinaturas dos serviços ajustadas na seção 3.6.
 
@@ -189,7 +238,7 @@ Desvios idiomáticos em relação aos diagramas (não são lacunas): `context.Co
     - ScoreEngajamento é o menor valor entre 1 e N dividido por `ENGAJAMENTO_META_EVENTOS`, onde N é o número de eventos de qualquer tipo com Timestamp maior que agora menos 30 dias e menor ou igual a agora.
     - Cliente sem eventos gera perfil zerado, sem erro.
     - Há um perfil por cliente: `Salvar` faz upsert por ClienteID e preserva o ID original.
-- **RN-06 Segmentação.** Segmentos ativos são avaliados em ordem crescente de Prioridade; o primeiro cujo critério casa vence. Critério vazio casa sempre e deve ter a maior Prioridade (segmento padrao, criado por migração). Gramática do critério:
+- **RN-06 Segmentação.** Segmentos ativos são avaliados em ordem crescente de Prioridade; o primeiro cujo critério casa vence. Critério vazio casa sempre e deve ter a maior Prioridade (segmento padrao, criado por migração e protegido pela RN-14). Segmentos inativos não são avaliados. Gramática do critério:
     - critério: vazio, ou condição seguida de zero ou mais condições ligadas por `&&`
     - condição: campo, operador e número
     - campo: frequenciaCompras, ticketMedio ou scoreEngajamento
@@ -203,6 +252,62 @@ Desvios idiomáticos em relação aos diagramas (não são lacunas): `context.Co
 - **RN-08 Ciclo da recomendação.** UC-04 cria e já disponibiliza: GERADA é transitória e a recomendação é persistida uma única vez, já em ATIVA. Há no máximo uma recomendação ATIVA por cliente: antes de gravar a nova, UC-04 aplica `Expirar` às ATIVA anteriores do cliente (Q-18). Validade é DataAtivacao mais `RECOMENDACAO_VALIDADE_DIAS` (padrão 30). Expira quando Validade é menor ou igual a agora, pelo comando `expirar-recomendacoes` (D-08).
 - **RN-09 Processamento.** `ProcessarClienteUseCase` orquestra, nesta ordem, UC-01 (Executar), UC-02, UC-03 e UC-04 (v1.3, Q-26; antes ficava no handler da API) e devolve o resultado consolidado (sequência, passo 23) com o estado de cada etapa: concluída, atenção, falhou ou pendente. Erro em qualquer etapa interrompe o fluxo: a etapa fica como falhou, as seguintes como pendentes, e o que já foi persistido permanece. `ErrSemProdutoElegivel` não interrompe: a etapa 4 fica em atenção, sem recomendação. A API e o painel usam o mesmo caso de uso.
 - **RN-10 Histórico do consentimento (v1.4, Q-34).** Toda transição de 3.4.1 aplicada por UC-08 gera um `MovimentoConsentimento`, gravado junto com o registro do consentimento numa única operação atômica (`ConsentimentoRepository.Registrar`): ou os dois ficam gravados, ou nenhum. Movimentos são só de inclusão: nunca alterados nem apagados. O histórico é a lista dos movimentos do cliente em ordem cronológica (desempate pela ordem de gravação). O registro de `consentimentos_lgpd` continua sendo a fonte do estado (RN-02); o histórico é prova e não decide a validade. Transição inválida ou guarda violada não gera movimento. A origem vem do adaptador que chamou o caso de uso (API: `api`; painel: `painel` com o login do operador; portal do titular, fase 2: `portal`); sem origem informada (subcomandos, exemplos, testes): `sistema`. Movimentos criados pela migração 006 a partir das datas existentes têm origem `migracao`.
+
+- **RN-11 Papéis e permissões (v1.5, Q-37).** O que cada papel pode é uma função pura do domínio (`PapelOperador.Pode`):
+
+    | Permissão | O que libera no painel | ADMINISTRADOR | ATENDIMENTO | ANALISTA |
+    |---|---|---|---|---|
+    | `clientes` | Lista, busca, cadastro e ficha (todas as abas) | Sim | Sim | Não |
+    | `consentimento` | Conceder e revogar | Sim | Sim | Não |
+    | `eventos` | Registrar evento | Sim | Sim | Não |
+    | `processamento` | Processar agora | Sim | Sim | Não |
+    | `configuracao` | Segmentos e Catálogo (leitura) | Sim | Sim | Sim |
+    | `editar_configuracao` [v1.6, Q-33] | Segmentos e Catálogo: criar, editar, ativar, desativar, prévia e testar critério | Sim | Não | Sim |
+    | `operacao` | Operação: saúde e expiração de recomendações | Sim | Não | Não |
+    | `usuarios` | Usuários: criar, mudar papel, desativar, ativar, redefinir senha | Sim | Não | Não |
+    | `auditoria` | Auditoria | Sim | Não | Não |
+    | `relatorios` | Reservada para UC-05 a UC-07 (D-04): nenhuma rota no MVP | Sim | Não | Sim |
+    | `eliminacao` | Reservada para a eliminação de dados (D-13, L-19, L-20): nenhuma rota no MVP | Sim | Não | Não |
+
+    Todo operador, de qualquer papel, troca a própria senha ("Minha senha") e sai. Sem a permissão: `ErrSemPermissao`.
+- **RN-12 Operadores (v1.5, Q-35, Q-36, Q-40).**
+    - Login: de 3 a 32 caracteres entre letras minúsculas sem acento, dígitos, `.`, `-` e `_`, começando por letra; a entrada é convertida para minúsculas antes de validar. Único (`ErrLoginEmUso`), imutável e nunca reutilizado: operador não é excluído, é desativado.
+    - Nome: obrigatório, até 100 caracteres. Papel: um dos três.
+    - Senha: de 12 caracteres a 72 bytes (limite do bcrypt), validada no caso de uso antes do hash (`ErrDadosInvalidos`). O domínio só guarda o hash.
+    - Operador criado ou com senha redefinida pelo administrador fica com `TrocarSenha`: até trocar, só "Minha senha" e Sair. A troca pelo próprio operador exige a senha atual (`ErrCredenciaisInvalidas`) e apaga `TrocarSenha`. Toda definição de senha atualiza `SenhaAtualizadaEm`, o que encerra as sessões abertas (Q-38).
+    - O administrador não muda o próprio papel nem desativa a si mesmo (`ErrPropriaConta`). Como só um administrador ativo gerencia operadores, sempre resta pelo menos um.
+    - Administrador inicial: sem nenhum operador gravado, `PAINEL_USUARIO` e `PAINEL_SENHA_HASH` criam um `ADMINISTRADOR` (nome "Administrador", sem `TrocarSenha`, porque a senha já foi gerada fora do sistema, Q-28). A criação é atômica (`OperadorRepository.CriarSeVazio`): com duas réplicas subindo juntas, só uma grava. Com algum operador gravado, as duas variáveis são ignoradas.
+    - Entrar: login inexistente, senha errada e operador inativo dão o mesmo `ErrCredenciaisInvalidas`; login inexistente também passa pela conferência de hash, para o tempo não revelar quem existe.
+- **RN-13 Auditoria (v1.5, Q-39).** Toda ação do painel que muda dados, toda leitura de ficha e todo acesso negado geram um `RegistroAuditoria` antes da resposta. Ações (`AcaoAuditoria`) e alvo:
+
+    | Ação | Alvo | Quando |
+    |---|---|---|
+    | `entrar` | — | Entrada: SUCESSO, ou NEGADO com o login só se ele existir |
+    | `sair`, `sessao_encerrada` | — | Saída; sessão recusada por operador inativo, inexistente ou com senha trocada |
+    | `acesso_negado` | cliente, se a rota tiver um | Rota sem a permissão do papel (403) |
+    | `ler_ficha` | cliente | Cada aba da ficha aberta: visão geral, eventos, consentimento |
+    | `cadastrar_cliente`, `conceder_consentimento`, `revogar_consentimento`, `registrar_evento`, `processar` | cliente | UC-09, UC-08, UC-01, RN-09 |
+    | `expirar_recomendacoes` | — | Expiração pela tela Operação |
+    | `criar_operador`, `mudar_papel`, `desativar_operador`, `ativar_operador`, `redefinir_senha` | operador | Tela Usuários |
+    | `trocar_senha` | operador | Minha senha |
+    | `criar_segmento`, `editar_segmento`, `ativar_segmento`, `desativar_segmento` [v1.6] | segmento | Tela Segmentos, com os campos alterados (RN-14) |
+    | `prever_segmentacao` [v1.6] | segmento (vazio para um segmento novo) | Prévia antes de salvar (Q-42) |
+    | `criar_produto`, `editar_produto`, `ativar_produto`, `desativar_produto` [v1.6] | produto | Tela Catálogo, com os campos alterados |
+
+    - Resultado: `SUCESSO`; `NEGADO` (sem permissão ou credenciais); `FALHA` (erro de domínio ou interno; o código do erro vai só para o log).
+    - Nunca guarda nome, e-mail, senha, termo de busca nem conteúdo de formulário: só login do operador, tipo e ID do alvo (C-09) e, desde a v1.6 (Q-44), os **nomes** dos campos alterados de segmento ou produto, de uma lista fechada: `nome`, `descricao`, `criterio`, `prioridade`, `ativo`, `categoria`, `preco`. A lista e a busca de clientes não são registradas (Q-24).
+    - Leitura sem registro não é mostrada: se a gravação da auditoria falhar, a ficha responde erro interno. Numa ação que muda dados, a ação já aconteceu: a resposta segue e a falha vai para o log (`auditoria_falhou`).
+    - Só inclusão, como os movimentos (RN-10): nunca alterados. Retenção de `AUDITORIA_RETENCAO_DIAS` (padrão 180, seis meses): o subcomando `expurgar-auditoria` apaga os registros com Data anterior a agora menos esse prazo; um registro com exatamente o prazo permanece.
+    - Só o painel é auditado: a API não tem operador (D-16) e já deixa o log de acesso e os movimentos do consentimento.
+- **RN-14 Configuração de segmentos e catálogo (v1.6, Q-33, Q-42, Q-43).**
+    - **Segmento** (`Segmento.Validar`): nome de 1 a 40 caracteres depois de tirar os espaços das pontas, sem `;` nem `:` (o nome entra no `Motivo`, RN-07); descrição até 200; prioridade de 1 a 999; critério pela gramática da RN-06 (`ValidarCriterio`), com a condição errada na mensagem.
+    - **Conjunto** (`ValidarSegmentos`, aplicada à configuração inteira já com a mudança): exatamente um segmento de critério vazio, o `padrao`; ele está ativo e tem a maior prioridade entre os ativos; prioridade única entre os ativos; nome único sem diferenciar maiúsculas. Assim, nenhum segmento novo ou editado fica com critério vazio, o `padrao` não ganha critério nem é desativado, e a configuração gravada nunca leva o processamento a `ErrSemSegmentoAplicavel` (Q-02) ou a `ErrSegmentoMalConfigurado` (Q-17).
+    - Segmentos e produtos **nunca são excluídos**, só desativados (chaves estrangeiras de `perfis_cliente.segmento_id` e `recomendacoes_produto.produto_id`). ID e nome do `padrao` não mudam pela edição de outro segmento.
+    - **Perfis já segmentados** mantêm o `SegmentoID` até o próximo processamento do cliente (UC-03), mesmo que o segmento mude ou seja desativado; UC-04 continua lendo o segmento por `BuscarPorID`. Reprocessar todos fica fora (Q-45).
+    - **Prévia** (Q-42): obrigatória antes de salvar critério, prioridade ou situação de um segmento. Considera só os clientes ativos com consentimento válido e o perfil salvo de cada um (nada é recalculado nem gravado). Para cada segmento ativo da nova configuração, diz quantos estão nele hoje e quantos ficariam com a nova configuração; e quantos ainda não têm perfil. Só contagens, nunca nome, e-mail ou ID.
+    - **Testar critério**: avalia um critério com frequência de compras, ticket médio e score digitados; não lê nem grava dado de cliente.
+    - **Produto** (`Produto.Validar`): nome de 1 a 100 caracteres; categoria de 1 a 40, gravada por `NormalizarCategoria` (sem espaços nas pontas e em minúsculas), porque precisa casar exatamente com a dos eventos (RN-05); preço de 0 a 1.000.000 (`AtualizarPreco`, Q-43). Produto desativado sai da RN-07 a partir do próximo processamento; recomendações ATIVA dele seguem até expirar ou até o próximo processamento do cliente.
+    - Erros de validação são `errs.ErroCampo` (campo e mensagem em português), que embrulham `ErrDadosInvalidos`: o painel mostra a mensagem ao lado do campo.
 
 ### 3.4 Máquinas de estado
 
@@ -239,6 +344,15 @@ Qualquer outra combinação: `ErrTransicaoInvalida`. O comando `expirar-recomend
 | `ErrPerfilNaoEncontrado` | Perfil ausente ou ainda sem segmento | 409 | perfil_nao_encontrado |
 | `ErrSemProdutoElegivel` | RN-07 | Não é erro HTTP: 200 com recomendação nula | sem_produto_elegivel |
 | `ErrConsentimentoNaoEncontrado` | Uso interno do repositório; o caso de uso traduz em NAO_CONCEDIDO | — | — |
+| `ErrCredenciaisInvalidas` [v1.5] | Login inexistente, senha errada ou operador inativo (RN-12); senha atual errada em Minha senha | 401 (painel) | nao_autenticado |
+| `ErrSemPermissao` [v1.5] | Papel sem a permissão (RN-11) | 403 (painel) | sem_permissao |
+| `ErrOperadorNaoEncontrado` [v1.5] | Operador inexistente | 404 (painel) | operador_nao_encontrado |
+| `ErrLoginEmUso` [v1.5] | Login já usado por outro operador (RN-12) | 409 (painel) | login_em_uso |
+| `ErrPropriaConta` [v1.5] | Administrador muda o próprio papel ou desativa a si mesmo (RN-12) | 409 (painel) | propria_conta |
+| `ErrSegmentoNaoEncontrado` [v1.6] | Segmento inexistente na edição (o processamento continua com `ErrSegmentoMalConfigurado`, Q-17) | 404 (painel) | segmento_nao_encontrado |
+| `ErrProdutoNaoEncontrado` [v1.6] | Produto inexistente | 404 (painel) | produto_nao_encontrado |
+
+`errs.ErroCampo` [v1.6, RN-14] é um erro de validação com `Campo` e `Mensagem` (em português, para a tela); embrulha `ErrDadosInvalidos`, então o código continua `dados_invalidos` (422).
 
 **UC-09 `CadastrarClienteUseCase`** [ADIÇÃO, D-22] (não exige consentimento: é o ponto de entrada do cliente)
 
@@ -288,6 +402,30 @@ Qualquer outra combinação: `ErrTransicaoInvalida`. O comando `expirar-recomend
 - `ConsultarResultadoUseCase.Executar(ctx, clienteID) (ResultadoCliente, error)`: cliente existe e consentimento válido primeiro (`Precondicoes.VerificarLeitura`: RN-01 sem a exigência de cliente ativo, Q-31; cliente inativo é só leitura); depois eventos (mais recente primeiro), perfil e segmento (nulos se ainda não processado), recomendações (`ListarPorCliente`, mais recente primeiro) e os produtos que elas citam. Nada de comportamento é lido sem consentimento válido (C-03).
 - `ListarSegmentosUseCase.Executar(ctx) ([]Segmento, error)`: segmentos ativos em ordem de Prioridade.
 - `ListarCatalogoUseCase.Executar(ctx) ([]Produto, error)`: todos os produtos, por Categoria e depois por Nome.
+- [v1.6] `ListarSegmentosUseCase.Todos(ctx) ([]Segmento, error)`: todos, os ativos primeiro em ordem de Prioridade, depois os inativos por Nome; `ListarSegmentosUseCase.Consultar(ctx, id) (Segmento, error)`: `ErrSegmentoNaoEncontrado`. `ListarCatalogoUseCase.Consultar(ctx, id) (Produto, error)`: `ErrProdutoNaoEncontrado`; `ListarCatalogoUseCase.Categorias(ctx) ([]string, error)`: as categorias distintas do catálogo, em ordem alfabética.
+
+**Configuração de segmentos e catálogo** [ADIÇÃO, v1.6, Q-33, Q-42, Q-43]. Exigem do `ator` a permissão `editar_configuracao` (RN-11, `ErrSemPermissao`) e aplicam a RN-14.
+
+- `SalvarSegmentoUseCase.Executar(ctx, ator, s Segmento) (AlteracaoSegmento, error)`: `s.ID` nulo cria (ID novo, ativo); senão edita nome, descrição, critério e prioridade do segmento existente (`ErrSegmentoNaoEncontrado`), mantendo a situação. Tira os espaços das pontas do nome, do critério e da descrição, aplica `Validar` e `ValidarSegmentos` sobre `ListarTodos` com a mudança e grava com `SegmentoRepository.Salvar`. `AlteracaoSegmento` traz `Segmento`, `Novo` e `Campos` (nomes dos campos que mudaram, na ordem da RN-13); sem nenhuma mudança, nada é gravado e `Campos` vem vazio.
+- `SalvarSegmentoUseCase.Ativar(ctx, ator, id) (AlteracaoSegmento, error)` e `Desativar(ctx, ator, id) (AlteracaoSegmento, error)`: mudam só a situação, com as mesmas validações (o `padrao` não é desativado; ativar exige prioridade livre).
+- `PreverSegmentacaoUseCase.Executar(ctx, ator, s Segmento) (PreviaSegmentacao, error)`: valida como `SalvarSegmento.Executar` (o mesmo erro, nada gravado) e calcula a prévia da RN-14 com `ConsentimentoRepository.ListarConcedidos`, `EstaValido`, `ClienteRepository.BuscarPorID` (só ativos), `PerfilRepository.BuscarPorCliente` e `EscolherSegmento`. `PreviaSegmentacao` traz `Linhas` (cada segmento ativo antes ou depois da mudança, na ordem da nova configuração, com `Segmento`, `Atual` e `Previsto`), `SemPerfil` e `Total` (clientes considerados). `s` com o campo `Ativo` diferente do gravado prevê a ativação ou a desativação.
+- `PreverSegmentacaoUseCase.TestarCriterio(criterio string, frequenciaCompras int, ticketMedio, scoreEngajamento float64) (bool, error)`: RN-14; sem `ctx`, não faz I/O; critério inválido: `errs.ErroCampo`. Não exige `ator`: o painel confere a permissão na rota.
+- `SalvarProdutoUseCase.Executar(ctx, ator, p Produto) (AlteracaoProduto, error)`: `p.ID` nulo cria (ID novo, ativo); senão edita nome, categoria e preço (`AtualizarPreco`) do produto existente (`ErrProdutoNaoEncontrado`); `NormalizarCategoria` e `Validar`; grava com `ProdutoRepository.Salvar`. `AlteracaoProduto` traz `Produto`, `Novo` e `Campos`. `Ativar` e `Desativar(ctx, ator, id) (AlteracaoProduto, error)` mudam só a situação.
+
+**Operadores e auditoria** [ADIÇÃO, v1.5, Q-35 a Q-40]. O `ator` é o operador da sessão, já conferido; os casos de uso de gestão conferem de novo a permissão dele (RN-11, `ErrSemPermissao`).
+
+- `AutenticarOperadorUseCase.Executar(ctx, login, senha string) (Operador, error)`: RN-12 (Entrar); `ErrCredenciaisInvalidas`. Com o login existente e a senha errada ou o operador inativo, o operador vem junto com o erro, só para a auditoria registrar o login (RN-13); nunca vale como entrada.
+- `AutenticarOperadorUseCase.Conferir(ctx, id uuid.UUID, carimbo time.Time) (Operador, error)`: o operador da sessão existe, está ativo e tem `SenhaAtualizadaEm` igual ao carimbo (comparado em microssegundos, a precisão do PostgreSQL); senão, `ErrCredenciaisInvalidas`. Devolve o operador com o papel atual (Q-38).
+- `GerenciarOperadoresUseCase` (permissão `usuarios`, menos `TrocarSenha` e `CriarAdministradorInicial`):
+    - `Listar(ctx, ator) ([]Operador, error)` e `Consultar(ctx, ator, id) (Operador, error)` (`ErrOperadorNaoEncontrado`).
+    - `Criar(ctx, ator, login, nome string, papel PapelOperador, senha string) (Operador, error)`: RN-12; nasce com `TrocarSenha`; `ErrLoginEmUso`.
+    - `MudarPapel(ctx, ator, id, papel) error`, `Desativar(ctx, ator, id) error`, `Ativar(ctx, ator, id) error`: `ErrPropriaConta` quando `id` é o do ator (menos em `Ativar`, que nunca se aplica a si mesmo).
+    - `RedefinirSenha(ctx, ator, id, senha string) error`: senha provisória, `TrocarSenha` e novo `SenhaAtualizadaEm`.
+    - `TrocarSenha(ctx, ator, atual, nova string) (Operador, error)`: qualquer papel, só a própria; `ErrCredenciaisInvalidas` se `atual` não confere. Devolve o operador com o novo carimbo, para o painel renovar a sessão de quem trocou.
+    - `CriarAdministradorInicial(ctx, login, senhaHash string) (bool, error)`: RN-12; devolve se criou.
+- `RegistrarAuditoriaUseCase.Executar(ctx, operador string, acao AcaoAuditoria, alvoTipo TipoAlvo, alvoID uuid.UUID, resultado ResultadoAuditoria, campos ...string) error`: RN-13; ID novo e Data do `Clock`. `campos` desde a v1.6 (Q-44).
+- `ListarAuditoriaUseCase.Executar(ctx, ator, FiltroListagemAuditoria) (PaginaAuditoria, error)`: permissão `auditoria`. O filtro tem `Operador`, `Acao`, `De` e `Ate` (instantes; vazios = sem limite; `De` ≤ Data < `Ate`) e `Pagina` (a partir de 1; 50 por página). `PaginaAuditoria` traz `Registros` (mais recente primeiro), `Total` e `Pagina`.
+- `ExpurgarAuditoriaUseCase.Executar(ctx) (int, error)`: RN-13; apaga os registros com Data anterior a agora menos `AUDITORIA_RETENCAO_DIAS` e devolve quantos. É o que o subcomando `expurgar-auditoria` chama.
 
 Serviços de domínio calculam e só leem ports quando precisam (segmentos e produtos). Quem persiste resultados são os casos de uso (D-09).
 
@@ -316,6 +454,8 @@ type PerfilRepository interface {
 type SegmentoRepository interface {
     ListarAtivos(ctx context.Context) ([]entity.Segmento, error)            // ordem crescente de Prioridade
     BuscarPorID(ctx context.Context, id uuid.UUID) (entity.Segmento, error) // [ADIÇÃO] ErrDadosInvalidos se inexistente
+    ListarTodos(ctx context.Context) ([]entity.Segmento, error)             // [ADIÇÃO] v1.6: ativos e inativos, Prioridade crescente, desempate por ID
+    Salvar(ctx context.Context, s entity.Segmento) error                    // [ADIÇÃO] v1.6: insere ou atualiza por ID; nome repetido (sem diferenciar maiúsculas) ou prioridade repetida entre ativos: errs.ErroCampo
 }
 type RecomendacaoRepository interface {
     Salvar(ctx context.Context, r entity.RecomendacaoProduto) error // insere ou atualiza por ID
@@ -328,10 +468,13 @@ type ConsentimentoRepository interface {
     BuscarPorCliente(ctx context.Context, clienteID uuid.UUID) (entity.ConsentimentoLGPD, error) // ErrConsentimentoNaoEncontrado
     Registrar(ctx context.Context, c entity.ConsentimentoLGPD, m entity.MovimentoConsentimento) error // [ADIÇÃO] v1.4 RN-10: upsert + inclusão do movimento, atômico; ID de movimento repetido falha sem gravar nada
     ListarMovimentos(ctx context.Context, clienteID uuid.UUID) ([]entity.MovimentoConsentimento, error) // [ADIÇÃO] v1.4: Data crescente, desempate pela ordem de gravação
+    ListarConcedidos(ctx context.Context) ([]entity.ConsentimentoLGPD, error) // [ADIÇÃO] v1.6 Q-42: registros com Status CONCEDIDO, por ClienteID
 }
 type ProdutoRepository interface { // [ADIÇÃO] (D-05)
     ListarAtivosPorCategoria(ctx context.Context, categoria string) ([]entity.Produto, error)
     ListarTodos(ctx context.Context) ([]entity.Produto, error) // [ADIÇÃO] Q-23: por Categoria e Nome
+    BuscarPorID(ctx context.Context, id uuid.UUID) (entity.Produto, error) // [ADIÇÃO] v1.6: ErrProdutoNaoEncontrado
+    Salvar(ctx context.Context, p entity.Produto) error                    // [ADIÇÃO] v1.6: insere ou atualiza por ID
 }
 type ConsentimentoGateway interface { // MVP: implementação local sobre ConsentimentoRepository
     Validar(ctx context.Context, clienteID uuid.UUID) (bool, error)
@@ -341,9 +484,35 @@ type IntegracaoGateway interface { // e-commerce/CRM; MVP: stub que devolve list
 }
 type Clock interface{ Agora() time.Time }
 
+// [ADIÇÃO, v1.5, Q-35, Q-36, Q-39]
+type OperadorRepository interface {
+    Salvar(ctx context.Context, o entity.Operador) error                         // insere ou atualiza por ID; Login de outro ID: ErrLoginEmUso
+    BuscarPorID(ctx context.Context, id uuid.UUID) (entity.Operador, error)      // ErrOperadorNaoEncontrado
+    BuscarPorLogin(ctx context.Context, login string) (entity.Operador, error)   // ErrOperadorNaoEncontrado
+    Listar(ctx context.Context) ([]entity.Operador, error)                       // por Login
+    CriarSeVazio(ctx context.Context, o entity.Operador) (bool, error)           // grava só se não houver nenhum operador; atômico
+}
+type AuditoriaRepository interface {
+    Registrar(ctx context.Context, r entity.RegistroAuditoria) error                       // só inclusão; ID repetido falha
+    Listar(ctx context.Context, f FiltroAuditoria) ([]entity.RegistroAuditoria, int, error) // Data decrescente, desempate pela gravação mais recente; página e total
+    ExpurgarAntesDe(ctx context.Context, limite time.Time) (int, error)                     // apaga Data < limite
+}
+type FiltroAuditoria struct {
+    Operador     string               // vazio = todos
+    Acao         entity.AcaoAuditoria // vazio = todas
+    De, Ate      time.Time            // zero = sem limite; De <= Data < Ate
+    Deslocamento int
+    Limite       int                  // 0 = sem limite
+}
+type HashSenha interface { // sem ctx: não faz I/O (C-07)
+    Gerar(senha string) (string, error)
+    Conferir(hash, senha string) bool
+}
+
 // internal/domain/service
 func (s *PerfilamentoService) GerarPerfil(clienteID uuid.UUID, eventos []entity.EventoComportamental) entity.PerfilCliente
 func (s *SegmentacaoService) Segmentar(ctx context.Context, p entity.PerfilCliente) (entity.Segmento, error)
+func EscolherSegmento(lista []entity.Segmento, p entity.PerfilCliente) (entity.Segmento, error) // [v1.6] RN-06 pura sobre uma lista; Segmentar e a prévia (Q-42) usam a mesma regra
 func (s *RecomendacaoService) Recomendar(ctx context.Context, c entity.Cliente, p entity.PerfilCliente, seg entity.Segmento) (entity.RecomendacaoProduto, error)
 func (v *ValidadorLGPD) ConsentimentoValido(ctx context.Context, clienteID uuid.UUID) (bool, error)
 ```
@@ -387,19 +556,41 @@ Adaptador de apresentação HTML em `internal/web` (irmão de `internal/api`, Q-
 | `GET /painel/clientes/{id}/consentimento` | Ficha: consentimento | `ConsultarCliente` |
 | `GET` e `POST /painel/clientes/{id}/consentimento/conceder` | Confirmar e conceder | UC-08 Conceder |
 | `GET` e `POST /painel/clientes/{id}/consentimento/revogar` | Confirmar e revogar | UC-08 Revogar |
-| `GET /painel/segmentos`, `GET /painel/catalogo` | Configuração (somente leitura) | `ListarSegmentos`, `ListarCatalogo` |
+| `GET /painel/segmentos`, `GET /painel/catalogo` | Configuração: listas (desde a v1.6, com os inativos e, para quem edita, as ações) | `ListarSegmentos.Todos`, `ListarCatalogo` |
+| `GET /painel/segmentos/novo`, `GET /painel/segmentos/{id}` [v1.6] | Formulário do segmento | `ListarSegmentos.Consultar` |
+| `POST /painel/segmentos/previa` [v1.6] | Prévia e confirmação (ou o formulário de volta com o erro ou com mais uma condição) | `PreverSegmentacao` |
+| `POST /painel/segmentos` [v1.6] | Salvar (botão da prévia) | `SalvarSegmento.Executar` |
+| `GET` e `POST /painel/segmentos/{id}/ativar`, `GET` e `POST /painel/segmentos/{id}/desativar` [v1.6] | Prévia e confirmação; ativar ou desativar | `PreverSegmentacao`, `SalvarSegmento.Ativar` e `Desativar` |
+| `POST /painel/segmentos/testar` [v1.6] | Testar critério | `PreverSegmentacao.TestarCriterio` |
+| `GET /painel/catalogo/novo`, `GET /painel/catalogo/{id}` [v1.6] | Formulário do produto | `ListarCatalogo.Consultar`, `Categorias` |
+| `POST /painel/catalogo` [v1.6] | Salvar produto | `SalvarProduto.Executar` |
+| `POST /painel/catalogo/{id}/ativar`, `GET` e `POST /painel/catalogo/{id}/desativar` [v1.6] | Ativar; confirmar e desativar | `SalvarProduto.Ativar` e `Desativar` |
 | `GET /painel/operacao`, `GET` e `POST /painel/operacao/expirar` | Saúde e expiração | `ExpirarRecomendacoes` |
 | `GET /painel/static/{arquivo}` | CSS, JS, fontes | — |
+| `GET` e `POST /painel/minha-senha` [v1.5] | Minha senha | `GerenciarOperadores.TrocarSenha` |
+| `GET /painel/usuarios` [v1.5] | Usuários | `GerenciarOperadores.Listar` |
+| `GET /painel/usuarios/novo`, `POST /painel/usuarios` [v1.5] | Criar operador | `GerenciarOperadores.Criar` |
+| `GET /painel/usuarios/{id}` [v1.5] | Operador: papel, situação e senha | `GerenciarOperadores.Consultar` |
+| `POST /painel/usuarios/{id}/papel` [v1.5] | Mudar papel | `GerenciarOperadores.MudarPapel` |
+| `GET` e `POST /painel/usuarios/{id}/desativar` [v1.5] | Confirmar e desativar | `GerenciarOperadores.Desativar` |
+| `POST /painel/usuarios/{id}/ativar` [v1.5] | Ativar | `GerenciarOperadores.Ativar` |
+| `POST /painel/usuarios/{id}/senha` [v1.5] | Redefinir senha | `GerenciarOperadores.RedefinirSenha` |
+| `GET /painel/auditoria?operador=&acao=&de=&ate=&pagina=` [v1.5] | Auditoria | `ListarAuditoria` |
 
-- **Sessão (Q-22):** cookie `perfila_sessao` com `operador|expiraEm|csrf` assinado por HMAC-SHA256 (`PAINEL_CHAVE_SESSAO`), `HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/painel`, 8 h renovadas a cada uso; sem estado no servidor. Sem sessão válida, toda rota (menos Entrar e estáticos) leva a Entrar com o destino guardado; sessão vencida mostra "Sua sessão expirou." Em requisição htmx, a resposta é `HX-Redirect`.
-- **Entrar:** senha conferida com bcrypt; erro genérico "Usuário ou senha incorretos."; 5 tentativas por IP em 5 minutos (em memória, por réplica), depois "Muitas tentativas. Aguarde 5 minutos." (429).
+- **Permissão por rota (v1.5, RN-11, Q-37):** `clientes` para a lista, o cadastro e as abas da ficha (GET); `processamento`, `eventos` (POST) e `consentimento` (GET e POST de conceder e revogar) para as ações; `configuracao` para Segmentos e Catálogo; `editar_configuracao` (v1.6) para os formulários, a prévia, o teste de critério e as ações de segmento e produto; `operacao`, `usuarios` e `auditoria` para as telas de mesmo nome. Entrar, Sair, Minha senha e estáticos não exigem permissão. Sem a permissão: 403 com a tela de erro "Sem permissão" e o registro `acesso_negado` (RN-13); nada é lido nem gravado.
+- **Menu e botões por papel (v1.5):** o menu mostra só as telas que o papel pode abrir; o rodapé mostra o login e o papel, "Minha senha" e "Sair". Ações sem permissão não aparecem. Depois de Entrar, ou em `/painel/`, quem tem `clientes` vai para Clientes e o ANALISTA vai para Segmentos.
+
+- **Sessão (Q-22; v1.5, Q-38):** cookie `perfila_sessao` com `operadorID|login|carimbo|expiraEm|csrf` (o login vai para logs e auditoria) (o carimbo é `SenhaAtualizadaEm` em microssegundos) assinado por HMAC-SHA256 (`PAINEL_CHAVE_SESSAO`), `HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/painel`, 8 h renovadas a cada uso; sem estado no servidor. A cada requisição, o painel confere o operador com `AutenticarOperador.Conferir`: inexistente, inativo ou com outra senha encerra a sessão, registra `sessao_encerrada` e leva a Entrar com "Sua sessão foi encerrada. Entre de novo."; o papel vem sempre do banco. Sem sessão válida, toda rota (menos Entrar e estáticos) leva a Entrar com o destino guardado; sessão vencida mostra "Sua sessão expirou." Em requisição htmx, a resposta é `HX-Redirect`. Com `TrocarSenha`, toda rota menos Minha senha e Sair leva a Minha senha.
+- **Entrar:** `AutenticarOperador.Executar` (RN-12); erro genérico "Usuário ou senha incorretos."; 5 tentativas por IP em 5 minutos (em memória, por réplica), depois "Muitas tentativas. Aguarde 5 minutos." (429). Senha atual errada em Minha senha conta como tentativa.
 - **CSRF:** todo POST confere o token da sessão, vindo do campo `_csrf` ou do cabeçalho `X-CSRF-Token`; ausente ou diferente responde 403.
 - **Cabeçalhos em toda resposta:** `Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin`, `X-Frame-Options: DENY`; `Cache-Control: no-store` nas páginas; estáticos com `max-age` de um ano e versão na URL.
 - **Consentimento (C-03, Q-21):** sem consentimento válido, a ficha mostra só cadastro e consentimento, com o aviso de bloqueio; nenhum caso de uso de comportamento é chamado para montar a tela.
 - **Histórico do consentimento (v1.4, Q-34):** conceder e revogar pelo painel gravam o movimento com origem `painel` e o login da sessão. A linha do tempo da aba Consentimento mostra o cadastro e cada movimento, do mais recente para o mais antigo, com finalidade, versão do termo e origem ("pela API", "pelo painel, por {operador}", "pelo portal do titular", "pelo sistema", "reconstruído das datas"). Cliente sem nenhum movimento continua com a linha montada pelas datas do registro, com o aviso de que ela não é o histórico completo.
 - **Sem JavaScript:** formulários comuns com redirecionamento 303 no sucesso (PRG) e confirmação em página própria. Com JavaScript, o htmx (`hx-boost`) faz as mesmas requisições e troca só a área do painel (`#app`), sem recarregar a página; os diálogos usam `<dialog>` nativo. Respostas de erro (4xx e 5xx) também são exibidas.
 - **Erros:** o código estável (`errs.Codigo`) escolhe a mensagem de `docs/design/03-textos.md`; o texto técnico nunca aparece. Falha inesperada mostra o código da requisição (`X-Request-ID` do Nginx).
-- **Logs (C-09, Q-24):** método, caminho (só UUIDs) e status; nas ações, operador, ação e `clienteId`. Nunca nome, e-mail, senha nem o termo de busca.
+- **Logs (C-09, Q-24):** método, caminho (só UUIDs) e status; nas ações, operador, ação e `clienteId`. Nunca nome, e-mail, senha nem o termo de busca. O nome do operador também não vai para o log nem para a auditoria.
+- **Segmentos e catálogo (v1.6, Q-33, Q-42, Q-43):** o formulário do segmento monta o critério por linhas de campo, operador e valor (uma condição por linha, ligadas por `&&`), com o texto do critério gravado visível acima; "Adicionar condição" devolve o formulário com mais uma linha (sem JavaScript, pelo `POST .../previa`; com JavaScript, na hora). Linha toda vazia é ignorada; linha incompleta é erro naquela linha. O botão principal leva à prévia; só a página da prévia tem "Salvar". A lista e a prévia avisam que os clientes já segmentados mudam só no próximo processamento. O catálogo lembra que a recomendação escolhe o primeiro produto ativo da categoria por nome (RN-07). Erros de validação aparecem ao lado do campo, com a mensagem do `errs.ErroCampo`.
+- **Auditoria (v1.5, RN-13):** os handlers chamam `RegistrarAuditoria` depois de cada ação e de cada aba da ficha, com o resultado. A tela Auditoria mostra data, operador, ação, alvo (ID truncado, com link para a ficha quando é cliente) e resultado, com filtros por operador, ação e período (datas no fuso de Brasília).
 
 ### 3.8 Configuração, estrutura de pastas e persistência
 
@@ -411,9 +602,10 @@ Adaptador de apresentação HTML em `internal/web` (irmão de `internal/api`, Q-
 | `RECOMENDACAO_VALIDADE_DIAS` | 30 | RN-08 |
 | `ENGAJAMENTO_META_EVENTOS` | 30 | RN-05 |
 | `LOG_LEVEL` | info | Nível de log |
-| `PAINEL_USUARIO` | operador | Login do operador do painel (Q-22) |
-| `PAINEL_SENHA_HASH` | vazia = painel desligado (Q-29) | Hash bcrypt da senha do operador (`omega-server hash-senha`, Q-28) |
-| `PAINEL_CHAVE_SESSAO` | vazia = painel desligado (Q-29) | Chave HMAC da sessão: 64 dígitos hexadecimais (32 bytes) |
+| `PAINEL_USUARIO` | operador | Login do administrador inicial, usado só sem nenhum operador gravado (Q-35) |
+| `PAINEL_SENHA_HASH` | vazia | Hash bcrypt do administrador inicial (`omega-server hash-senha`, Q-28, Q-35). Exigida só enquanto não houver operador: com a chave de sessão, sem operador e sem ela, o servidor não sobe e diz por quê. Sem a chave de sessão, é configuração inválida |
+| `PAINEL_CHAVE_SESSAO` | vazia = painel desligado (Q-29, Q-35) | Chave HMAC da sessão: 64 dígitos hexadecimais (32 bytes). Liga o painel |
+| `AUDITORIA_RETENCAO_DIAS` | 180 | Retenção da auditoria do painel (RN-13, Q-39) |
 | `PAINEL_FINALIDADE` | segmentacao | Finalidade sugerida ao conceder (Q-25) |
 | `PAINEL_VERSAO_TERMO` | v1 | Versão vigente do termo (Q-25) |
 
@@ -422,7 +614,7 @@ As variáveis são lidas de `config.env` ao subir o contêiner; variável obriga
 ```text
 perfila/                          módulo Go `perfila`
   CLAUDE.md                       constituição (C-01..C-12) e mapa de contexto
-  cmd/omega-server/main.go        [Support] raiz de composição; subcomandos serve, expirar-recomendacoes, hash-senha e carregar-exemplos
+  cmd/omega-server/main.go        [Support] raiz de composição; subcomandos serve, expirar-recomendacoes, hash-senha, carregar-exemplos e expurgar-auditoria
   cmd/perfila-demo/main.go        [Core] demonstração do fluxo em memória
   internal/
     api/                          [Support] handlers, rotas, middlewares, DTOs
@@ -436,6 +628,7 @@ perfila/                          módulo Go `perfila`
     infra/repository/pg/          [Generic] Pg*Repository e migrações
     infra/external/               [Support] gateways (consentimento local, integração stub)
     infra/config/                 [Support] leitura de config.env
+    infra/senha/                  [v1.5] HashSenha com bcrypt (Q-36)
     shared/errs/                  [Core] erros de domínio (sentinelas com código)
     arquitetura_test.go           [Core] teste de arquitetura (C-01, C-05, C-07, C-08)
   features/                       arquivos .feature, steps/ e runner godog
@@ -446,14 +639,17 @@ perfila/                          módulo Go `perfila`
 
 Persistência e implantação:
 
-- PostgreSQL via `database/sql` com o driver `pgx/v5/stdlib` (Q-10); migrações em SQL versionado, embutidas no binário e aplicadas pelo `omega-server` ao subir, sob `pg_advisory_lock` e registradas em `schema_migracoes` (Q-09); uma tabela por entidade (clientes, eventos_comportamentais, perfis_cliente, segmentos, recomendacoes_produto, consentimentos_lgpd, produtos e, desde a v1.4, movimentos_consentimento), em snake_case.
+- PostgreSQL via `database/sql` com o driver `pgx/v5/stdlib` (Q-10); migrações em SQL versionado, embutidas no binário e aplicadas pelo `omega-server` ao subir, sob `pg_advisory_lock` e registradas em `schema_migracoes` (Q-09); uma tabela por entidade (clientes, eventos_comportamentais, perfis_cliente, segmentos, recomendacoes_produto, consentimentos_lgpd, produtos e, desde a v1.4, movimentos_consentimento; desde a v1.5, operadores e registros_auditoria), em snake_case.
 - Chaves UUID; timestamps em `timestamptz` (UTC); `UNIQUE(cliente_id)` em perfis_cliente e consentimentos_lgpd; `CHECK` nos enums de status; chaves estrangeiras para clientes. Reforços de integridade que só repetem regras já existentes: chaves estrangeiras `perfis_cliente.segmento_id → segmentos` (D-06) e `recomendacoes_produto.produto_id → produtos` (D-05); `CHECK` de valor ≥ 0 nos eventos (RN-04), score entre 0 e 1 (RN-05) e preço ≥ 0 (`Produto.AtualizarPreco`).
 - Clientes de exemplo (Q-30, Q-32): catorze clientes sintéticos com história (datas de cadastro, consentimento, revogação, eventos e recomendações ao longo de meses), criados pelos casos de uso com um relógio de carga; no modo memória ao subir, no PostgreSQL por `carregar-exemplos`, e só com o banco sem clientes.
 - A migração 006 (v1.4, Q-34) cria `movimentos_consentimento` (chave UUID, coluna de ordem de gravação, `CHECK` em tipo e origem, operador obrigatório com origem painel, chave estrangeira para clientes) com um gatilho que recusa `UPDATE` e `DELETE` (só inclusão, RN-10), e reconstrói os movimentos dos clientes antigos a partir das datas que o registro prova: a última concessão (com finalidade e termo) e a última revogação (com finalidade e termo só se o estado ainda for REVOGADO; senão, em branco), com origem `migracao`.
+- A migração 008 (v1.6, Q-33, Q-44) cria os índices únicos parciais de `segmentos` (prioridade entre os ativos; nome em minúsculas) e acrescenta `campos` (texto, vazio por padrão) a `registros_auditoria`, com o `CHECK` das ações atualizado.
+- A migração 007 (v1.5, Q-35, Q-39) cria `operadores` (chave UUID, `login` único, `CHECK` no papel, hash, ativo, criado em, troca obrigatória e data da senha) e `registros_auditoria` (chave UUID, coluna de ordem de gravação, `CHECK` em ação, tipo do alvo e resultado, alvo com tipo e ID juntos, índices por data, operador e ação), com um gatilho que recusa `UPDATE` (só inclusão; o `DELETE` fica para o expurgo, RN-13). Sem chave estrangeira de `registros_auditoria.operador`: o login pode estar em branco (entrada com login desconhecido). `CriarSeVazio` grava sob `pg_advisory_xact_lock`, para as duas réplicas não criarem dois administradores iniciais.
+- Operadores de exemplo (Q-41): `admin` (pelas variáveis de desenvolvimento do `make serve`), `atendimento` e `analista`, criados só no modo memória; `carregar-exemplos` no PostgreSQL nunca cria operadores.
 - A migração 005 (Q-32) amplia a demonstração: segmentos vip, fiel, ocasional e explorador e catálogo de 7 categorias, iguais aos do modo memória.
 - A migração 004 (v1.3) cria os índices da listagem de clientes: `data_cadastro DESC` e o nome normalizado (minúsculas e sem acentos), Q-23.
 - A migração inicial cria o segmento padrao (critério vazio, Prioridade 99). Uma segunda migração carrega os segmentos e o catálogo sintéticos de demonstração, com os mesmos IDs do modo memória (Q-08). Dados de teste são sintéticos.
-- Uma suíte de contrato (`internal/infra/repository/contrato`) define o comportamento observável dos sete repositórios e roda contra os fakes em memória e contra o PostgreSQL (`PERFILA_TEST_DATABASE_URL`; sem ela, a parte PostgreSQL é pulada).
+- Uma suíte de contrato (`internal/infra/repository/contrato`) define o comportamento observável dos nove repositórios (sete desde a T-19; operadores e auditoria desde a v1.5; desde a v1.6, a gravação de segmentos e produtos e `ListarConcedidos`) e roda contra os fakes em memória e contra o PostgreSQL (`PERFILA_TEST_DATABASE_URL`; sem ela, a parte PostgreSQL é pulada).
 - Binário estático `omega-server` em contêiner Docker com `config.env`; duas réplicas atrás de Nginx (TLS e proxy para a porta 8080); PostgreSQL em servidor próprio, nunca acessível do dispositivo do cliente.
 - Implantação (T-24): `deploy/docker-compose.yml` com `nginx`, `app1`, `app2` e `db`. Redes `aplicacao` (Nginx e réplicas) e `dados` (réplicas e banco, interna, sem porta publicada). Só o Nginx publica porta, a HTTPS (Q-12); ele identifica a réplica no cabeçalho `X-Omega-Replica` (Q-11), tira réplicas paradas do balanceamento e registra logs sem IP nem query string (Q-14). O administrador executa os subcomandos com `docker compose exec` (equivalente local do SSH do UML8). Segredos gerados por script, fora do git (Q-14). Cenários `@implantacao` rodam fora do `make verify` (Q-13).
 
@@ -492,6 +688,8 @@ Prioridade Alta: impede gerar código correto. Média: gera comportamento ambíg
 | Versão | Data | Mudanças |
 |---|---|---|
 | v0 | 27/10/2026 | Documento único (PDF) e depois dividido em três `.md` |
+| v1.6 | 13/11/2026 | Edição de segmentos e do catálogo pelo painel (Q-33, Q-42 a Q-44; Q-45 aberta): RN-14; permissão `editar_configuracao` (RN-11); `Segmento.Validar`, `ValidarCriterio`, `ValidarSegmentos`, `Produto.Validar`, `NormalizarCategoria` e teto de `AtualizarPreco` (3.2); `RegistroAuditoria.Campos` e ações novas (RN-13); `SalvarSegmento`, `PreverSegmentacao`, `SalvarProduto`, `ErrSegmentoNaoEncontrado`, `ErrProdutoNaoEncontrado` e `errs.ErroCampo` (3.5); `SegmentoRepository.ListarTodos` e `Salvar`, `ProdutoRepository.BuscarPorID` e `Salvar`, `ConsentimentoRepository.ListarConcedidos`, `EscolherSegmento` (3.6); rotas (3.7.1); migração 008 (3.8) |
+| v1.5 | 13/11/2026 | Usuários, perfis de acesso e auditoria do painel (Q-35 a Q-41): papéis e o ator Atendimento (3.1); entidades `Operador` e `RegistroAuditoria` (3.2); RN-11 (matriz de permissões), RN-12 (operadores e senhas), RN-13 (auditoria e retenção de 180 dias); erros e casos de uso `AutenticarOperador`, `GerenciarOperadores`, `RegistrarAuditoria`, `ListarAuditoria`, `ExpurgarAuditoria` (3.5); `OperadorRepository`, `AuditoriaRepository`, `HashSenha` (3.6); rotas, permissão por rota, sessão conferida a cada requisição e menu por papel (3.7.1); `PAINEL_*` e `AUDITORIA_RETENCAO_DIAS`, subcomando `expurgar-auditoria`, `infra/senha`, migração 007 e operadores de exemplo (3.8) |
 | v1.4 | 12/11/2026 | Histórico completo do consentimento (Q-34): entidade `MovimentoConsentimento` (3.2), RN-10, UC-08 `Historico` e origem pelo contexto (3.5), `FichaCliente.Historico`, `ConsentimentoRepository.Registrar` e `ListarMovimentos` (3.6), origem nas rotas da API e do painel e linha do tempo pelo histórico (3.7, 3.7.1), migração 006 (3.8) |
 | v1.3 | 12/11/2026 | Painel web do operador (Q-20 a Q-29): seção 3.7.1, casos de uso de aplicação do painel (3.1 e 3.5), `ProcessarClienteUseCase` com o estado por etapa (RN-09, Q-26), `ClienteRepository.Listar`, `RecomendacaoRepository.ListarPorCliente` e `ProdutoRepository.ListarTodos` (3.6), configuração `PAINEL_*` (3.8), migração 004, subcomando `hash-senha` (Q-28); camada BDD `@web` |
 | v1.2 | 11/11/2026 | Fase Generic (T-19): `DATABASE_URL` vazia mantém o modo memória fora da implantação (Q-07); dados de demonstração por migração (Q-08); migrações aplicadas pelo servidor com trava (Q-09); driver pgx (Q-10); suíte de contrato dos repositórios; reforços de integridade no esquema (FKs para segmentos e produtos, CHECKs de faixa); erro de `SegmentoRepository.BuscarPorID` explicitado. T-24: implantação com Nginx, duas réplicas e banco isolado (Q-11 a Q-14). Correções do mapeamento de bugs (Q-15 a Q-19): limite de Valor, tolerância de relógio, falhas de configuração como 500, uma recomendação ATIVA por cliente, `/saude` com o banco e corpo JSON único |

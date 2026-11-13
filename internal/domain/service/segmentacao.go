@@ -28,11 +28,20 @@ func (s *SegmentacaoService) Segmentar(ctx context.Context, p entity.PerfilClien
 	if err != nil {
 		return entity.Segmento{}, err
 	}
-	sort.SliceStable(lista, func(i, j int) bool { return lista[i].Prioridade < lista[j].Prioridade })
+	return EscolherSegmento(lista, p)
+}
+
+// EscolherSegmento é a RN-06 pura sobre uma lista: ignora os inativos, ordena por Prioridade e
+// devolve o primeiro cujo critério casa. Usada por Segmentar e pela prévia (Q-42). Spec: RN-06, RN-14.
+func EscolherSegmento(lista []entity.Segmento, p entity.PerfilCliente) (entity.Segmento, error) {
+	ativos := make([]entity.Segmento, 0, len(lista))
 	for _, seg := range lista {
-		if !seg.Ativo {
-			continue
+		if seg.Ativo {
+			ativos = append(ativos, seg)
 		}
+	}
+	sort.SliceStable(ativos, func(i, j int) bool { return ativos[i].Prioridade < ativos[j].Prioridade })
+	for _, seg := range ativos {
 		casa, err := seg.ClassificarPerfil(p)
 		if err != nil {
 			// O critério veio da configuração, não do cliente: falha de configuração (Q-17).

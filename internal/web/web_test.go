@@ -75,9 +75,9 @@ func TestCondicoes(t *testing.T) {
 func TestSessao(t *testing.T) {
 	chave := []byte(strings.Repeat("k", 32))
 	agora := time.Date(2026, 11, 12, 12, 0, 0, 0, time.UTC)
-	s := sessao{Operador: "operador", Expira: agora.Add(duracaoSessao), CSRF: "abc123"}
+	s := sessao{OperadorID: uuid.New(), Operador: "operador", Carimbo: agora.UnixMicro(), Expira: agora.Add(duracaoSessao), CSRF: "abc123"}
 	valor := assinar(chave, s)
-	if got, err := validar(chave, valor, agora); err != nil || got.Operador != "operador" || got.CSRF != "abc123" {
+	if got, err := validar(chave, valor, agora); err != nil || got != s {
 		t.Fatalf("sessão válida: %+v %v", got, err)
 	}
 	corpo, assinatura, _ := strings.Cut(valor, ".")

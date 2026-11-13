@@ -1,11 +1,7 @@
 package entity
 
 import (
-	"fmt"
-
 	"github.com/google/uuid"
-
-	"perfila/internal/shared/errs"
 )
 
 // Produto do catálogo. Spec: 3.2, D-05. Fonte: UML2.
@@ -17,10 +13,10 @@ type Produto struct {
 	Ativo     bool
 }
 
-// AtualizarPreco exige preço maior ou igual a zero. Spec: 3.2.
+// AtualizarPreco exige preço de 0 a 1.000.000 (v1.6, Q-43). Spec: 3.2, RN-14.
 func (p *Produto) AtualizarPreco(preco float64) error {
-	if preco < 0 {
-		return fmt.Errorf("%w: preço negativo", errs.ErrDadosInvalidos)
+	if err := validarPreco(preco); err != nil {
+		return err
 	}
 	p.Preco = preco
 	return nil

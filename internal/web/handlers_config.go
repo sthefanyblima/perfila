@@ -6,25 +6,47 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/google/uuid"
+
 	"perfila/internal/domain/entity"
 )
 
-func (p *painel) rotasConfiguracao(mux *http.ServeMux, sessao func(http.HandlerFunc) http.Handler) {
-	mux.Handle("GET /painel/segmentos", sessao(p.telaSegmentos))
-	mux.Handle("GET /painel/catalogo", sessao(p.telaCatalogo))
-	mux.Handle("GET /painel/operacao", sessao(p.telaOperacao))
-	mux.Handle("GET /painel/operacao/expirar", sessao(p.confirmarExpiracao))
-	mux.Handle("POST /painel/operacao/expirar", sessao(p.expirar))
+func (p *painel) rotasConfiguracao(mux *http.ServeMux, sessao func(entity.Permissao, http.HandlerFunc) http.Handler) {
+	mux.Handle("GET /painel/segmentos", sessao(entity.PermConfiguracao, p.telaSegmentos))
+	mux.Handle("GET /painel/catalogo", sessao(entity.PermConfiguracao, p.telaCatalogo))
+	mux.Handle("GET /painel/operacao", sessao(entity.PermOperacao, p.telaOperacao))
+	mux.Handle("GET /painel/operacao/expirar", sessao(entity.PermOperacao, p.confirmarExpiracao))
+	mux.Handle("POST /painel/operacao/expirar", sessao(entity.PermOperacao, p.expirar))
+	p.rotasSegmentos(mux, sessao) // v1.6
+	p.rotasProdutos(mux, sessao)  // v1.6
 }
 
-// GET /painel/segmentos — somente leitura, por prioridade (RN-06).
+type dadosSegmentos struct {
+	Ativos, Inativos []entity.Segmento
+	Erro             *alerta
+}
+
+// GET /painel/segmentos — ativos por prioridade (RN-06) e, desde a v1.6, os inativos; quem tem
+// editar_configuracao vê as ações (RN-14).
 func (p *painel) telaSegmentos(w http.ResponseWriter, r *http.Request) {
-	lista, err := p.d.ListarSegmentos.Executar(r.Context())
+	p.mostrarSegmentos(w, r, http.StatusOK, nil)
+}
+
+func (p *painel) mostrarSegmentos(w http.ResponseWriter, r *http.Request, status int, erro *alerta) {
+	lista, err := p.d.ListarSegmentos.Todos(r.Context())
 	if err != nil {
 		p.falha(w, r, err, "")
 		return
 	}
-	p.render(w, r, http.StatusOK, "segmentos", pagina{Titulo: "Segmentos", Nav: "segmentos", Dados: lista})
+	d := dadosSegmentos{Erro: erro}
+	for _, s := range lista {
+		if s.Ativo {
+			d.Ativos = append(d.Ativos, s)
+		} else {
+			d.Inativos = append(d.Inativos, s)
+		}
+	}
+	p.render(w, r, status, "segmentos", pagina{Titulo: "Segmentos", Nav: "segmentos", Dados: d})
 }
 
 type grupoCatalogo struct {
@@ -81,6 +103,7 @@ func (p *painel) confirmarExpiracao(w http.ResponseWriter, r *http.Request) {
 // POST /painel/operacao/expirar — ExpirarRecomendacoesUseCase; o total vai no toast (PRG).
 func (p *painel) expirar(w http.ResponseWriter, r *http.Request) {
 	n, err := p.d.Expirar.Executar(r.Context())
+	p.auditar(r, entity.AcaoExpirarRecomendacoes, entity.AlvoNenhum, uuid.Nil, err)
 	if err != nil {
 		p.falha(w, r, err, "")
 		return

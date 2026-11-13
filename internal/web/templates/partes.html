@@ -2,22 +2,37 @@
 
 {{define "nav"}}
 <nav id="navegacao" class="pf-nav" aria-label="Navegação principal">
-  <a class="pf-nav__brand" href="/painel/clientes">Perfila <span class="pf-nav__env">console</span></a>
+  <a class="pf-nav__brand" href="/painel/">Perfila <span class="pf-nav__env">console</span></a>
+  {{- if .Pode.clientes}}
   <div class="pf-nav__group">
     <span class="pf-nav__heading">Clientes</span>
-    <a class="pf-nav__link" href="/painel/clientes"{{if eq .Nav "clientes"}} aria-current="page"{{end}}>Clientes</a>
+    <a class="pf-nav__link" href="/painel/clientes" data-teste="menu-clientes"{{if eq .Nav "clientes"}} aria-current="page"{{end}}>Clientes</a>
   </div>
+  {{- end}}
+  {{- if .Pode.configuracao}}
   <div class="pf-nav__group">
     <span class="pf-nav__heading">Configuração</span>
-    <a class="pf-nav__link" href="/painel/segmentos"{{if eq .Nav "segmentos"}} aria-current="page"{{end}}>Segmentos</a>
-    <a class="pf-nav__link" href="/painel/catalogo"{{if eq .Nav "catalogo"}} aria-current="page"{{end}}>Catálogo</a>
+    <a class="pf-nav__link" href="/painel/segmentos" data-teste="menu-segmentos"{{if eq .Nav "segmentos"}} aria-current="page"{{end}}>Segmentos</a>
+    <a class="pf-nav__link" href="/painel/catalogo" data-teste="menu-catalogo"{{if eq .Nav "catalogo"}} aria-current="page"{{end}}>Catálogo</a>
   </div>
+  {{- end}}
+  {{- if or .Pode.operacao .Pode.usuarios .Pode.auditoria}}
   <div class="pf-nav__group">
-    <span class="pf-nav__heading">Operação</span>
-    <a class="pf-nav__link" href="/painel/operacao"{{if eq .Nav "operacao"}} aria-current="page"{{end}}>Saúde e expiração</a>
+    <span class="pf-nav__heading">Administração</span>
+    {{- if .Pode.operacao}}
+    <a class="pf-nav__link" href="/painel/operacao" data-teste="menu-operacao"{{if eq .Nav "operacao"}} aria-current="page"{{end}}>Saúde e expiração</a>
+    {{- end}}
+    {{- if .Pode.usuarios}}
+    <a class="pf-nav__link" href="/painel/usuarios" data-teste="menu-usuarios"{{if eq .Nav "usuarios"}} aria-current="page"{{end}}>Usuários</a>
+    {{- end}}
+    {{- if .Pode.auditoria}}
+    <a class="pf-nav__link" href="/painel/auditoria" data-teste="menu-auditoria"{{if eq .Nav "auditoria"}} aria-current="page"{{end}}>Auditoria</a>
+    {{- end}}
   </div>
+  {{- end}}
   <div class="pf-nav__foot">
-    <span class="pf-nav__op"><span class="pf-nav__avatar" aria-hidden="true">{{slice .Operador 0 1}}</span>{{.Operador}}</span>
+    <span class="pf-nav__op"><span class="pf-nav__avatar" aria-hidden="true">{{slice .Operador 0 1}}</span><span>{{.Operador}}{{if .Papel}}<span class="pf-nav__papel">{{.Papel}}</span>{{end}}</span></span>
+    <a class="pf-btn pf-btn--quiet pf-btn--sm" href="/painel/minha-senha"{{if eq .Nav "minha-senha"}} aria-current="page"{{end}}>{{icone "chave"}} Minha senha</a>
     <form method="post" action="/painel/sair" hx-boost="false">
       <input type="hidden" name="_csrf" value="{{.CSRF}}">
       <button type="submit" class="pf-btn pf-btn--quiet pf-btn--sm">{{icone "sair"}} Sair</button>
@@ -25,6 +40,13 @@
   </div>
 </nav>
 {{end}}
+
+{{define "campo-texto"}}<div class="pf-field">
+  <label class="pf-field__label" for="{{.Nome}}">{{.Rotulo}}</label>
+  <input class="pf-input" id="{{.Nome}}" name="{{.Nome}}" value="{{.Valor}}" autocomplete="off"{{if or .Dica .Erro}} aria-describedby="{{if .Dica}}{{.Nome}}-dica{{end}}{{if .Erro}} {{.Nome}}-erro{{end}}"{{end}}{{if .Erro}} aria-invalid="true"{{end}}>
+  {{if .Dica}}<span class="pf-field__hint" id="{{.Nome}}-dica">{{.Dica}}</span>{{end}}
+  {{if .Erro}}<span class="pf-field__error" id="{{.Nome}}-erro" aria-live="assertive" data-teste="erro-{{.Nome}}">{{icone "barra"}}{{.Erro}}</span>{{end}}
+</div>{{end}}
 
 {{define "csrf"}}<input type="hidden" name="_csrf" value="{{.}}">{{end}}
 

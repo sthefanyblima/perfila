@@ -19,6 +19,36 @@
       }
       return;
     }
+    // Critério por linhas (v1.6): sem JS, "Adicionar condição" volta ao servidor com mais uma
+    // linha; com JS, a linha é clonada na hora, vazia.
+    var adicionar = ev.target.closest("[data-adicionar-condicao]");
+    if (adicionar) {
+      var lista = adicionar.form && adicionar.form.querySelector("[data-condicoes]");
+      var ultima = lista && lista.lastElementChild;
+      if (ultima) {
+        ev.preventDefault();
+        var n = lista.children.length;
+        var nova = ultima.cloneNode(true);
+        nova.setAttribute("data-teste", "condicao-vazia");
+        nova.querySelectorAll("select, input").forEach(function (c) { c.value = ""; c.id = c.name + "-" + n; });
+        nova.querySelectorAll("label").forEach(function (l) {
+          l.htmlFor = l.htmlFor.replace(/-\d+$/, "-" + n);
+          l.textContent = l.textContent.replace(/\d+$/, String(n + 1));
+        });
+        var legenda = nova.querySelector("legend");
+        if (legenda) { legenda.textContent = "Condição " + (n + 1); }
+        if (!nova.querySelector(".pf-crit__and")) {
+          var e = document.createElement("span");
+          e.className = "pf-crit__and";
+          e.setAttribute("aria-hidden", "true");
+          e.textContent = "E";
+          nova.insertBefore(e, nova.querySelector("label"));
+        }
+        lista.appendChild(nova);
+        nova.querySelector("select").focus();
+      }
+      return;
+    }
     var fechar = ev.target.closest("[data-fechar-dialogo]");
     if (fechar) {
       ev.preventDefault();

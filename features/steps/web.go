@@ -13,9 +13,9 @@ import (
 	"time"
 
 	"github.com/cucumber/godog"
-	"golang.org/x/crypto/bcrypt"
 
 	"perfila/internal/domain/entity"
+	"perfila/internal/domain/port"
 	"perfila/internal/web"
 )
 
@@ -33,10 +33,11 @@ type estadoWeb struct {
 }
 
 var (
-	reCSRF      = regexp.MustCompile(`name="_csrf" value="([^"]+)"`)
-	reEtapa     = regexp.MustCompile(`data-teste="etapa" data-estado="([a-z]+)"`)
-	reFicha     = regexp.MustCompile(`^/painel/clientes/[0-9a-f-]{36}$`)
-	reSintetico = regexp.MustCompile(`c-\d{3}`)
+	reCSRF  = regexp.MustCompile(`name="_csrf" value="([^"]+)"`)
+	reEtapa = regexp.MustCompile(`data-teste="etapa" data-estado="([a-z]+)"`)
+	reFicha = regexp.MustCompile(`^/painel/clientes/[0-9a-f-]{36}$`)
+	// Limites de palavra: não troca um "…2c-568a…" que aparece dentro de um UUID (v1.6).
+	reSintetico = regexp.MustCompile(`\bc-\d{3}\b`)
 )
 
 func registrarPassosWeb(sc *godog.ScenarioContext, m *Mundo) {
@@ -56,6 +57,76 @@ func registrarPassosWeb(sc *godog.ScenarioContext, m *Mundo) {
 		return nil
 	})
 	sc.Step(`^que o operador entrou no painel$`, m.entrouNoPainel)
+	sc.Step(`^que o operador "([^"]*)" com o papel "([^"]*)" entrou no painel$`, func(login, papel string) error {
+		senha := "senha-de-" + login + "-123"
+		if err := m.existeOperador(login, papel, senha); err != nil {
+			return err
+		}
+		m.web.usuario, m.web.senha = login, senha
+		return m.entrouNoPainel()
+	})
+	sc.Step(`^o menu mostra só os itens "([^"]*)"$`, func(itens string) error {
+		esperados := map[string]bool{}
+		for _, i := range strings.Split(itens, ",") {
+			esperados[strings.TrimSpace(i)] = true
+		}
+		for _, i := range []string{"clientes", "segmentos", "catalogo", "operacao", "usuarios", "auditoria"} {
+			if err := m.paginaTemMarcador(`data-teste="menu-`+i+`"`, esperados[i]); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	sc.Step(`^o operador envia "([^"]*)"$`, func(req string) error {
+		_, caminho, _ := strings.Cut(req, " ")
+		return m.webPOST(caminho, url.Values{}, true)
+	})
+	sc.Step(`^o cliente "([^"]*)" não tem perfil$`, func(c string) error {
+		if _, err := m.perfis.BuscarPorCliente(m.ctx, id(c)); err == nil {
+			return fmt.Errorf("o cliente %s tem perfil", c)
+		}
+		return nil
+	})
+	sc.Step(`^a página da ficha do cliente cadastrado é aberta$`, func() error {
+		cliente, _, err := m.clientes.Listar(m.ctx, port.FiltroClientes{Limite: 1})
+		if err != nil || len(cliente) == 0 {
+			return fmt.Errorf("nenhum cliente cadastrado: %v", err)
+		}
+		// Sem caminhoSintetico: o UUID aleatório pode conter "c-NNN".
+		m.requisitar(httptest.NewRequest(http.MethodGet, "/painel/clientes/"+cliente[0].ID.String(), nil), true)
+		return nil
+	})
+	sc.Step(`^que a página "([^"]*)" foi aberta$`, func(c string) error { return m.webGET(c, true) })
+	sc.Step(`^a auditoria na tela mostra (\d+) registros?$`, func(n int) error {
+		if got := strings.Count(m.web.pagina, `data-teste="linha-auditoria"`); got != n {
+			return fmt.Errorf("linhas da auditoria: esperado %d, obtido %d", n, got)
+		}
+		return nil
+	})
+	sc.Step(`^o operador cria pelo painel o operador "([^"]*)" com o papel "([^"]*)" e a senha "([^"]*)"$`,
+		func(login, papel, senha string) error {
+			if err := m.webGET("/painel/usuarios/novo", true); err != nil {
+				return err
+			}
+			return m.webPOST("/painel/usuarios", url.Values{"login": {login}, "nome": {"Operador Sintético"},
+				"papel": {papel}, "senha": {senha}}, true)
+		})
+	sc.Step(`^a resposta leva à página do operador "([^"]*)"$`, func(login string) error {
+		o, err := m.operador(login)
+		if err != nil {
+			return err
+		}
+		// Sem caminhoSintetico: um UUID aleatório pode conter "c-NNN" e seria trocado.
+		u, err := url.Parse(m.api.resposta.Header().Get("Location"))
+		if m.api.resposta.Code != http.StatusSeeOther || err != nil || u.Path != "/painel/usuarios/"+o.ID.String() {
+			return fmt.Errorf("esperava a página do operador %s, obtido %d %v", login, m.api.resposta.Code, u)
+		}
+		return nil
+	})
+	sc.Step(`^o operador "([^"]*)" entra com a senha "([^"]*)"$`, func(login, senha string) error {
+		m.web.usuario = login
+		return m.entrar(senha, "")
+	})
 	sc.Step(`^que se passaram (\d+) horas$`, func(h int) error { m.clock.Avancar(time.Duration(h) * time.Hour); return nil })
 	sc.Step(`^a página (?:de destino )?mostra "([^"]*)"$`, m.paginaMostra)
 	sc.Step(`^a página (?:de destino )?mostra o selo "([^"]*)"$`, func(e string) error {
@@ -101,9 +172,9 @@ func registrarPassosWeb(sc *godog.ScenarioContext, m *Mundo) {
 	sc.Step(`^o log do painel não contém "([^"]*)", "([^"]*)" nem "([^"]*)"$`, m.logSemDados)
 }
 
+// painelNoAr monta o painel com um ADMINISTRADOR (o operador do Contexto, Q-35).
 func (m *Mundo) painelNoAr(usuario, senha string) error {
-	hash, err := bcrypt.GenerateFromPassword([]byte(senha), bcrypt.MinCost)
-	if err != nil {
+	if err := m.existeOperador(usuario, string(entity.PapelAdministrador), senha); err != nil {
 		return err
 	}
 	chave := make([]byte, 32)
@@ -111,8 +182,12 @@ func (m *Mundo) painelNoAr(usuario, senha string) error {
 	m.web.usuario, m.web.senha, m.web.cookies = usuario, senha, map[string]string{}
 	m.segmentos.Adicionar(entity.Segmento{ID: id("seg:padrao"), Nome: "padrao", Prioridade: 99, Ativo: true})
 	c := m.uc()
+	var err error
 	m.web.handler, err = web.NovoRouter(web.Dependencias{
-		Usuario: usuario, SenhaHash: hash, ChaveSessao: chave, Finalidade: "segmentacao", VersaoTermo: "v1",
+		ChaveSessao: chave, Finalidade: "segmentacao", VersaoTermo: "v1",
+		Autenticar: c.autenticar, Operadores: c.operadores, RegistrarAuditoria: c.registrarAuditoria,
+		ListarAuditoria: c.listarAuditoria,
+		SalvarSegmento:  c.salvarSegmento, PreverSegmentacao: c.prever, SalvarProduto: c.salvarProduto,
 		Cadastrar: c.cadastrar, Consentimento: c.consentimento, Coletar: c.coletar, Processar: c.processar,
 		ListarClientes: c.listarClientes, ConsultarCliente: c.consultarCliente, ConsultarResultado: c.consultarResultado,
 		ListarSegmentos: c.listarSegmentos, ListarCatalogo: c.listarCatalogo, Expirar: c.expirar,

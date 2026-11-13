@@ -12,8 +12,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
+	"perfila/internal/domain/entity"
+	"perfila/internal/domain/port"
 	"perfila/internal/infra/config"
 )
 
@@ -131,5 +134,66 @@ func TestHashSenha(t *testing.T) {
 	}
 	if err := hashSenha(strings.NewReader("curta\n"), io.Discard); err == nil {
 		t.Fatal("senha curta deveria falhar")
+	}
+}
+
+// Spec: RN-12 Q-35 — o administrador inicial vem das variáveis só sem operador; sem operador e
+// sem o hash, o servidor não sobe.
+func TestAdministradorInicial(t *testing.T) {
+	ctx := context.Background()
+	cfg := config.Config{AuthToken: "x", LogLevel: "info", RecomendacaoValidadeDias: 30, EngajamentoMetaEventos: 30,
+		AuditoriaRetencaoDias: 180, PainelUsuario: "admin", PainelChaveSessao: []byte(strings.Repeat("k", 32))}
+	app, err := montar(ctx, cfg, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := prepararOperadores(ctx, cfg, app); err == nil || !strings.Contains(err.Error(), "PAINEL_SENHA_HASH") {
+		t.Fatalf("sem operador e sem hash: %v", err)
+	}
+	cfg.PainelSenhaHash = "$2a$12$hashsinteticodeteste"
+	for i := 0; i < 2; i++ { // a segunda subida não cria outro
+		if err := prepararOperadores(ctx, cfg, app); err != nil {
+			t.Fatal(err)
+		}
+	}
+	ops, _ := app.repos.operadores.Listar(ctx)
+	if len(ops) != 1 || ops[0].Login != "admin" || ops[0].Papel != "ADMINISTRADOR" || ops[0].TrocarSenha {
+		t.Fatalf("operadores: %+v", ops)
+	}
+	cfg.PainelSenhaHash = ""
+	if err := prepararOperadores(ctx, cfg, app); err != nil {
+		t.Fatalf("com operador gravado, a chave basta: %v", err)
+	}
+}
+
+// Spec: RN-13 Q-39 — o subcomando apaga só o que passou da retenção.
+func TestExpurgarAuditoria(t *testing.T) {
+	ctx := context.Background()
+	cfg := config.Config{AuthToken: "x", LogLevel: "info", RecomendacaoValidadeDias: 30, EngajamentoMetaEventos: 30, AuditoriaRetencaoDias: 180}
+	app, err := montar(ctx, cfg, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	agora := time.Now().UTC()
+	for _, dias := range []int{10, 200} {
+		r, err := entity.NovoRegistroAuditoria(uuid.New(), agora.AddDate(0, 0, -dias), "admin", entity.AcaoEntrar,
+			entity.AlvoNenhum, uuid.Nil, entity.ResultadoSucesso)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := app.repos.auditoria.Registrar(ctx, r); err != nil {
+			t.Fatal(err)
+		}
+	}
+	n, err := app.expurgar.Executar(ctx)
+	if err != nil || n != 1 {
+		t.Fatalf("expurgados %d (%v), esperado 1", n, err)
+	}
+	if _, total, _ := app.repos.auditoria.Listar(ctx, port.FiltroAuditoria{}); total != 1 {
+		t.Fatalf("restaram %d", total)
+	}
+	soToken := func(k string) string { return map[string]string{"AUTH_TOKEN": "x"}[k] }
+	if err := executar([]string{"expurgar-auditoria"}, soToken, io.Discard); err != nil {
+		t.Fatalf("subcomando expurgar-auditoria: %v", err)
 	}
 }

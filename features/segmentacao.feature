@@ -80,3 +80,106 @@ Funcionalidade: Segmentação automática de clientes
       | ticketMedio >      |
       | ticketMedio > 1 && |
       | ticketMedio != 1   |
+
+  # ---- Edição de segmentos pelo painel (v1.6, Q-33, Q-42, RN-14) ----
+
+  @aplicacao @RN-14 @Q-33
+  Cenário: Um segmento novo entra na avaliação pela prioridade
+    Dado que o perfil do cliente "c-001" tem ticket médio 100, frequência de compras 1 e score de engajamento 0.2
+    E que o operador "caio" com o papel "ANALISTA" criou o segmento "ocasional" com prioridade 3 e critério "frequenciaCompras >= 1"
+    Quando o cliente "c-001" é segmentado
+    Então o segmento atribuído é "ocasional"
+
+  @aplicacao @RN-14 @Q-33
+  Esquema do Cenário: Critério fora da gramática é recusado ao salvar, com a condição errada
+    Quando o operador "caio" com o papel "ANALISTA" muda o critério do segmento "engajado" para "<criterio>"
+    Então a operação falha com o erro "dados_invalidos" no campo "criterio"
+    E a mensagem do erro cita "<condicao>"
+    E o segmento "engajado" continua com o critério "scoreEngajamento >= 0.7"
+
+    Exemplos:
+      | criterio                                | condicao        |
+      | idade > 18                              | idade > 18      |
+      | scoreEngajamento >= 0.5 && ticket > 1   | ticket > 1      |
+      | scoreEngajamento >= 0.5 &&              | &&              |
+
+  @aplicacao @RN-14 @Q-33
+  Esquema do Cenário: O segmento padrao é protegido
+    Quando o operador "caio" com o papel "ANALISTA" <acao>
+    Então a operação falha com o erro "dados_invalidos" no campo "<campo>"
+    E os segmentos ativos são "premium", "engajado" e "padrao"
+
+    Exemplos:
+      | acao                                                       | campo      |
+      | desativa o segmento "padrao"                               | ativo      |
+      | muda o critério do segmento "padrao" para "ticketMedio > 0" | criterio   |
+      | muda o critério do segmento "engajado" para ""              | criterio   |
+      | muda a prioridade do segmento "engajado" para 100           | prioridade |
+
+  @aplicacao @RN-14 @Q-33
+  Esquema do Cenário: Nome e prioridade não se repetem entre os segmentos ativos
+    Quando o operador "caio" com o papel "ANALISTA" cria o segmento "<nome>" com prioridade <prioridade> e critério "frequenciaCompras >= 1"
+    Então a operação falha com o erro "dados_invalidos" no campo "<campo>"
+
+    Exemplos:
+      | nome      | prioridade | campo      |
+      | ocasional | 2          | prioridade |
+      | Premium   | 5          | nome       |
+      | vip;novo  | 5          | nome       |
+      | ocasional | 0          | prioridade |
+
+  @aplicacao @RN-14 @Q-33
+  Cenário: Desativar tira o segmento da avaliação
+    Dado que o perfil do cliente "c-001" tem ticket médio 100, frequência de compras 1 e score de engajamento 0.9
+    E que o operador "caio" com o papel "ANALISTA" desativou o segmento "engajado"
+    Quando o cliente "c-001" é segmentado
+    Então o segmento atribuído é "padrao"
+
+  @aplicacao @RN-14 @Q-33
+  Cenário: Perfil já segmentado fica como está até o próximo processamento
+    Dado que o perfil do cliente "c-001" tem ticket médio 100, frequência de compras 1 e score de engajamento 0.9
+    E que o cliente "c-001" foi segmentado
+    Quando o operador "caio" com o papel "ANALISTA" desativa o segmento "engajado"
+    Então o perfil do cliente "c-001" está associado ao segmento "engajado"
+
+  @aplicacao @RN-11 @Q-33
+  Cenário: Quem só atende não edita segmentos
+    Quando o operador "rita" com o papel "ATENDIMENTO" muda o critério do segmento "engajado" para "scoreEngajamento >= 0.5"
+    Então a operação falha com o erro "sem_permissao"
+    E o segmento "engajado" continua com o critério "scoreEngajamento >= 0.7"
+
+  @aplicacao @RN-14 @Q-42 @lgpd
+  Cenário: A prévia conta só clientes ativos com consentimento válido, pelo perfil salvo
+    Dado que existem os clientes com perfil salvo:
+      | cliente | consentimento | ativo | ticket | frequencia | score | segmento |
+      | c-001   | CONCEDIDO     | sim   | 600    | 4          | 0.2   | premium  |
+      | c-002   | CONCEDIDO     | sim   | 100    | 1          | 0.6   | padrao   |
+      | c-003   | CONCEDIDO     | sim   | 100    | 1          | 0.8   | engajado |
+      | c-004   | REVOGADO      | sim   | 100    | 1          | 0.6   | padrao   |
+      | c-005   | CONCEDIDO     | não   | 100    | 1          | 0.6   | padrao   |
+    E que existe o cliente "c-006" ativo, com consentimento válido e sem perfil
+    Quando o operador "caio" com o papel "ANALISTA" pede a prévia do critério "scoreEngajamento >= 0.5" para o segmento "engajado"
+    Então a prévia mostra:
+      | segmento | atual | previsto |
+      | premium  | 1     | 1        |
+      | engajado | 1     | 2        |
+      | padrao   | 1     | 0        |
+    E a prévia considera 4 clientes, 1 deles sem perfil
+    E o segmento "engajado" continua com o critério "scoreEngajamento >= 0.7"
+
+  @aplicacao @RN-14 @Q-42
+  Cenário: A prévia de um critério inválido falha como o salvamento
+    Quando o operador "caio" com o papel "ANALISTA" pede a prévia do critério "idade > 18" para o segmento "engajado"
+    Então a operação falha com o erro "dados_invalidos" no campo "criterio"
+
+  @dominio @RN-14 @Q-42
+  Esquema do Cenário: Testar critério com valores digitados
+    Quando o critério "<criterio>" é testado com frequência de compras <frequencia>, ticket médio <ticket> e score <score>
+    Então o teste do critério dá "<resultado>"
+
+    Exemplos:
+      | criterio                                     | frequencia | ticket | score | resultado |
+      | ticketMedio >= 500 && frequenciaCompras >= 3 | 3          | 500    | 0     | casa      |
+      | ticketMedio >= 500 && frequenciaCompras >= 3 | 2          | 500    | 0     | não casa  |
+      | scoreEngajamento > 0.7                       | 0          | 0      | 0.7   | não casa  |
+      |                                              | 0          | 0      | 0     | casa      |

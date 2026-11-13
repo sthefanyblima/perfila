@@ -59,7 +59,7 @@ func bancoDeTeste(t *testing.T, esquema string) *sql.DB {
 func esvaziar(t *testing.T, db *sql.DB) {
 	t.Helper()
 	_, err := db.Exec(`TRUNCATE recomendacoes_produto, perfis_cliente, eventos_comportamentais,
-		movimentos_consentimento, consentimentos_lgpd, clientes, produtos, segmentos`)
+		movimentos_consentimento, consentimentos_lgpd, clientes, produtos, segmentos, operadores, registros_auditoria`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,6 +78,8 @@ func TestContratoPostgres(t *testing.T) {
 			Recomendacoes:  pg.NovoPgRecomendacaoRepository(db),
 			Consentimentos: pg.NovoPgConsentimentoRepository(db),
 			Produtos:       pg.NovoPgProdutoRepository(db),
+			Operadores:     pg.NovoPgOperadorRepository(db),
+			Auditoria:      pg.NovoPgAuditoriaRepository(db),
 			AdicionarSegmento: func(t *testing.T, s entity.Segmento) {
 				if _, err := db.Exec(`INSERT INTO segmentos (id, nome, descricao, criterio, prioridade, ativo)
 					VALUES ($1, $2, $3, $4, $5, $6)`, s.ID, s.Nome, s.Descricao, s.Criterio, s.Prioridade, s.Ativo); err != nil {
@@ -109,7 +111,7 @@ func TestMigracoes(t *testing.T) {
 		versoes = append(versoes, v)
 	}
 	linhas.Close()
-	if !reflect.DeepEqual(versoes, []string{"001_inicial", "002_dados_demonstracao", "003_recomendacoes_ativas_por_cliente", "004_listagem_de_clientes", "005_demonstracao_ampliada", "006_movimentos_consentimento"}) {
+	if !reflect.DeepEqual(versoes, []string{"001_inicial", "002_dados_demonstracao", "003_recomendacoes_ativas_por_cliente", "004_listagem_de_clientes", "005_demonstracao_ampliada", "006_movimentos_consentimento", "007_operadores_auditoria", "008_configuracao_pelo_painel"}) {
 		t.Fatalf("migrações registradas: %v", versoes)
 	}
 	aplicadas, err := pg.Migrar(ctx, db)
@@ -205,5 +207,25 @@ func TestMigracaoReconstroiMovimentos(t *testing.T) {
 		if _, err := db.Exec(sqlTexto); err == nil {
 			t.Fatalf("o banco aceitou %q em movimentos_consentimento", sqlTexto)
 		}
+	}
+}
+
+// Spec: RN-13 Q-39 — a auditoria é só de inclusão: o banco recusa UPDATE; DELETE é o expurgo.
+func TestAuditoriaSoInclusao(t *testing.T) {
+	db := bancoDeTeste(t, "teste_auditoria")
+	esvaziar(t, db)
+	if _, err := db.Exec(`INSERT INTO registros_auditoria (id, data, operador, acao, resultado)
+		VALUES (gen_random_uuid(), now(), 'admin', 'entrar', 'SUCESSO')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`UPDATE registros_auditoria SET operador = 'outro'`); err == nil {
+		t.Fatal("UPDATE em registros_auditoria foi aceito")
+	}
+	if _, err := db.Exec(`INSERT INTO registros_auditoria (id, data, operador, acao, alvo_tipo, resultado)
+		VALUES (gen_random_uuid(), now(), 'admin', 'ler_ficha', 'cliente', 'SUCESSO')`); err == nil {
+		t.Fatal("alvo com tipo e sem ID foi aceito")
+	}
+	if _, err := db.Exec(`DELETE FROM registros_auditoria`); err != nil {
+		t.Fatalf("expurgo recusado: %v", err)
 	}
 }
