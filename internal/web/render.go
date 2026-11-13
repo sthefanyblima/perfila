@@ -71,6 +71,7 @@ func funcoes(versoes map[string]string) template.FuncMap {
 			return alerta{Tom: "warn", Titulo: titulo, Texto: texto, Teste: "sem-recomendacao"}
 		},
 		"motivo":       motivoLegivel,
+		"rotuloAcao":   rotuloAcao,
 		"lista":        func(v ...string) []string { return v },
 		"fichaComCSRF": func(d dadosFicha, csrf string) fichaCSRF { return fichaCSRF{D: d, CSRF: csrf} },
 		"formConsentimento": func(d dadosFicha, csrf, acao string, dialogo bool) formCons {

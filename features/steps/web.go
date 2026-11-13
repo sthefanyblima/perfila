@@ -96,6 +96,12 @@ func registrarPassosWeb(sc *godog.ScenarioContext, m *Mundo) {
 		return nil
 	})
 	sc.Step(`^que a página "([^"]*)" foi aberta$`, func(c string) error { return m.webGET(c, true) })
+	sc.Step(`^a auditoria na tela mostra (\d+) registros?$`, func(n int) error {
+		if got := strings.Count(m.web.pagina, `data-teste="linha-auditoria"`); got != n {
+			return fmt.Errorf("linhas da auditoria: esperado %d, obtido %d", n, got)
+		}
+		return nil
+	})
 	sc.Step(`^o operador cria pelo painel o operador "([^"]*)" com o papel "([^"]*)" e a senha "([^"]*)"$`,
 		func(login, papel, senha string) error {
 			if err := m.webGET("/painel/usuarios/novo", true); err != nil {

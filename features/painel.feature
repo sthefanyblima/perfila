@@ -247,7 +247,7 @@ Funcionalidade: Painel web do operador
 
   # ---- Usuários, perfis de acesso e auditoria (v1.5, Q-35 a Q-41, RN-11 a RN-13) ----
 
-  @RN-11 @Q-37 @wip
+  @RN-11 @Q-37
   Esquema do Cenário: Cada papel só abre o que pode
     Dado que o operador "rita" com o papel "<papel>" entrou no painel
     Quando a página "<pagina>" é aberta
@@ -344,7 +344,7 @@ Funcionalidade: Painel web do operador
     Então a auditoria tem registros das ações "cadastrar_cliente" e "ler_ficha"
     E nenhum registro da auditoria contém "Cliente Sintético" nem "c-020@exemplo.test"
 
-  @RN-13 @Q-39 @wip
+  @RN-13 @Q-39
   Cenário: A tela Auditoria filtra por ação
     Dado que o operador entrou no painel
     E que o consentimento do cliente "c-001" está no estado "CONCEDIDO"

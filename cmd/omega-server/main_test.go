@@ -12,8 +12,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
+	"perfila/internal/domain/entity"
+	"perfila/internal/domain/port"
 	"perfila/internal/infra/config"
 )
 
@@ -160,5 +163,37 @@ func TestAdministradorInicial(t *testing.T) {
 	cfg.PainelSenhaHash = ""
 	if err := prepararOperadores(ctx, cfg, app); err != nil {
 		t.Fatalf("com operador gravado, a chave basta: %v", err)
+	}
+}
+
+// Spec: RN-13 Q-39 — o subcomando apaga só o que passou da retenção.
+func TestExpurgarAuditoria(t *testing.T) {
+	ctx := context.Background()
+	cfg := config.Config{AuthToken: "x", LogLevel: "info", RecomendacaoValidadeDias: 30, EngajamentoMetaEventos: 30, AuditoriaRetencaoDias: 180}
+	app, err := montar(ctx, cfg, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	agora := time.Now().UTC()
+	for _, dias := range []int{10, 200} {
+		r, err := entity.NovoRegistroAuditoria(uuid.New(), agora.AddDate(0, 0, -dias), "admin", entity.AcaoEntrar,
+			entity.AlvoNenhum, uuid.Nil, entity.ResultadoSucesso)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := app.repos.auditoria.Registrar(ctx, r); err != nil {
+			t.Fatal(err)
+		}
+	}
+	n, err := app.expurgar.Executar(ctx)
+	if err != nil || n != 1 {
+		t.Fatalf("expurgados %d (%v), esperado 1", n, err)
+	}
+	if _, total, _ := app.repos.auditoria.Listar(ctx, port.FiltroAuditoria{}); total != 1 {
+		t.Fatalf("restaram %d", total)
+	}
+	soToken := func(k string) string { return map[string]string{"AUTH_TOKEN": "x"}[k] }
+	if err := executar([]string{"expurgar-auditoria"}, soToken, io.Discard); err != nil {
+		t.Fatalf("subcomando expurgar-auditoria: %v", err)
 	}
 }

@@ -133,6 +133,10 @@ func rotulo(v string) string {
 		return "Atendimento"
 	case string(entity.PapelAnalista):
 		return "Analista"
+	case string(entity.AlvoSegmento):
+		return "Segmento"
+	case string(entity.AlvoProduto):
+		return "Produto"
 	}
 	return v
 }
