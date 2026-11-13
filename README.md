@@ -19,10 +19,11 @@ Desenvolvido com **Spec-Driven Development** (a especificação é a fonte da ve
 | **Generic** (PostgreSQL, Docker/Nginx, LGPD), 25% | 16–19/11 | ✅ contrato nos dois backends · 3 cenários de implantação · checklist LGPD |
 | **Painel web do operador** (Spec v1.3, T-31 a T-38) | 12/11 | ✅ 26 cenários `@web` · 21 de aplicação novos · 1 de implantação |
 | **Histórico do consentimento** (Spec v1.4, T-42 a T-46, Q-34) | 12/11 | ✅ 8 cenários de aplicação · 4 `@web` · contrato e migração 006 nos dois backends |
+| **Importação de eventos em lote** (Spec v1.8, T-65 a T-68, Q-47) | 13/11 | ✅ 34 cenários de aplicação · 4 `@api` · 7 `@web` |
 | Fechamento do escopo | 19/11 | daqui em diante, só correções |
 | Ensaio · evento final | 23/11 · 24/11 | roteiro em `docs/ROTEIRO_DEMONSTRACAO.md` |
 
-**174 cenários BDD** (170 no `make verify` + 4 de implantação), teste de arquitetura e suíte de contrato dos repositórios em memória e em PostgreSQL.
+**219 cenários BDD** (215 no `make verify` + 4 de implantação), teste de arquitetura e suíte de contrato dos repositórios em memória e em PostgreSQL.
 
 ## Arquitetura
 
@@ -93,6 +94,7 @@ O ambiente prevalece sobre o arquivo. Exemplo em `deploy/config.env.example`.
 | `GET /v1/clientes/{id}/consentimento` | UC-08 Consultar | token |
 | `POST /v1/clientes/{id}/eventos` | UC-01 Registrar evento | token + consentimento |
 | `POST /v1/clientes/{id}/processamento` | UC-01 → UC-02 → UC-03 → UC-04 (RN-09) | token + consentimento |
+| `POST /v1/eventos/lote` (`?previa=true` só confere) | lote de até 1.000 eventos em JSON, linha a linha (RN-16) | token; consentimento conferido em cada linha |
 | `GET /saude` | saúde, para o balanceador | — |
 
 Erros: JSON `{codigo, mensagem}` com códigos estáveis (Spec 3.5): 401 sem token, 403 `consentimento_invalido`, 404 `cliente_nao_encontrado`, 409 `cliente_inativo` / `transicao_invalida` / `perfil_nao_encontrado`, 422 `dados_invalidos`.
@@ -107,10 +109,11 @@ Interface web em `/painel`, servida pelo próprio `omega-server`, seguindo o des
 | Cadastrar cliente | UC-09; abre a ficha já com o selo "Não concedido" |
 | Ficha | selo de consentimento sempre visível; Visão geral (etapas do processamento, perfil, segmento com os critérios atendidos, recomendação), Eventos e Consentimento. Sem consentimento, nenhum dado de comportamento é lido |
 | Consentimento | registro atual e linha do tempo com cada concessão e revogação: finalidade, versão do termo e origem (API, painel com o operador, portal). Só inclusão; cliente sem movimentos mostra a linha pelas datas (Q-34) |
+| Importar eventos | CSV com cabeçalho (`cliente_id,tipo,origem,timestamp,valor,categoria`), até 1.000 linhas e 256 KiB; prévia sem gravar, confirmação e relatório por linha. Cada linha passa por RN-01 e RN-04; duplicados (cliente, tipo, instante e valor) são ignorados, então reenviar é seguro. O arquivo não fica guardado (RN-16, Q-47). Modelo em "Baixar modelo"; exemplo pronto para a demonstração em `docs/exemplos/eventos-lote.csv` |
 | Segmentos e Catálogo | somente leitura |
 | Operação | saúde do banco e expiração de recomendações vencidas |
 
-Demonstração (Q-30, Q-32): 7 segmentos (vip, premium, fiel, engajado, explorador, ocasional, padrao), catálogo de 7 categorias e 14 clientes com história ao longo de meses: Ana (premium, com recomendações expiradas), Bruno (engajado), Carla e Davi (ocasional; Davi sem produto elegível), Elisa (nunca concedeu), Fábio (revogou), Gabi (inativa, histórico só leitura), Heitor (vip), Isabela (fiel), João (explorador), Karina (concedeu v1 pela API, revogou e concedeu v2 pelo painel: histórico completo), Lucas (ainda não processado), Marina (só recomendação expirada) e Nina (padrão). No `make serve` eles entram sozinhos; na implantação, com `make exemplos`.
+Demonstração (Q-30, Q-32): 7 segmentos (vip, premium, fiel, engajado, explorador, ocasional, padrao), catálogo de 7 categorias e 14 clientes com história ao longo de meses: Ana (premium, com recomendações expiradas), Bruno (engajado), Carla e Davi (ocasional; Davi sem produto elegível), Elisa (nunca concedeu), Fábio (revogou), Gabi (inativa, histórico só leitura), Heitor (vip), Isabela (fiel), João (explorador), Karina (concedeu v1 pela API, revogou e concedeu v2 pelo painel: histórico completo), Lucas (ainda não processado), Marina (só recomendação expirada) e Nina (padrão). No `make serve` eles entram sozinhos; na implantação, com `make exemplos`. Desde a v1.8, cada um tem ID fixo derivado do e-mail sintético, para o arquivo de exemplo da importação funcionar em qualquer instalação.
 
 Sessão assinada sem estado (funciona com as duas réplicas), CSRF em todo envio, 5 tentativas de entrada por IP em 5 minutos, CSP `'self'`. Funciona sem JavaScript (formulários com redirecionamento e páginas de confirmação); com JavaScript, troca só a área do painel e usa diálogos nativos.
 

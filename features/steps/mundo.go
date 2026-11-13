@@ -48,6 +48,7 @@ type Mundo struct {
 	processamento          usecase.ResultadoProcessamento
 	leitura                estadoLeitura
 	web                    estadoWeb
+	importacao             estadoImportacao
 
 	api estadoAPI
 }
@@ -90,6 +91,7 @@ type casos struct {
 	listarSegmentos    *usecase.ListarSegmentosUseCase
 	listarCatalogo     *usecase.ListarCatalogoUseCase
 	expirar            *usecase.ExpirarRecomendacoesUseCase
+	importar           *usecase.ImportarEventosUseCase // RN-16
 }
 
 func (m *Mundo) uc() casos {
@@ -112,6 +114,7 @@ func (m *Mundo) uc() casos {
 	c.consultarResultado = usecase.NovoConsultarResultadoUseCase(pre, m.eventos, m.perfis, m.segmentos, m.recomendacoes, m.produtos)
 	c.listarSegmentos = usecase.NovoListarSegmentosUseCase(m.segmentos)
 	c.listarCatalogo = usecase.NovoListarCatalogoUseCase(m.produtos)
+	c.importar = usecase.NovoImportarEventosUseCase(coletar, pre, m.eventos, m.clock)
 	return c
 }
 

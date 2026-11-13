@@ -165,6 +165,7 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 	cadastrar := usecase.NovoCadastrarClienteUseCase(repos.clientes, clock)
 	consentimento := usecase.NovoGerenciarConsentimentoUseCase(repos.clientes, repos.consentimentos, clock)
 	expirar := usecase.NovoExpirarRecomendacoesUseCase(repos.recomendacoes, clock)
+	importar := usecase.NovoImportarEventosUseCase(coletar, pre, repos.eventos, clock) // RN-16
 	deps := api.Dependencias{
 		AuthToken:     cfg.AuthToken,
 		Precondicoes:  pre,
@@ -172,6 +173,7 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 		Consentimento: consentimento,
 		Coletar:       coletar,
 		Processar:     processar,
+		Importar:      importar,
 		Log:           log,
 		Clock:         clock,
 		Saude:         repos.saude,
@@ -189,6 +191,7 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 			ListarSegmentos:    usecase.NovoListarSegmentosUseCase(repos.segmentos),
 			ListarCatalogo:     usecase.NovoListarCatalogoUseCase(repos.produtos),
 			Expirar:            expirar,
+			Importar:           importar,
 			MetaEventos:        cfg.EngajamentoMetaEventos,
 			Clock:              clock, Log: log, Saude: repos.saude, Migracoes: repos.migracoes,
 		})

@@ -122,13 +122,13 @@ func (e exemplos) carregar(ctx context.Context) (int, error) {
 	}
 	agora := e.clock.Agora()
 	carga := relogio.NovoFixo(agora)
-	cadastrar, consentimento, coletar, processar, expirar := e.casos(carga)
+	_, consentimento, coletar, processar, expirar := e.casos(carga)
 	n := 0
 	for _, ex := range e.lista() {
 		var id uuid.UUID
 		for _, p := range ex.passos {
 			carga.Definir(agora.Add(-time.Duration(p.dias * 24 * float64(time.Hour))))
-			if err := e.executar(ctx, p, ex, &id, carga, cadastrar, consentimento, coletar, processar, expirar); err != nil {
+			if err := e.executar(ctx, p, ex, &id, carga, consentimento, coletar, processar, expirar); err != nil {
 				return n, fmt.Errorf("exemplo %s, passo %s: %w", ex.email, p.acao, err)
 			}
 		}
@@ -138,7 +138,7 @@ func (e exemplos) carregar(ctx context.Context) (int, error) {
 }
 
 func (e exemplos) executar(ctx context.Context, p passo, ex exemplo, id *uuid.UUID, carga *relogio.Fixo,
-	cadastrar *usecase.CadastrarClienteUseCase, consentimento *usecase.GerenciarConsentimentoUseCase,
+	consentimento *usecase.GerenciarConsentimentoUseCase,
 	coletar *usecase.ColetarDadosUseCase, processar *usecase.ProcessarClienteUseCase, expirar *usecase.ExpirarRecomendacoesUseCase) error {
 	evento := func(tipo entity.TipoEvento, valor float64, categoria string, quando time.Time) error {
 		_, err := coletar.Registrar(ctx, entity.EventoComportamental{ID: uuid.New(), ClienteID: *id, Tipo: tipo,
@@ -146,10 +146,13 @@ func (e exemplos) executar(ctx context.Context, p passo, ex exemplo, id *uuid.UU
 		return err
 	}
 	switch p.acao {
-	case "cadastrar":
-		c, err := cadastrar.Executar(ctx, ex.nome, ex.email)
+	case "cadastrar": // como UC-09, mas com o ID fixo do exemplo (Q-47)
+		c, err := entity.NovoCliente(idExemplo(ex.email), ex.nome, ex.email, carga.Agora())
+		if err != nil {
+			return err
+		}
 		*id = c.ID
-		return err
+		return e.repos.clientes.Salvar(ctx, c)
 	case "conceder":
 		return consentimento.Conceder(p.contexto(ctx), *id, "segmentacao", p.termo)
 	case "compra":
@@ -188,6 +191,12 @@ func (e exemplos) executar(ctx context.Context, p passo, ex exemplo, id *uuid.UU
 		return e.repos.clientes.Salvar(ctx, c)
 	}
 	return fmt.Errorf("ação desconhecida %q", p.acao)
+}
+
+// idExemplo é o ID fixo de um cliente de exemplo, derivado do e-mail sintético: o arquivo
+// docs/exemplos/eventos-lote.csv cita esses IDs (Q-47).
+func idExemplo(email string) uuid.UUID {
+	return uuid.NewSHA1(uuid.NameSpaceOID, []byte("perfila:exemplo:"+email))
 }
 
 // contexto leva a origem do passo até UC-08; sem origem, o movimento fica como "sistema".
