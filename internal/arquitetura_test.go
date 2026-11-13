@@ -30,7 +30,7 @@ var regras = []regra{
 	{"api", []string{modulo + "infra", modulo + "web", "database/sql"}, []string{"github.com/google/uuid"}},
 	// web é um adaptador de apresentação como api (Q-20): nunca infra, banco nem a própria api.
 	{"web", []string{modulo + "infra", modulo + "api", "database/sql"},
-		[]string{"github.com/google/uuid", "golang.org/x/crypto/bcrypt"}},
+		[]string{"github.com/google/uuid"}}, // v1.5: a senha é conferida por AutenticarOperador (Q-36)
 	// infra → domain (C-01, C-02); o driver PostgreSQL só entra aqui (Q-10).
 	{"infra", []string{modulo + "api", modulo + "web", modulo + "application"},
 		[]string{"github.com/google/uuid", "github.com/jackc/pgx/v5/stdlib", "golang.org/x/crypto/bcrypt"}}, // bcrypt só em infra/senha (Q-36)

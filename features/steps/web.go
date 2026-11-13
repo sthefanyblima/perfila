@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/cucumber/godog"
-	"golang.org/x/crypto/bcrypt"
 
 	"perfila/internal/domain/entity"
 	"perfila/internal/web"
@@ -56,6 +55,18 @@ func registrarPassosWeb(sc *godog.ScenarioContext, m *Mundo) {
 		return nil
 	})
 	sc.Step(`^que o operador entrou no painel$`, m.entrouNoPainel)
+	sc.Step(`^que o operador "([^"]*)" com o papel "([^"]*)" entrou no painel$`, func(login, papel string) error {
+		senha := "senha-de-" + login + "-123"
+		if err := m.existeOperador(login, papel, senha); err != nil {
+			return err
+		}
+		m.web.usuario, m.web.senha = login, senha
+		return m.entrouNoPainel()
+	})
+	sc.Step(`^o operador "([^"]*)" entra com a senha "([^"]*)"$`, func(login, senha string) error {
+		m.web.usuario = login
+		return m.entrar(senha, "")
+	})
 	sc.Step(`^que se passaram (\d+) horas$`, func(h int) error { m.clock.Avancar(time.Duration(h) * time.Hour); return nil })
 	sc.Step(`^a página (?:de destino )?mostra "([^"]*)"$`, m.paginaMostra)
 	sc.Step(`^a página (?:de destino )?mostra o selo "([^"]*)"$`, func(e string) error {
@@ -101,9 +112,9 @@ func registrarPassosWeb(sc *godog.ScenarioContext, m *Mundo) {
 	sc.Step(`^o log do painel não contém "([^"]*)", "([^"]*)" nem "([^"]*)"$`, m.logSemDados)
 }
 
+// painelNoAr monta o painel com um ADMINISTRADOR (o operador do Contexto, Q-35).
 func (m *Mundo) painelNoAr(usuario, senha string) error {
-	hash, err := bcrypt.GenerateFromPassword([]byte(senha), bcrypt.MinCost)
-	if err != nil {
+	if err := m.existeOperador(usuario, string(entity.PapelAdministrador), senha); err != nil {
 		return err
 	}
 	chave := make([]byte, 32)
@@ -111,9 +122,12 @@ func (m *Mundo) painelNoAr(usuario, senha string) error {
 	m.web.usuario, m.web.senha, m.web.cookies = usuario, senha, map[string]string{}
 	m.segmentos.Adicionar(entity.Segmento{ID: id("seg:padrao"), Nome: "padrao", Prioridade: 99, Ativo: true})
 	c := m.uc()
+	var err error
 	m.web.handler, err = web.NovoRouter(web.Dependencias{
-		Usuario: usuario, SenhaHash: hash, ChaveSessao: chave, Finalidade: "segmentacao", VersaoTermo: "v1",
-		Cadastrar: c.cadastrar, Consentimento: c.consentimento, Coletar: c.coletar, Processar: c.processar,
+		ChaveSessao: chave, Finalidade: "segmentacao", VersaoTermo: "v1",
+		Autenticar: c.autenticar, Operadores: c.operadores, RegistrarAuditoria: c.registrarAuditoria,
+		ListarAuditoria: c.listarAuditoria,
+		Cadastrar:       c.cadastrar, Consentimento: c.consentimento, Coletar: c.coletar, Processar: c.processar,
 		ListarClientes: c.listarClientes, ConsultarCliente: c.consultarCliente, ConsultarResultado: c.consultarResultado,
 		ListarSegmentos: c.listarSegmentos, ListarCatalogo: c.listarCatalogo, Expirar: c.expirar,
 		MetaEventos: m.metaEventos, Clock: m.clock, Log: slog.New(slog.NewTextHandler(&m.web.log, nil)),

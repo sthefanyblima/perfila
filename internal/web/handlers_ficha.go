@@ -16,14 +16,14 @@ import (
 	"perfila/internal/shared/errs"
 )
 
-func (p *painel) rotasFicha(mux *http.ServeMux, sessao func(http.HandlerFunc) http.Handler) {
-	mux.Handle("GET /painel/clientes/{id}", sessao(p.fichaVisaoGeral))
-	mux.Handle("POST /painel/clientes/{id}/processamento", sessao(p.processar))
-	mux.Handle("GET /painel/clientes/{id}/eventos", sessao(p.fichaEventos))
-	mux.Handle("POST /painel/clientes/{id}/eventos", sessao(p.registrarEvento))
-	mux.Handle("GET /painel/clientes/{id}/consentimento", sessao(p.fichaConsentimento))
-	mux.Handle("GET /painel/clientes/{id}/consentimento/{acao}", sessao(p.confirmarConsentimento))
-	mux.Handle("POST /painel/clientes/{id}/consentimento/{acao}", sessao(p.alterarConsentimento))
+func (p *painel) rotasFicha(mux *http.ServeMux, sessao func(entity.Permissao, http.HandlerFunc) http.Handler) {
+	mux.Handle("GET /painel/clientes/{id}", sessao(entity.PermClientes, p.fichaVisaoGeral))
+	mux.Handle("POST /painel/clientes/{id}/processamento", sessao(entity.PermProcessamento, p.processar))
+	mux.Handle("GET /painel/clientes/{id}/eventos", sessao(entity.PermClientes, p.fichaEventos))
+	mux.Handle("POST /painel/clientes/{id}/eventos", sessao(entity.PermEventos, p.registrarEvento))
+	mux.Handle("GET /painel/clientes/{id}/consentimento", sessao(entity.PermClientes, p.fichaConsentimento))
+	mux.Handle("GET /painel/clientes/{id}/consentimento/{acao}", sessao(entity.PermConsentimento, p.confirmarConsentimento))
+	mux.Handle("POST /painel/clientes/{id}/consentimento/{acao}", sessao(entity.PermConsentimento, p.alterarConsentimento))
 }
 
 // etapaVista é uma etapa do PipelineTrace.

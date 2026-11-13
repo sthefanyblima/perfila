@@ -127,6 +127,12 @@ func rotulo(v string) string {
 		return "Navegação"
 	case string(entity.TipoInteracao):
 		return "Interação"
+	case string(entity.PapelAdministrador):
+		return "Administrador"
+	case string(entity.PapelAtendimento):
+		return "Atendimento"
+	case string(entity.PapelAnalista):
+		return "Analista"
 	}
 	return v
 }

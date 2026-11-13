@@ -38,7 +38,7 @@ func NovoAutenticarOperadorUseCase(operadores port.OperadorRepository, hash port
 }
 
 // Executar devolve o operador ativo com aquele login e senha; senão, ErrCredenciaisInvalidas,
-// sempre o mesmo erro. Spec: RN-12.
+// sempre o mesmo erro (com o login existente, o operador vem junto para a auditoria). Spec: RN-12, RN-13.
 func (uc *AutenticarOperadorUseCase) Executar(ctx context.Context, login, senha string) (entity.Operador, error) {
 	o, err := uc.operadores.BuscarPorLogin(ctx, login)
 	if errors.Is(err, errs.ErrOperadorNaoEncontrado) {
@@ -49,7 +49,9 @@ func (uc *AutenticarOperadorUseCase) Executar(ctx context.Context, login, senha 
 		return entity.Operador{}, err
 	}
 	if !uc.hash.Conferir(o.SenhaHash, senha) || !o.Ativo {
-		return entity.Operador{}, errs.ErrCredenciaisInvalidas
+		// O login existe: devolve o operador junto com o erro só para a auditoria registrar quem
+		// tentou (RN-13). Quem chama nunca o trata como autenticado.
+		return o, errs.ErrCredenciaisInvalidas
 	}
 	return o, nil
 }

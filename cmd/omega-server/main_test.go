@@ -133,3 +133,32 @@ func TestHashSenha(t *testing.T) {
 		t.Fatal("senha curta deveria falhar")
 	}
 }
+
+// Spec: RN-12 Q-35 — o administrador inicial vem das variáveis só sem operador; sem operador e
+// sem o hash, o servidor não sobe.
+func TestAdministradorInicial(t *testing.T) {
+	ctx := context.Background()
+	cfg := config.Config{AuthToken: "x", LogLevel: "info", RecomendacaoValidadeDias: 30, EngajamentoMetaEventos: 30,
+		AuditoriaRetencaoDias: 180, PainelUsuario: "admin", PainelChaveSessao: []byte(strings.Repeat("k", 32))}
+	app, err := montar(ctx, cfg, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := prepararOperadores(ctx, cfg, app); err == nil || !strings.Contains(err.Error(), "PAINEL_SENHA_HASH") {
+		t.Fatalf("sem operador e sem hash: %v", err)
+	}
+	cfg.PainelSenhaHash = "$2a$12$hashsinteticodeteste"
+	for i := 0; i < 2; i++ { // a segunda subida não cria outro
+		if err := prepararOperadores(ctx, cfg, app); err != nil {
+			t.Fatal(err)
+		}
+	}
+	ops, _ := app.repos.operadores.Listar(ctx)
+	if len(ops) != 1 || ops[0].Login != "admin" || ops[0].Papel != "ADMINISTRADOR" || ops[0].TrocarSenha {
+		t.Fatalf("operadores: %+v", ops)
+	}
+	cfg.PainelSenhaHash = ""
+	if err := prepararOperadores(ctx, cfg, app); err != nil {
+		t.Fatalf("com operador gravado, a chave basta: %v", err)
+	}
+}

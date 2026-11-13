@@ -14,10 +14,10 @@ import (
 	"perfila/internal/domain/entity"
 )
 
-func (p *painel) rotasClientes(mux *http.ServeMux, sessao func(http.HandlerFunc) http.Handler) {
-	mux.Handle("GET /painel/clientes", sessao(p.telaClientes))
-	mux.Handle("GET /painel/clientes/novo", sessao(p.telaNovoCliente))
-	mux.Handle("POST /painel/clientes", sessao(p.cadastrar))
+func (p *painel) rotasClientes(mux *http.ServeMux, sessao func(entity.Permissao, http.HandlerFunc) http.Handler) {
+	mux.Handle("GET /painel/clientes", sessao(entity.PermClientes, p.telaClientes))
+	mux.Handle("GET /painel/clientes/novo", sessao(entity.PermClientes, p.telaNovoCliente))
+	mux.Handle("POST /painel/clientes", sessao(entity.PermClientes, p.cadastrar))
 }
 
 type opcao struct {

@@ -9,12 +9,12 @@ import (
 	"perfila/internal/domain/entity"
 )
 
-func (p *painel) rotasConfiguracao(mux *http.ServeMux, sessao func(http.HandlerFunc) http.Handler) {
-	mux.Handle("GET /painel/segmentos", sessao(p.telaSegmentos))
-	mux.Handle("GET /painel/catalogo", sessao(p.telaCatalogo))
-	mux.Handle("GET /painel/operacao", sessao(p.telaOperacao))
-	mux.Handle("GET /painel/operacao/expirar", sessao(p.confirmarExpiracao))
-	mux.Handle("POST /painel/operacao/expirar", sessao(p.expirar))
+func (p *painel) rotasConfiguracao(mux *http.ServeMux, sessao func(entity.Permissao, http.HandlerFunc) http.Handler) {
+	mux.Handle("GET /painel/segmentos", sessao(entity.PermConfiguracao, p.telaSegmentos))
+	mux.Handle("GET /painel/catalogo", sessao(entity.PermConfiguracao, p.telaCatalogo))
+	mux.Handle("GET /painel/operacao", sessao(entity.PermOperacao, p.telaOperacao))
+	mux.Handle("GET /painel/operacao/expirar", sessao(entity.PermOperacao, p.confirmarExpiracao))
+	mux.Handle("POST /painel/operacao/expirar", sessao(entity.PermOperacao, p.expirar))
 }
 
 // GET /painel/segmentos — somente leitura, por prioridade (RN-06).
