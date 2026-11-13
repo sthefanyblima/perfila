@@ -73,3 +73,58 @@ Funcionalidade: Ciclo de vida do consentimento LGPD
   Cenário: Cliente inexistente não gerencia consentimento
     Quando o cliente "c-999" concede consentimento para a finalidade "segmentacao" com o termo "v1"
     Então a operação falha com o erro "cliente_nao_encontrado"
+
+  # ---- Histórico do consentimento (v1.4, Q-34, RN-10) ----
+
+  @RN-10 @Q-34
+  Cenário: Cada concessão e revogação fica no histórico, em ordem cronológica
+    Dado que o consentimento do cliente "c-001" teve os movimentos:
+      | data                 | acao     | termo |
+      | 2026-03-11T10:00:00Z | conceder | v1    |
+      | 2026-04-01T09:00:00Z | revogar  |       |
+      | 2026-05-01T08:00:00Z | conceder | v2    |
+    Quando o histórico do consentimento do cliente "c-001" é consultado
+    Então o histórico tem os movimentos:
+      | data                 | tipo      | finalidade  | termo | origem  |
+      | 2026-03-11T10:00:00Z | CONCESSAO | segmentacao | v1    | sistema |
+      | 2026-04-01T09:00:00Z | REVOGACAO | segmentacao | v1    | sistema |
+      | 2026-05-01T08:00:00Z | CONCESSAO | segmentacao | v2    | sistema |
+    E o consentimento do cliente "c-001" está no estado "CONCEDIDO"
+
+  @RN-10 @Q-34
+  Esquema do Cenário: O movimento registra a origem de quem pediu
+    Dado que o consentimento do cliente "c-001" está no estado "NAO_CONCEDIDO"
+    Quando o cliente "c-001" concede consentimento para a finalidade "segmentacao" com o termo "v1" pela origem "<origem>" com o operador "<operador>"
+    Então o último movimento do cliente "c-001" é "CONCESSAO" com a origem "<origem>" e o operador "<operador>"
+    E o movimento tem a data "2026-03-10T12:00:00Z"
+
+    Exemplos:
+      | origem | operador |
+      | api    |          |
+      | painel | op-01    |
+      | portal |          |
+
+  @RN-10 @Q-34
+  Cenário: Pedido do painel sem operador é recusado e nada é gravado
+    Dado que o consentimento do cliente "c-001" está no estado "NAO_CONCEDIDO"
+    Quando o cliente "c-001" concede consentimento para a finalidade "segmentacao" com o termo "v1" pela origem "painel" com o operador ""
+    Então a operação falha com o erro "dados_invalidos"
+    E o consentimento do cliente "c-001" permanece no estado "NAO_CONCEDIDO"
+    E o histórico do consentimento do cliente "c-001" tem 0 movimentos
+
+  @RN-10 @Q-34
+  Esquema do Cenário: Transição recusada não gera movimento
+    Dado que o consentimento do cliente "c-001" está no estado "<estado>"
+    Quando o cliente "c-001" tenta "<acao>" o consentimento
+    Então a operação falha com o erro "transicao_invalida"
+    E o histórico do consentimento do cliente "c-001" tem 0 movimentos
+
+    Exemplos:
+      | estado        | acao     |
+      | CONCEDIDO     | conceder |
+      | NAO_CONCEDIDO | revogar  |
+
+  @RN-10 @Q-34
+  Cenário: Cliente que nunca mexeu no consentimento tem histórico vazio
+    Quando o histórico do consentimento do cliente "c-001" é consultado
+    Então o histórico do consentimento do cliente "c-001" tem 0 movimentos

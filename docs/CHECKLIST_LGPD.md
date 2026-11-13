@@ -1,6 +1,6 @@
 # Checklist LGPD e auditoria de logs (T-25)
 
-Perfila · Equipe Omega · 12/11/2026 · Spec v1.3 (com o painel web, seção 4b)
+Perfila · Equipe Omega · 12/11/2026 · Spec v1.4 (com o painel web, seção 4b, e o histórico do consentimento, Q-34)
 
 Interpretação técnica da equipe sobre a Lei 13.709/2018, **não é parecer jurídico** (CLAUDE.md, seção 4). Cada item aponta a evidência que o prova: um cenário BDD, um teste automático ou um arquivo de configuração. ✅ atendido no MVP · ⚠️ atendido com limitação · ⬜ fora do MVP (requisito futuro).
 
@@ -13,7 +13,7 @@ Interpretação técnica da equipe sobre a Lei 13.709/2018, **não é parecer ju
 | L-03 | Revogação a qualquer momento, com efeito imediato | `Revogar` muda o estado; UC-01 a UC-04 passam a falhar na hora (RN-03) | `consentimento.feature`, `api.feature`; `TestFluxoPontaAPonta` (403 após revogar) | ✅ |
 | L-04 | Finalidade e versão do termo registradas | `Finalidade` e `VersaoTermo` obrigatórias em `Conceder` (guarda da 3.4.1) | `consentimento.feature` (guarda violada) | ⚠️ a finalidade é registrada, mas não filtra o uso dos dados (RN-02) |
 | L-05 | Prova de quando o titular consentiu e revogou | `DataConsentimento`, `DataRevogacao` (mantida após nova concessão, Q-01) e `DataAtualizacao` em UTC | `consentimento.feature`; contrato `Consentimento` nos dois backends | ✅ |
-| L-06 | Troca de termo deixa histórico explícito | Conceder sobre CONCEDIDO é `transicao_invalida`; é preciso revogar e conceder de novo (Q-06) | `consentimento.feature`, `api.feature` (409) | ⚠️ guarda só o último registro, não o histórico completo de versões |
+| L-06 | Troca de termo deixa histórico explícito | Conceder sobre CONCEDIDO é `transicao_invalida`; é preciso revogar e conceder de novo (Q-06). Desde a v1.4 (Q-34, RN-10), cada concessão e revogação grava um `MovimentoConsentimento` com finalidade, versão do termo, data e origem (API, painel com o login do operador, portal), na mesma transação do registro; a tabela é só de inclusão (o banco recusa `UPDATE` e `DELETE`). A migração 006 reconstruiu, com origem `migracao`, só o que as datas antigas provavam | `consentimento.feature` e `painel.feature` (`@RN-10`), `api.feature` (409); contrato `MovimentoConsentimento` nos dois backends; `TestMigracaoReconstroiMovimentos`; `TestConsentimentoPelaAPIRegistraOrigem` | ✅ Clientes anteriores à 006: a versão do termo de concessões antigas, já sobrescritas, não pôde ser recuperada |
 
 ## 2. Minimização e qualidade dos dados
 
@@ -82,7 +82,7 @@ Todos os eventos de log do sistema, conferidos no código em 11/11/2026 (`grep` 
 ## 6. Requisitos futuros (pós-MVP)
 
 1. Rotas de acesso, correção, portabilidade e eliminação (L-19), e uma política de retenção com expurgo após revogação (L-20, D-13).
-2. Filtrar o uso dos dados pela finalidade consentida (L-04) e manter o histórico de versões do termo (L-06).
+2. Filtrar o uso dos dados pela finalidade consentida (L-04). O histórico de versões do termo (L-06) entrou na v1.4; falta expô-lo ao titular (portal, fase 2).
 3. Autenticação por usuário (JWT/OIDC) com perfis Cliente, Administrador e Analista (L-12).
 4. Certificado emitido por uma autoridade, cifra do volume do banco e TLS interno (L-10, L-16).
 5. Prazo de retenção dos logs definido junto com a política de dados.

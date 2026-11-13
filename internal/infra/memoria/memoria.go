@@ -6,6 +6,7 @@ package memoria
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"strings"
 	"sync"
@@ -317,22 +318,53 @@ func (r *RecomendacaoRepository) Todas() []entity.RecomendacaoProduto {
 // ---------- Consentimento ----------
 
 type ConsentimentoRepository struct {
-	mu    sync.RWMutex
-	dados map[uuid.UUID]entity.ConsentimentoLGPD // chave: ClienteID
+	mu         sync.RWMutex
+	dados      map[uuid.UUID]entity.ConsentimentoLGPD        // chave: ClienteID
+	movimentos map[uuid.UUID][]entity.MovimentoConsentimento // chave: ClienteID; ordem de gravação
+	idsMov     map[uuid.UUID]bool
 }
 
 func NovoConsentimentoRepository() *ConsentimentoRepository {
-	return &ConsentimentoRepository{dados: map[uuid.UUID]entity.ConsentimentoLGPD{}}
+	return &ConsentimentoRepository{dados: map[uuid.UUID]entity.ConsentimentoLGPD{},
+		movimentos: map[uuid.UUID][]entity.MovimentoConsentimento{}, idsMov: map[uuid.UUID]bool{}}
 }
 
 func (r *ConsentimentoRepository) Salvar(_ context.Context, c entity.ConsentimentoLGPD) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	r.salvar(c)
+	return nil
+}
+
+func (r *ConsentimentoRepository) salvar(c entity.ConsentimentoLGPD) {
 	if atual, ok := r.dados[c.ClienteID]; ok {
 		c.ID = atual.ID
 	}
 	r.dados[c.ClienteID] = c
+}
+
+// Registrar grava registro e movimento juntos, sob a mesma trava; nada muda se falhar. Spec: RN-10.
+func (r *ConsentimentoRepository) Registrar(_ context.Context, c entity.ConsentimentoLGPD, m entity.MovimentoConsentimento) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.idsMov[m.ID] {
+		return fmt.Errorf("memoria: movimento de consentimento %s já existe", m.ID)
+	}
+	r.salvar(c)
+	r.idsMov[m.ID] = true
+	m.Data = m.Data.UTC()
+	r.movimentos[m.ClienteID] = append(r.movimentos[m.ClienteID], m)
 	return nil
+}
+
+// ListarMovimentos devolve uma cópia em ordem cronológica; a ordenação estável mantém a ordem de
+// gravação no empate. Spec: RN-10.
+func (r *ConsentimentoRepository) ListarMovimentos(_ context.Context, clienteID uuid.UUID) ([]entity.MovimentoConsentimento, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	out := append([]entity.MovimentoConsentimento{}, r.movimentos[clienteID]...)
+	sort.SliceStable(out, func(i, j int) bool { return out[i].Data.Before(out[j].Data) })
+	return out, nil
 }
 
 func (r *ConsentimentoRepository) BuscarPorCliente(_ context.Context, clienteID uuid.UUID) (entity.ConsentimentoLGPD, error) {
