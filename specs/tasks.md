@@ -90,7 +90,7 @@ Prova de cada concessão e revogação (Q-34, RN-10, L-06). Base para os públic
 
 ## Usuários, perfis de acesso e auditoria — Spec v1.5
 
-Operadores no banco com papel (ADMINISTRADOR, ANALISTA, ATENDIMENTO), matriz de permissões e trilha de auditoria (Q-35 a Q-41, L-12, L-23). Propostas aguardando aprovação: nenhum código antes dela (C-12).
+Operadores no banco com papel (ADMINISTRADOR, ANALISTA, ATENDIMENTO), matriz de permissões e trilha de auditoria (Q-35 a Q-41, L-12, L-23). Aprovadas em 13/11.
 
 | ID | Tarefa | Depende de | Prova | Status |
 |---|---|---|---|---|
