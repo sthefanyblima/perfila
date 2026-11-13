@@ -94,6 +94,21 @@ func registrarPassosWeb(sc *godog.ScenarioContext, m *Mundo) {
 		return m.webGET("/painel/clientes/"+cliente[0].ID.String(), true)
 	})
 	sc.Step(`^que a página "([^"]*)" foi aberta$`, func(c string) error { return m.webGET(c, true) })
+	sc.Step(`^o operador cria pelo painel o operador "([^"]*)" com o papel "([^"]*)" e a senha "([^"]*)"$`,
+		func(login, papel, senha string) error {
+			if err := m.webGET("/painel/usuarios/novo", true); err != nil {
+				return err
+			}
+			return m.webPOST("/painel/usuarios", url.Values{"login": {login}, "nome": {"Operador Sintético"},
+				"papel": {papel}, "senha": {senha}}, true)
+		})
+	sc.Step(`^a resposta leva à página do operador "([^"]*)"$`, func(login string) error {
+		o, err := m.operador(login)
+		if err != nil {
+			return err
+		}
+		return m.levaA("/painel/usuarios/" + o.ID.String())
+	})
 	sc.Step(`^o operador "([^"]*)" entra com a senha "([^"]*)"$`, func(login, senha string) error {
 		m.web.usuario = login
 		return m.entrar(senha, "")

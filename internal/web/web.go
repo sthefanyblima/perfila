@@ -76,7 +76,7 @@ func NovoRouter(d Dependencias) (http.Handler, error) {
 		http.Redirect(w, r, inicio(operadorAtual(r)), http.StatusSeeOther)
 	}))
 	for _, rotas := range []func(*http.ServeMux, func(entity.Permissao, http.HandlerFunc) http.Handler){
-		p.rotasClientes, p.rotasFicha, p.rotasConfiguracao,
+		p.rotasClientes, p.rotasFicha, p.rotasConfiguracao, p.rotasUsuarios,
 	} {
 		rotas(mux, sessao)
 	}

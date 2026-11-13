@@ -307,14 +307,14 @@ Funcionalidade: Painel web do operador
     Quando a página "/painel/clientes" é aberta
     Então a resposta tem status 403
 
-  @RN-12 @Q-40 @wip
+  @RN-12 @Q-40
   Cenário: Com senha provisória, o operador só chega a Minha senha
     Dado que existe o operador "rita" com o papel "ATENDIMENTO" e a senha "senha-provisoria-1"
     E que o operador "rita" precisa trocar a senha
     Quando o operador "rita" entra com a senha "senha-provisoria-1"
     Então a resposta leva a "/painel/minha-senha"
 
-  @RN-12 @Q-35 @wip
+  @RN-12 @Q-35
   Cenário: O administrador cria um operador pela tela Usuários
     Dado que o operador entrou no painel
     Quando o operador cria pelo painel o operador "rita" com o papel "ATENDIMENTO" e a senha "senha-provisoria-1"

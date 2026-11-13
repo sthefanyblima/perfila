@@ -78,6 +78,18 @@ func aviso(codigo, n string) string {
 		return "Processamento concluído"
 	case "processamento-sem-recomendacao":
 		return "Processamento concluído sem recomendação"
+	case "operador-criado":
+		return "Operador criado"
+	case "papel-alterado":
+		return "Papel alterado"
+	case "operador-desativado":
+		return "Operador desativado"
+	case "operador-ativado":
+		return "Operador ativado"
+	case "senha-redefinida":
+		return "Senha provisória definida"
+	case "senha-trocada":
+		return "Senha trocada"
 	case "expiradas":
 		switch n {
 		case "", "0":
