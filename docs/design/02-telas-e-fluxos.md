@@ -12,6 +12,9 @@ Clientes
   /painel/clientes/{id}                Ficha: visão geral
   /painel/clientes/{id}/eventos        Ficha: eventos (UC-01)
   /painel/clientes/{id}/consentimento  Ficha: consentimento (UC-08)
+Campanhas (v1.9, UC-06 parcial)
+  /painel/publicos                     Públicos: segmento, contagem, gerar e baixar, histórico, remoções (RN-17)
+  /painel/publicos/relatorio           Relatório agregado por segmento (RN-18)
 Configuração (somente leitura no MVP)
   /painel/segmentos                    Segmentos e critérios (RN-06)
   /painel/catalogo                     Produtos por categoria (RN-07)
@@ -60,6 +63,22 @@ O centro do produto.
 - **Visão geral, sem consentimento:** os quatro painéis são trocados por um único `Alert` crítico: "Sem consentimento válido. Os dados de comportamento deste cliente não podem ser usados. [Conceder consentimento]". Nenhum dado de comportamento é buscado no servidor (C-03).
 - **Eventos:** formulário em linha para registrar (Tipo, Valor em R$, Categoria, Origem, Data e hora, que vem preenchida com agora) + `EventTimeline` do mais recente para o mais antigo. Sem consentimento: o formulário fica desabilitado, com o motivo escrito ao lado.
 - **Consentimento:** o `ConsentRecord` completo (estado, finalidade, versão do termo, datas de consentimento, de revogação e de atualização) com as ações. Fica disponível sempre, inclusive sem consentimento: é o UC-08.
+- **Consentimento por finalidade (v1.9, Q-48):** a aba mostra dois `ConsentRecord`, um embaixo do outro: **Segmentação** ("perfil, segmento e recomendação, uso interno") e **Publicidade com terceiros** ("entrar nos públicos enviados a plataformas de anúncio"). Cada um tem o seu `StatusTag`, termo, datas, a ação (Conceder ou Revogar, que leva `?finalidade=`) e a sua linha do tempo. No cabeçalho da ficha, o `ConsentRecord` compacto continua sendo o da Segmentação; ao lado, uma etiqueta `neutral` pequena "Publicidade: Concedido/Não concedido/Revogado". Conceder a publicidade sem a segmentação é permitido, mas o registro mostra a nota "Sem a Segmentação, este cliente não entra em nenhum público."
+
+### Públicos (v1.9, RN-17)
+
+- `PageHeader` "Públicos", com a trilha Campanhas › Públicos e, à direita, o link "Relatório agregado".
+- Nota no topo (`Alert` info): "Entra no público quem está no segmento, está ativo e concedeu Segmentação e Publicidade com terceiros. O arquivo leva só o e-mail em hash (SHA-256), que ainda é dado pessoal."
+- Seletor de segmento (lista dos ativos, por prioridade) com "Ver público". Com um segmento escolhido:
+  - Painel **Público** (`KeyValue`): "Entram" (número grande), "Ficam de fora" (com a explicação "sem a finalidade, inativos ou sem consentimento") e o botão primário **Gerar arquivo** (desabilitado com zero, com o motivo "Nenhum cliente entra neste público").
+  - Painel **Remoções pendentes**: quantos clientes saíram (revogaram ou deixaram de se qualificar) e ainda estão no público da plataforma, com o botão **Gerar arquivo de remoção** (secundário; desabilitado com zero).
+  - Painel **Histórico** (`DataTable`): Data, Tipo (Inclusão/Remoção), Operador, Clientes, Hash do arquivo (12 primeiros caracteres, completo no `title`) e Arquivo ("Baixar" enquanto disponível; "Expirado" depois do prazo).
+- Logo depois de gerar, a tela volta com um `Alert` ok: "Arquivo gerado com {n} clientes. Disponível para baixar até {data}." e o botão "Baixar arquivo".
+- Vazio sem segmentos com clientes: `EmptyState` "Nenhum cliente processado ainda".
+
+### Relatório agregado (v1.9, RN-18)
+
+`DataTable` por segmento: Segmento, Clientes, Ticket médio (R$), Categoria mais comum. Grupo com menos de 5: a linha mostra "menos de 5" em Clientes e "—" nos outros campos, com a nota "Grupos com menos de 5 clientes não são detalhados, para ninguém ser identificado." Ação "Baixar CSV". Nenhum nome, e-mail ou ID aparece.
 
 ### Segmentos
 
@@ -84,6 +103,10 @@ Tabela agrupada por categoria, com Nome, Preço (R$) e Situação. A nota explic
 4. O selo vira **Concedido**; o toast diz "Consentimento concedido"; os painéis aparecem vazios ("ainda não processado").
 5. Aba **Eventos** → registrar 3 compras e 1 navegação; cada uma entra no topo da linha do tempo, com o toast "Evento registrado".
 6. Visão geral → **Processar agora** → o `PipelineTrace` marca as 4 etapas como concluídas e os painéis mostram perfil, segmento e recomendação.
+
+### F. Público para campanha (v1.9)
+
+Ficha → Consentimento → Conceder em "Publicidade com terceiros" → Públicos → escolher o segmento → Gerar arquivo → confirmar → Baixar arquivo. Se o titular revogar depois: Ficha → Revogar a publicidade → Públicos mostra "1 remoção pendente" → Gerar arquivo de remoção → Baixar.
 
 ### B. Revogação
 

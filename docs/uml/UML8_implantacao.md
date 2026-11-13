@@ -51,8 +51,8 @@ flowchart LR
 | `PAINEL_USUARIO` | operador | login do operador do painel (Q-22) |
 | `PAINEL_SENHA_HASH` | vazia = painel desligado | hash bcrypt (`omega-server hash-senha`, Q-28) |
 | `PAINEL_CHAVE_SESSAO` | vazia = painel desligado | chave HMAC da sessão, 64 dígitos hexadecimais |
-| `PAINEL_FINALIDADE` | segmentacao | finalidade sugerida ao conceder (Q-25) |
-| `PAINEL_VERSAO_TERMO` | v1 | versão vigente do termo (Q-25) |
+| `PAINEL_VERSAO_TERMO` | v1 | versão vigente do termo (Q-25), sugerida nas duas finalidades; `PAINEL_FINALIDADE` deixou de existir na v1.9 (Q-48) e é ignorada |
+| `PUBLICOS_ARQUIVO_HORAS` | 24 | por quanto tempo o arquivo de público pode ser baixado, de 1 a 168 (v1.9, Q-51) |
 
 ## Regras para o agente
 

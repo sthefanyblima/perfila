@@ -12,6 +12,9 @@
 | `EXPIRADA` | Expirada | neutral, círculo vazado |
 | cliente `Ativo = false` | Inativo | neutral, círculo vazado |
 | tipo `compra` / `navegacao` / `interacao` | Compra / Navegação / Interação | — |
+| finalidade `segmentacao` / `publicidade_terceiros` (v1.9) | Segmentação / Publicidade com terceiros | — |
+| exportação `INCLUSAO` / `REMOCAO` (v1.9) | Inclusão / Remoção | neutral / warn |
+| membro `REMOCAO_PENDENTE` (v1.9) | Remoção pendente | warn, triângulo |
 
 ## Códigos de erro da API → mensagem
 
@@ -28,6 +31,9 @@ O código estável (`errs.Codigo`) define a mensagem; o texto técnico do servid
 | `dados_invalidos` | Formulários | Mensagem por campo (abaixo). |
 | `perfil_nao_encontrado` | Visão geral | Este cliente ainda não foi processado. Use "Processar agora". |
 | `sem_produto_elegivel` | Recomendação (não é erro) | Nenhum produto ativo na categoria preferida ({categoria}). |
+| `arquivo_indisponivel` (v1.9) | Públicos, download | Este arquivo não está mais disponível: ele fica guardado por {horas} horas. Gere um novo, se precisar. |
+| `dados_invalidos` (gerar público) (v1.9) | Públicos | Nenhum cliente entra neste público. Nada foi gerado. |
+| `dados_invalidos` (gerar remoção) (v1.9) | Públicos | Não há remoção pendente neste segmento. Nada foi gerado. |
 | `erro_interno` | Qualquer | Algo falhou do nosso lado. As etapas concluídas antes da falha ficaram salvas. Tente de novo; se continuar, informe o código {X-Request-ID} à equipe técnica. |
 | 503 `indisponivel` | Qualquer | O banco de dados não está respondendo. Nada foi alterado. Tente de novo em instantes. |
 
@@ -53,11 +59,15 @@ Valide no navegador (atributos HTML: `required`, `min`, `max`, `step`) para dar 
 | --- | --- | --- | --- |
 | Conceder | Conceder consentimento | A partir de agora, os eventos deste cliente podem ser usados para perfil, segmento e recomendação, com a finalidade "{finalidade}" e o termo {versão}. | Conceder (primário) · Cancelar |
 | Revogar | Revogar consentimento | O processamento dos dados deste cliente para imediatamente. Os dados já registrados continuam guardados. Você pode conceder de novo depois. | Revogar consentimento (danger) · Cancelar (foco inicial) |
+| Conceder publicidade (v1.9) | Conceder publicidade com terceiros | A partir de agora, este cliente pode entrar nos públicos enviados a plataformas de anúncio, só pelo e-mail em hash, com o termo {versão}. A Segmentação não muda. | Conceder (primário) · Cancelar |
+| Revogar publicidade (v1.9) | Revogar publicidade com terceiros | O cliente sai dos próximos públicos e fica pendente de remoção nos que já foram gerados. A Segmentação não muda. | Revogar publicidade (danger) · Cancelar (foco inicial) |
+| Gerar público (v1.9) | Gerar arquivo do público | Vai ser gerado um arquivo com {n} clientes do segmento {segmento}, para subir na plataforma de anúncios. Ele leva só o e-mail em hash (SHA-256), que continua sendo dado pessoal, e fica disponível por {horas} horas. A exportação fica registrada com o seu login. | Gerar arquivo (primário) · Cancelar |
+| Gerar remoção (v1.9) | Gerar arquivo de remoção | Vai ser gerado um arquivo com {n} clientes que precisam sair do público {segmento} na plataforma de anúncios. Suba o arquivo como remoção de público. | Gerar arquivo de remoção (primário) · Cancelar |
 | Expirar | Expirar recomendações vencidas | Recomendações ativas com validade até agora passam a Expirada e deixam de ser exibidas. | Expirar agora (primário) · Cancelar |
 
 ## Toasts
 
-"Cliente cadastrado" · "Consentimento concedido" · "Consentimento revogado" · "Evento registrado" · "Processamento concluído" · "Processamento concluído sem recomendação" · "{n} recomendações expiradas" / "Nenhuma recomendação vencida" · "ID copiado".
+"Cliente cadastrado" · "Consentimento concedido" · "Consentimento revogado" · "Arquivo gerado" (v1.9) · "Evento registrado" · "Processamento concluído" · "Processamento concluído sem recomendação" · "{n} recomendações expiradas" / "Nenhuma recomendação vencida" · "ID copiado".
 
 ## Formatos
 
