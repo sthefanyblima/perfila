@@ -95,9 +95,9 @@ Operadores no banco com papel (ADMINISTRADOR, ANALISTA, ATENDIMENTO), matriz de 
 | ID | Tarefa | Depende de | Prova | Status |
 |---|---|---|---|---|
 | T-47 | Spec v1.5 (atores, entidades, casos de uso, ports, rotas, configuração), UML1, UML2, UML7 e UML8 em texto, Q-35 a Q-41; `usuarios.feature` e cenários novos em `painel.feature` (`@wip`) | T-46 | Spec, UML e features revisados | ✅ 54 cenários novos (`@wip`): 30 `@aplicacao` em `usuarios.feature`, 24 `@web` em `painel.feature` |
-| T-48 | `Operador`, `PapelOperador`, matriz `Pode`, `RegistroAuditoria`; ports `OperadorRepository`, `AuditoriaRepository`, `HashSenha`; memória e contrato | T-47 | testes de tabela; contrato em memória | ⬜ |
-| T-49 | PostgreSQL: migração 007, `PgOperadorRepository`, `PgAuditoriaRepository`; bcrypt em `infra/senha` | T-48 | contrato nos dois backends; `TestMigracoes` | ⬜ |
-| T-50 | Casos de uso `AutenticarOperador`, `GerenciarOperadores`, `RegistrarAuditoria`, `ListarAuditoria`; administrador inicial | T-48 | cenários `@aplicacao` | ⬜ |
+| T-48 | `Operador`, `PapelOperador`, matriz `Pode`, `RegistroAuditoria`; ports `OperadorRepository`, `AuditoriaRepository`, `HashSenha`; memória e contrato | T-47 | testes de tabela; contrato em memória | ✅ `TestPapelPode`, `TestNovoOperador`, `TestOperadorAlteracoes`, `TestNovoRegistroAuditoria`; contrato `Operador` e `Auditoria` em memória |
+| T-49 | PostgreSQL: migração 007, `PgOperadorRepository`, `PgAuditoriaRepository`; bcrypt em `infra/senha` | T-48 | contrato nos dois backends; `TestMigracoes` | ✅ `TestPapelPode`, `TestNovoOperador`, `TestOperadorAlteracoes`, `TestNovoRegistroAuditoria`; contrato `Operador` e `Auditoria` em memória |
+| T-50 | Casos de uso `AutenticarOperador`, `GerenciarOperadores`, `RegistrarAuditoria`, `ListarAuditoria`; administrador inicial | T-48 | cenários `@aplicacao` | ✅ `TestPapelPode`, `TestNovoOperador`, `TestOperadorAlteracoes`, `TestNovoRegistroAuditoria`; contrato `Operador` e `Auditoria` em memória |
 | T-51 | Painel: Entrar pelo caso de uso, sessão com o ID do operador conferida a cada requisição, permissão por rota (403), menu por papel, auditoria das ações e das leituras de ficha | T-50 | cenários `@web` de papéis e sessão | ⬜ |
 | T-52 | Telas Usuários (criar, mudar papel, desativar, ativar, redefinir senha) e Minha senha | T-51 | cenários `@web` de usuários | ⬜ |
 | T-53 | Tela Auditoria (filtros e paginação) e subcomando `expurgar-auditoria` | T-51 | cenários `@web` da auditoria; `TestExpurgarAuditoria` | ⬜ |
