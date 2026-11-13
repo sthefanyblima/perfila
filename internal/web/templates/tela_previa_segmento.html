@@ -1,0 +1,60 @@
+{{define "conteudo"}}{{with .Dados}}
+<header class="pf-header">
+  <ol class="pf-crumbs"><li>Configuração</li><li><a href="/painel/segmentos">Segmentos</a></li><li aria-current="page">Prévia</li></ol>
+  <div class="pf-header__row">
+    <div>
+      <h1 class="pf-header__title">{{if eq .Confirmar "desativar"}}Desativar {{.Seg.Nome}}{{else if eq .Confirmar "ativar"}}Ativar {{.Seg.Nome}}{{else if .Novo}}Prévia do novo segmento{{else}}Prévia de {{.Seg.Nome}}{{end}}</h1>
+      <p class="pf-header__meta">Quantos clientes ficariam em cada segmento com esta configuração. Nada foi salvo ainda.</p>
+    </div>
+  </div>
+</header>
+{{with .Erro}}{{template "alerta" .}}{{end}}
+{{with .Previa}}
+<div class="pf-alert pf-alert--info" data-teste="aviso-previa-segmentacao">
+  <span class="pf-alert__badge" aria-hidden="true">{{icone "info"}}</span>
+  <div><p class="pf-alert__title">Só contagens, pelo perfil salvo</p><p class="pf-alert__text">A prévia considera {{.Total}} {{if eq .Total 1}}cliente ativo{{else}}clientes ativos{{end}} com consentimento válido{{if .SemPerfil}}, {{.SemPerfil}} ainda sem perfil{{end}}. Quem já foi segmentado muda só no próximo processamento.</p></div>
+</div>
+<div class="pf-tablewrap">
+  <table class="pf-table" data-teste="tabela-previa">
+    <caption class="pf-sr">Clientes por segmento, hoje e com a mudança</caption>
+    <thead><tr><th scope="col">Segmento</th><th scope="col" class="pf-r">Hoje</th><th scope="col" class="pf-r">Com a mudança</th><th scope="col" class="pf-r">Diferença</th></tr></thead>
+    <tbody>
+    {{range .Linhas}}
+      <tr data-teste="linha-previa">
+        <td><span class="pf-tag pf-tag--accent">{{.Segmento.Nome}}</span>{{if not .Segmento.Ativo}} {{template "tag" "INATIVO"}}{{end}}</td>
+        <td class="pf-r pf-num">{{.Atual}}</td>
+        <td class="pf-r pf-num">{{.Previsto}}</td>
+        <td class="pf-r pf-num">{{diferenca .Atual .Previsto}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}
+{{if .Confirmar}}
+{{if eq .Confirmar "salvar"}}
+<form method="post" action="/painel/segmentos" class="pf-form__foot">
+  {{template "segmento-oculto" (segmentoComCSRF . $.CSRF)}}
+  <button type="submit" class="pf-btn pf-btn--primary" data-teste="acao-salvar-segmento">Salvar alterações</button>
+  <button type="submit" class="pf-btn pf-btn--quiet" formaction="/painel/segmentos/previa" name="acao" value="editar">Voltar ao formulário</button>
+</form>
+{{else}}
+<form method="post" action="/painel/segmentos/{{.Seg.ID}}/{{.Confirmar}}" class="pf-form__foot">
+  {{template "csrf" $.CSRF}}
+  <button type="submit" class="pf-btn {{if eq .Confirmar "desativar"}}pf-btn--danger{{else}}pf-btn--primary{{end}}" data-teste="acao-{{.Confirmar}}-segmento">{{if eq .Confirmar "desativar"}}Desativar{{else}}Ativar{{end}}</button>
+  <a class="pf-btn pf-btn--quiet" href="/painel/segmentos">Cancelar</a>
+</form>
+{{end}}
+{{else}}
+<div class="pf-form__foot"><a class="pf-btn" href="/painel/segmentos">Voltar para segmentos</a></div>
+{{end}}
+{{end}}{{end}}
+
+{{define "segmento-oculto"}}{{with .D}}
+{{template "csrf" $.CSRF}}
+{{if not .Novo}}<input type="hidden" name="id" value="{{.Seg.ID}}">{{end}}
+<input type="hidden" name="nome" value="{{.Seg.Nome}}">
+<input type="hidden" name="descricao" value="{{.Seg.Descricao}}">
+<input type="hidden" name="prioridade" value="{{.Prioridade}}">
+{{range .Linhas}}<input type="hidden" name="campo" value="{{.Campo}}"><input type="hidden" name="operador" value="{{.Operador}}"><input type="hidden" name="valor" value="{{.Valor}}">{{end}}
+{{end}}{{end}}

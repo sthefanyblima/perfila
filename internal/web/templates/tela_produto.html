@@ -1,0 +1,65 @@
+{{define "conteudo"}}{{with .Dados}}{{$novo := eq .ID.String "00000000-0000-0000-0000-000000000000"}}
+<header class="pf-header">
+  <ol class="pf-crumbs"><li>Configuração</li><li><a href="/painel/catalogo">Catálogo</a></li><li aria-current="page">{{if $novo}}Novo produto{{else}}{{.Nome}}{{end}}</li></ol>
+  <div class="pf-header__row">
+    <div>
+      <h1 class="pf-header__title">{{if $novo}}Novo produto{{else}}{{.Nome}}{{end}}</h1>
+      {{if not $novo}}<div class="pf-header__meta">{{if .Ativo}}<span class="pf-tag pf-tag--ok">{{icone "ok"}}Ativo</span>{{else}}{{template "tag" "INATIVO"}}{{end}}</div>{{end}}
+    </div>
+  </div>
+</header>
+{{with .Erro}}{{template "alerta" .}}{{end}}
+{{template "alerta" (alertaInfo "Como a recomendação escolhe" "A recomendação escolhe o primeiro produto ativo da categoria preferida do cliente, por ordem alfabética do nome. A categoria precisa ser igual à dos eventos de compra.")}}
+<section class="pf-panel" aria-labelledby="titulo-produto">
+  <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-produto">Dados do produto</h2></div>
+  <form class="pf-panel__body pf-form" method="post" action="/painel/catalogo" data-teste="form-produto">
+    {{template "csrf" $.CSRF}}
+    {{if not $novo}}<input type="hidden" name="id" value="{{.ID}}">{{end}}
+    {{template "campo-texto" (campo "nome" "Nome" .Nome (index .Erros "nome") "Até 100 caracteres.")}}
+    <div class="pf-grid-form">
+      <div class="pf-field">
+        <label class="pf-field__label" for="categoria">Categoria</label>
+        <input class="pf-input" id="categoria" name="categoria" value="{{.Categoria}}" list="categorias" autocomplete="off" aria-describedby="categoria-dica{{if index .Erros "categoria"}} categoria-erro{{end}}"{{if index .Erros "categoria"}} aria-invalid="true"{{end}}>
+        <datalist id="categorias">{{range .Categorias}}<option value="{{.}}">{{end}}</datalist>
+        <span class="pf-field__hint" id="categoria-dica">Gravada em minúsculas. Escolha uma existente ou digite uma nova.</span>
+        {{with index .Erros "categoria"}}<span class="pf-field__error" id="categoria-erro" aria-live="assertive">{{icone "barra"}}{{.}}</span>{{end}}
+      </div>
+      {{template "campo-texto" (campo "preco" "Preço (R$)" .Preco (index .Erros "preco") "De 0 a 1.000.000. Use vírgula nos centavos.")}}
+    </div>
+    <div class="pf-form__foot">
+      <button type="submit" class="pf-btn pf-btn--primary" data-teste="acao-salvar-produto">Salvar produto</button>
+      <a class="pf-btn pf-btn--quiet" href="/painel/catalogo">Cancelar</a>
+    </div>
+  </form>
+</section>
+{{if not $novo}}
+<section class="pf-panel" aria-labelledby="titulo-situacao">
+  <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-situacao">Situação</h2></div>
+  <div class="pf-panel__body">
+    {{if .Ativo}}
+      <p>Desativar tira o produto da recomendação a partir do próximo processamento de cada cliente. Recomendações ativas dele continuam até expirar. O produto não é excluído.</p>
+      {{if .Confirmar}}<div class="pf-confirm" data-teste="confirmar-desativar-produto">{{template "form-desativar-produto" (lista (estado .ID) $.CSRF .Nome)}}</div>
+      {{else}}<div><a class="pf-btn pf-btn--danger" href="/painel/catalogo/{{.ID}}/desativar" data-dialogo="dlg-desativar-produto" hx-boost="false" data-teste="acao-desativar-produto">Desativar</a></div>{{end}}
+    {{else}}
+      <p>Produto inativo: nunca é recomendado.</p>
+      <form method="post" action="/painel/catalogo/{{.ID}}/ativar">{{template "csrf" $.CSRF}}<button type="submit" class="pf-btn" data-teste="acao-ativar-produto">Ativar</button></form>
+    {{end}}
+  </div>
+</section>
+{{if and .Ativo (not .Confirmar)}}<dialog class="pf-dialog" id="dlg-desativar-produto" aria-labelledby="titulo-dlg-desativar-produto">{{template "form-desativar-produto" (lista (estado .ID) $.CSRF .Nome)}}</dialog>{{end}}
+{{end}}
+{{end}}{{end}}
+
+{{define "form-desativar-produto"}}
+<form method="post" action="/painel/catalogo/{{index . 0}}/desativar">
+  {{template "csrf" (index . 1)}}
+  <div class="pf-dialog__body">
+    <h2 class="pf-dialog__title" id="titulo-dlg-desativar-produto">Desativar {{index . 2}}</h2>
+    <p>O produto sai da recomendação no próximo processamento de cada cliente. Você pode ativar de novo depois.</p>
+  </div>
+  <div class="pf-dialog__foot">
+    <a class="pf-btn" href="/painel/catalogo/{{index . 0}}" data-fechar-dialogo autofocus>Cancelar</a>
+    <button type="submit" class="pf-btn pf-btn--danger">Desativar</button>
+  </div>
+</form>
+{{end}}

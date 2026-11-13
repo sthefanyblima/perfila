@@ -36,6 +36,30 @@ type pagina struct {
 
 type telas map[string]*template.Template
 
+// linhaSegmentoTela, campoTela e segmentoCSRF alimentam as partes das telas de configuração (v1.6).
+type linhaSegmentoTela struct {
+	Seg  entity.Segmento
+	Pode bool
+}
+
+type campoTela struct{ Nome, Rotulo, Valor, Erro, Dica string }
+
+type segmentoCSRF struct {
+	D    dadosSegmento
+	CSRF string
+}
+
+// diferenca mostra a variação da prévia com sinal: "+2", "−1" ou "0".
+func diferenca(atual, previsto int) string {
+	switch d := previsto - atual; {
+	case d > 0:
+		return "+" + strconv.Itoa(d)
+	case d < 0:
+		return "−" + strconv.Itoa(-d)
+	}
+	return "0"
+}
+
 // fichaCSRF e formCons levam o token CSRF às partes da ficha.
 type fichaCSRF struct {
 	D    dadosFicha
@@ -70,10 +94,17 @@ func funcoes(versoes map[string]string) template.FuncMap {
 		"alertaAtencao": func(titulo, texto string) alerta {
 			return alerta{Tom: "warn", Titulo: titulo, Texto: texto, Teste: "sem-recomendacao"}
 		},
-		"motivo":       motivoLegivel,
-		"rotuloAcao":   rotuloAcao,
-		"lista":        func(v ...string) []string { return v },
-		"fichaComCSRF": func(d dadosFicha, csrf string) fichaCSRF { return fichaCSRF{D: d, CSRF: csrf} },
+		"motivo":     motivoLegivel,
+		"rotuloAcao": rotuloAcao,
+		"lista":      func(v ...string) []string { return v },
+		// v1.6: segmentos e catálogo.
+		"linhaSegmento": func(s entity.Segmento, pode bool) linhaSegmentoTela { return linhaSegmentoTela{Seg: s, Pode: pode} },
+		"campo": func(nome, rotulo, valor, erro, dica string) campoTela {
+			return campoTela{nome, rotulo, valor, erro, dica}
+		},
+		"segmentoComCSRF": func(d dadosSegmento, csrf string) segmentoCSRF { return segmentoCSRF{D: d, CSRF: csrf} },
+		"diferenca":       diferenca,
+		"fichaComCSRF":    func(d dadosFicha, csrf string) fichaCSRF { return fichaCSRF{D: d, CSRF: csrf} },
 		"formConsentimento": func(d dadosFicha, csrf, acao string, dialogo bool) formCons {
 			f := formCons{D: d, CSRF: csrf, Acao: acao, Dialogo: dialogo}
 			if dialogo {
@@ -119,7 +150,8 @@ func (p *painel) render(w http.ResponseWriter, r *http.Request, status int, tela
 	if op.Login != "" {
 		pg.Papel, pg.Pode = rotulo(string(op.Papel)), map[string]bool{}
 		for _, perm := range []entity.Permissao{entity.PermClientes, entity.PermConsentimento, entity.PermEventos,
-			entity.PermProcessamento, entity.PermConfiguracao, entity.PermOperacao, entity.PermUsuarios, entity.PermAuditoria} {
+			entity.PermProcessamento, entity.PermConfiguracao, entity.PermEditarConfiguracao, entity.PermOperacao,
+			entity.PermUsuarios, entity.PermAuditoria} {
 			pg.Pode[string(perm)] = op.Papel.Pode(perm) && !op.TrocarSenha
 		}
 	}
