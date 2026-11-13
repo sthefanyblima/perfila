@@ -88,6 +88,18 @@ Prova de cada concessão e revogação (Q-34, RN-10, L-06). Base para os públic
 | T-45 | Painel: origem `painel` com o operador; linha do tempo pelo histórico, com a linha pelas datas para quem não tem movimentos | T-44 | cenários `@web` do histórico | ✅ 4 cenários `@web`; `TestDetalheMovimento`, `TestLinhaPeloHistorico` |
 | T-46 | Exemplos (Karina: v1, revoga, v2) conferidos pelo histórico; checklist L-06; README; fluxo no navegador | T-45 | `TestCarregarExemplos`; painel conferido | ✅ Karina com v1 pela API, revogação e v2 pelo painel; L-06 atendido; fluxo conferido no navegador; cobertura 91,0% |
 
+## Direitos do titular e retenção — Spec v1.9
+
+Correção, acesso e portabilidade e eliminação a pedido do titular (art. 18 da LGPD) e retenção após a revogação (RN-17, RN-18, Q-48 a Q-53; L-19, L-20). Numeração a partir de T-69, migração 009 e Q-48 para não colidir com as branches abertas (v1.5 a v1.8).
+
+| ID | Tarefa | Depende de | Prova | Status |
+|---|---|---|---|---|
+| T-69 | Spec v1.9, Q-48 a Q-53, exceção em C-03, UML2, UML7 e UML8 em texto, `02-telas-e-fluxos.md` e `03-textos.md`; `features/direitos.feature` (`@wip` até a tarefa que a implementa) | T-46 | Spec, UML e feature revisados | ✅ cenários escritos (`@wip`) |
+| T-70 | `Cliente.DataEliminacao`, `Anonimizar`, `EstaEliminado` e `ErrClienteEliminado`; `RemoverPorCliente` (eventos, perfis, recomendações) e `ListarRevogadosAte` na memória e no PostgreSQL; migração 009; contrato | T-69 | testes de tabela; contrato nos dois backends | ⬜ |
+| T-71 | `AtualizarCadastro`, `ExportarDadosTitular`, `EliminarDadosTitular`, `AplicarRetencao`; RN-01 e UC-08 com o cliente eliminado; `RETENCAO_DIAS_REVOGADO` e subcomando `aplicar-retencao` | T-70 | cenários `@aplicacao` de `direitos.feature` | ⬜ |
+| T-72 | Painel: aba Direitos do titular (corrigir, baixar dados, eliminar com confirmação forte), ficha do eliminado e retenção na Operação; log `direito_atendido` | T-71 | cenários `@web` de `direitos.feature`; `@wip` retirado | ⬜ |
+| T-73 | Exemplo revogado há mais de 180 dias; checklist (L-19, L-20), README e roteiro; fluxo no navegador | T-72 | `TestCarregarExemplos`; painel conferido | ⬜ |
+
 ## Fechamento
 
 | Data | Marco |

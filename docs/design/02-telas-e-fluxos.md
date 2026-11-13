@@ -51,7 +51,7 @@ Formulário de uma coluna (`size-measure`): **Nome completo** e **E-mail**. Roda
 O centro do produto.
 
 - **Cabeçalho:** nome (`display`), `UuidTag`, e-mail completo, data de cadastro, situação (Ativo/Inativo) e, à direita, o `ConsentRecord` compacto com o estado e a ação contextual (Conceder ou Revogar).
-- **Abas (`Tabs`):** Visão geral · Eventos · Consentimento.
+- **Abas (`Tabs`):** Visão geral · Eventos · Consentimento · Direitos do titular (v1.9).
 - **Visão geral, com consentimento Concedido:**
   - Painel **Processamento**: `PipelineTrace` com as 4 etapas, resultado de cada uma e o botão "Processar agora" (primário da página). Antes do primeiro processamento: "Este cliente ainda não foi processado."
   - Painel **Perfil** (`KeyValue`): frequência de compras, ticket médio (R$), categoria preferida, engajamento (`ScoreMeter` com "4 de 10 eventos em 30 dias").
@@ -60,6 +60,11 @@ O centro do produto.
 - **Visão geral, sem consentimento:** os quatro painéis são trocados por um único `Alert` crítico: "Sem consentimento válido. Os dados de comportamento deste cliente não podem ser usados. [Conceder consentimento]". Nenhum dado de comportamento é buscado no servidor (C-03).
 - **Eventos:** formulário em linha para registrar (Tipo, Valor em R$, Categoria, Origem, Data e hora, que vem preenchida com agora) + `EventTimeline` do mais recente para o mais antigo. Sem consentimento: o formulário fica desabilitado, com o motivo escrito ao lado.
 - **Consentimento:** o `ConsentRecord` completo (estado, finalidade, versão do termo, datas de consentimento, de revogação e de atualização) com as ações. Fica disponível sempre, inclusive sem consentimento: é o UC-08.
+- **Direitos do titular (v1.9, Q-48 a Q-53):** disponível com qualquer estado do consentimento. Três painéis, um por pedido do titular:
+  - **Corrigir cadastro**: formulário com Nome e E-mail preenchidos e o botão "Salvar correção". Toast "Cadastro corrigido".
+  - **Acesso e portabilidade**: o texto diz o que vai no arquivo; o botão "Baixar dados (JSON)" baixa `perfila-dados-{id}.json`.
+  - **Eliminação**: o texto diz o efeito. Com consentimento Concedido, só o `Alert` de atenção "Revogue o consentimento antes de eliminar os dados." (a ação fica na aba Consentimento: uma ação de consentimento por tela). Senão, "Eliminar dados" (danger) abre a confirmação forte: o efeito, o nome do cliente a digitar, **Eliminar dados** (danger) e **Cancelar** (foco inicial). Nome diferente: erro ao lado do campo.
+- **Cliente eliminado:** cabeçalho com "Titular eliminado" e o selo **Eliminado**; no lugar das abas de dados, o `Alert` "Dados eliminados em {data}. O cadastro foi anonimizado; resta o histórico do consentimento, guardado como prova." e a linha do tempo do consentimento. Nenhuma ação é oferecida.
 
 ### Segmentos
 
@@ -73,6 +78,7 @@ Tabela agrupada por categoria, com Nome, Preço (R$) e Situação. A nota explic
 
 - Painel **Saúde**: estado do banco (verde ou vermelho, vindo de `/saude`) e versão das migrações.
 - Painel **Expirar recomendações vencidas**: o texto explica a regra ("Recomendações ativas com validade vencida passam a Expirada."); o botão "Expirar agora" abre um diálogo de confirmação; o resultado aparece em toast: "3 recomendações expiradas" ou "Nenhuma recomendação vencida".
+- Painel **Retenção após a revogação** (v1.9, RN-18): o texto explica a regra com o prazo configurado; o botão "Aplicar retenção" (danger) abre a confirmação; o resultado aparece em toast: "Retenção aplicada a 2 clientes" ou "Nenhum cliente com a retenção vencida".
 
 ## Fluxos principais
 
@@ -104,6 +110,13 @@ O processamento conclui as 3 primeiras etapas; a etapa Recomendação fica em **
 ### E. Sessão expirada
 
 Qualquer ação com a sessão vencida volta para **Entrar**, com o aviso "Sua sessão expirou. Entre de novo para continuar."; depois de entrar, a pessoa volta para a página onde estava.
+
+### F. Pedido de eliminação (v1.9)
+
+1. Se o selo diz **Concedido**, aba **Consentimento** → **Revogar consentimento** (fluxo B).
+2. Aba **Direitos do titular** → **Baixar dados (JSON)**, se o titular também pediu uma cópia antes de eliminar.
+3. **Eliminar dados** → a confirmação explica o efeito e pede o nome do cliente → digitar o nome → **Eliminar dados**.
+4. A ficha mostra o selo **Eliminado** e o aviso com a data; o toast diz "Dados eliminados". A busca pelo nome antigo não encontra mais o cliente.
 
 ## Estados obrigatórios em toda tela
 
