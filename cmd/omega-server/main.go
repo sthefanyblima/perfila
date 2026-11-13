@@ -191,6 +191,7 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 			ListarSegmentos:    usecase.NovoListarSegmentosUseCase(repos.segmentos),
 			ListarCatalogo:     usecase.NovoListarCatalogoUseCase(repos.produtos),
 			Expirar:            expirar,
+			Importar:           importar,
 			MetaEventos:        cfg.EngajamentoMetaEventos,
 			Clock:              clock, Log: log, Saude: repos.saude, Migracoes: repos.migracoes,
 		})

@@ -65,7 +65,7 @@ func registrarPassosWeb(sc *godog.ScenarioContext, m *Mundo) {
 	sc.Step(`^a página pede a confirmação "([^"]*)"$`, func(a string) error {
 		return m.paginaTemMarcador(`data-teste="confirmar-`+a+`"`, true)
 	})
-	sc.Step(`^a página de destino (não )?oferece "([^"]*)"$`, func(nao, a string) error {
+	sc.Step(`^a página (?:de destino )?(não )?oferece "([^"]*)"$`, func(nao, a string) error {
 		return m.paginaTemMarcador(`data-teste="acao-`+a+`"`, nao == "")
 	})
 	sc.Step(`^a página não mostra os painéis "([^"]*)", "([^"]*)", "([^"]*)" e "([^"]*)"$`, func(a, b, c, d string) error {
@@ -115,7 +115,7 @@ func (m *Mundo) painelNoAr(usuario, senha string) error {
 		Usuario: usuario, SenhaHash: hash, ChaveSessao: chave, Finalidade: "segmentacao", VersaoTermo: "v1",
 		Cadastrar: c.cadastrar, Consentimento: c.consentimento, Coletar: c.coletar, Processar: c.processar,
 		ListarClientes: c.listarClientes, ConsultarCliente: c.consultarCliente, ConsultarResultado: c.consultarResultado,
-		ListarSegmentos: c.listarSegmentos, ListarCatalogo: c.listarCatalogo, Expirar: c.expirar,
+		ListarSegmentos: c.listarSegmentos, ListarCatalogo: c.listarCatalogo, Expirar: c.expirar, Importar: c.importar,
 		MetaEventos: m.metaEventos, Clock: m.clock, Log: slog.New(slog.NewTextHandler(&m.web.log, nil)),
 	})
 	return err
@@ -191,6 +191,11 @@ func (m *Mundo) entrar(senha, volta string) error {
 }
 
 func (m *Mundo) entrouNoPainel() error {
+	if m.web.handler == nil { // features sem o Contexto do painel (importacao.feature)
+		if err := m.painelNoAr("operador", "s3nh4-sintetica"); err != nil {
+			return err
+		}
+	}
 	if err := m.entrar(m.web.senha, ""); err != nil {
 		return err
 	}

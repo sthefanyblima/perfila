@@ -5,8 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"time"
 
@@ -52,6 +55,32 @@ func registrarPassosImportacao(sc *godog.ScenarioContext, m *Mundo) {
 	sc.Step(`^o lote de eventos é enviado à API com o token "([^"]*)" só para conferir:$`, func(tok string, d *godog.DocString) error {
 		return m.enviarLote(tok, d.Content, true)
 	})
+	sc.Step(`^o operador envia o arquivo de eventos pelo painel$`, m.enviarPeloPainel)
+	sc.Step(`^que o operador enviou o arquivo de eventos pelo painel$`, m.enviarPeloPainel)
+	sc.Step(`^o operador confirma a importação$`, m.confirmarImportacao)
+	sc.Step(`^a página mostra (\d+) prontas?, (\d+) duplicadas? e (\d+) com erro$`, func(a, d, r int) error {
+		return m.paginaTemMarcador(fmt.Sprintf(`data-teste="resumo-importacao" data-aceitas="%d" data-duplicadas="%d" data-rejeitadas="%d"`, a, d, r), true)
+	})
+	sc.Step(`^a resposta é um CSV que começa com "([^"]*)"$`, func(inicio string) error {
+		if !strings.HasPrefix(m.api.resposta.Header().Get("Content-Type"), "text/csv") || !strings.HasPrefix(m.web.pagina, inicio) {
+			return fmt.Errorf("esperava CSV começando com %q: %s %q", inicio, m.api.resposta.Header().Get("Content-Type"), m.web.pagina)
+		}
+		return nil
+	})
+	sc.Step(`^o log do painel registra a importação com (\d+) importados?, (\d+) duplicados? e (\d+) rejeitados?$`, func(i, d, r int) error {
+		quer := fmt.Sprintf("operador=operador acao=importar_eventos importados=%d duplicados=%d rejeitados=%d", i, d, r)
+		if !strings.Contains(m.web.log.String(), quer) {
+			return fmt.Errorf("o log não registra %q: %s", quer, m.web.log.String())
+		}
+		return nil
+	})
+	sc.Step(`^o log do painel não contém o ID do cliente "([^"]*)"$`, func(c string) error {
+		if strings.Contains(m.web.log.String(), id(c).String()) {
+			return fmt.Errorf("o log do painel contém o ID do cliente %s", c)
+		}
+		return nil
+	})
+
 	sc.Step(`^o corpo informa (\d+) aceitas?, (\d+) duplicadas? e (\d+) rejeitadas?$`, m.corpoInforma)
 	sc.Step(`^o corpo informa a linha (\d+) com o código "([^"]*)"$`, m.corpoInformaLinha)
 }
@@ -237,3 +266,46 @@ func (m *Mundo) corpoInformaLinha(n int, codigo string) error {
 	}
 	return fmt.Errorf("linha %d sem o código %q: %s", n, codigo, m.api.resposta.Body.String())
 }
+
+// ---- painel ----
+
+// postarMultipart envia um formulário multipart (arquivo ou conteúdo oculto) com o CSRF da página.
+func (m *Mundo) postarMultipart(caminho, campo, nomeArquivo string, valor []byte) error {
+	var corpo bytes.Buffer
+	w := multipart.NewWriter(&corpo)
+	_ = w.WriteField("_csrf", m.web.csrf)
+	if nomeArquivo != "" {
+		f, err := w.CreateFormFile(campo, nomeArquivo)
+		if err != nil {
+			return err
+		}
+		_, _ = f.Write(valor)
+	} else {
+		_ = w.WriteField(campo, string(valor))
+	}
+	if err := w.Close(); err != nil {
+		return err
+	}
+	req := httptest.NewRequest(http.MethodPost, caminho, &corpo)
+	req.Header.Set("Content-Type", w.FormDataContentType())
+	m.requisitar(req, true)
+	return nil
+}
+
+func (m *Mundo) enviarPeloPainel() error {
+	if err := m.webGET("/painel/eventos/importar", true); err != nil {
+		return err
+	}
+	return m.postarMultipart("/painel/eventos/importar", "arquivo", "eventos.csv", m.importacao.arquivo)
+}
+
+// confirmarImportacao reenvia o conteúdo oculto da prévia, como o navegador faria.
+func (m *Mundo) confirmarImportacao() error {
+	s := reConteudoOculto.FindStringSubmatch(m.web.pagina)
+	if s == nil {
+		return fmt.Errorf("a prévia não oferece a confirmação")
+	}
+	return m.postarMultipart("/painel/eventos/importar/confirmar", "conteudo", "", []byte(html.UnescapeString(s[1])))
+}
+
+var reConteudoOculto = regexp.MustCompile(`name="conteudo" value="([^"]*)"`)

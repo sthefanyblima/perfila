@@ -66,7 +66,19 @@ func funcoes(versoes map[string]string) template.FuncMap {
 		"alertaAtencao": func(titulo, texto string) alerta {
 			return alerta{Tom: "warn", Titulo: titulo, Texto: texto, Teste: "sem-recomendacao"}
 		},
-		"motivo":       motivoLegivel,
+		"motivo":      motivoLegivel,
+		"motivoLinha": mensagemLinha,
+		"alertaAtencaoTeste": func(titulo, texto, teste string) alerta {
+			return alerta{Tom: "warn", Titulo: titulo, Texto: texto, Teste: teste}
+		},
+		"alertaImportacao": func(n int) alerta {
+			texto := fmt.Sprintf("%d eventos importados.", n)
+			if n == 1 {
+				texto = "1 evento importado."
+			}
+			return alerta{Tom: "ok", Titulo: "Importação concluída", Agora: true, Teste: "importacao-concluida",
+				Texto: texto + " Reenviar o mesmo arquivo é seguro: o que já entrou aparece como duplicado."}
+		},
 		"lista":        func(v ...string) []string { return v },
 		"fichaComCSRF": func(d dadosFicha, csrf string) fichaCSRF { return fichaCSRF{D: d, CSRF: csrf} },
 		"formConsentimento": func(d dadosFicha, csrf, acao string, dialogo bool) formCons {

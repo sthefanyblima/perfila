@@ -259,7 +259,7 @@ Funcionalidade: Importação de eventos em lote
 
   # ---- Painel ----
 
-  @web @wip
+  @web
   Cenário: Enviar o arquivo pelo painel mostra a prévia sem gravar
     Dado que o operador entrou no painel
     E que o arquivo de eventos é:
@@ -275,7 +275,7 @@ Funcionalidade: Importação de eventos em lote
     E a página mostra "Uma compra precisa ter valor maior que zero."
     E nenhum evento é gravado
 
-  @web @wip
+  @web
   Cenário: Confirmar a importação grava as linhas aceitas e mostra o relatório
     Dado que o operador entrou no painel
     E que o arquivo de eventos é:
@@ -290,7 +290,7 @@ Funcionalidade: Importação de eventos em lote
     E a página mostra 2 prontas, 0 duplicadas e 0 com erro
     E a coleta do cliente "c-001" retorna 2 eventos
 
-  @web @lgpd @wip
+  @web @lgpd
   Cenário: Sem consentimento, a linha aparece recusada na prévia
     Dado que o operador entrou no painel
     E que o consentimento do cliente "c-001" está no estado "REVOGADO"
@@ -304,7 +304,7 @@ Funcionalidade: Importação de eventos em lote
     E a página mostra "Sem consentimento válido. O evento não pode ser usado."
     E a página não oferece "Importar"
 
-  @web @wip
+  @web
   Esquema do Cenário: Arquivo grande é recusado com o motivo
     Dado que o operador entrou no painel
     E que o arquivo de eventos é maior que <tamanho> KiB
@@ -317,14 +317,14 @@ Funcionalidade: Importação de eventos em lote
       | 256     |
       | 600     |
 
-  @web @wip
+  @web
   Cenário: O modelo do arquivo pode ser baixado
     Dado que o operador entrou no painel
     Quando a página "/painel/eventos/modelo.csv" é aberta
     Então a resposta tem status 200
     E a resposta é um CSV que começa com "cliente_id,tipo,origem,timestamp,valor,categoria"
 
-  @web @C-09 @wip
+  @web @C-09
   Cenário: A auditoria do lote registra o operador e as quantidades, sem dado pessoal
     Dado que o operador entrou no painel
     E que o arquivo de eventos é:

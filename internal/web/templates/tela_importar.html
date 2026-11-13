@@ -1,0 +1,84 @@
+{{define "conteudo"}}{{with .Dados}}
+<header class="pf-header">
+  <ol class="pf-crumbs"><li><a href="/painel/clientes">Clientes</a></li><li aria-current="page">Importar eventos</li></ol>
+  <div class="pf-header__row">
+    <div>
+      <h1 class="pf-header__title">Importar eventos</h1>
+      <p class="pf-header__meta">Cada linha passa pelas mesmas regras do registro de evento, inclusive o consentimento do cliente. O arquivo não fica guardado.</p>
+    </div>
+  </div>
+</header>
+
+{{if eq .Etapa "enviar"}}
+<section class="pf-panel" aria-labelledby="titulo-arquivo">
+  <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-arquivo">Arquivo de eventos</h2>
+    <a class="pf-btn pf-btn--sm pf-btn--quiet" href="/painel/eventos/modelo.csv" download hx-boost="false">Baixar modelo</a>
+  </div>
+  <form class="pf-panel__body pf-form" method="post" action="/painel/eventos/importar" enctype="multipart/form-data" data-teste="form-importar">
+    {{template "csrf" $.CSRF}}
+    {{with .Erro}}{{template "alerta" .}}{{end}}
+    <div class="pf-field">
+      <label class="pf-field__label" for="arquivo">Arquivo CSV</label>
+      <input class="pf-input pf-input--arquivo" id="arquivo" name="arquivo" type="file" accept=".csv,text/csv" required aria-describedby="arquivo-dica">
+      <span class="pf-field__hint" id="arquivo-dica">CSV em UTF-8, separado por vírgula, até 1.000 linhas e 256 KiB.</span>
+    </div>
+    <dl class="pf-kv">
+      <dt>Colunas</dt><dd class="pf-mono">cliente_id, tipo, origem, timestamp, valor, categoria (opcional)</dd>
+      <dt>Tipo</dt><dd class="pf-mono">compra, navegacao ou interacao</dd>
+      <dt>Data e hora</dt><dd>ISO 8601 com fuso: <span class="pf-mono">2026-11-10T14:30:00-03:00</span></dd>
+      <dt>Valor</dt><dd>Com ponto decimal: <span class="pf-mono">150.90</span>; vazio vale 0</dd>
+    </dl>
+    <div class="pf-form__foot">
+      <button type="submit" class="pf-btn pf-btn--primary">Conferir arquivo</button>
+      <span class="pf-muted">Nada é gravado antes da confirmação.</span>
+    </div>
+  </form>
+</section>
+{{else}}
+{{if eq .Etapa "relatorio"}}{{template "alerta" (alertaImportacao .Resultado.Aceitas)}}{{end}}
+<section class="pf-panel" aria-labelledby="titulo-resumo" data-teste="resumo-importacao" data-aceitas="{{.Resultado.Aceitas}}" data-duplicadas="{{.Resultado.Duplicadas}}" data-rejeitadas="{{.Resultado.Rejeitadas}}">
+  <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-resumo">{{if eq .Etapa "previa"}}Prévia{{else}}Relatório{{end}}</h2></div>
+  <div class="pf-panel__body pf-stack">
+    <dl class="pf-kv">
+      <dt>{{if eq .Etapa "previa"}}Prontas para importar{{else}}Importados{{end}}</dt><dd class="pf-kv__destaque pf-num">{{.Resultado.Aceitas}}</dd>
+      <dt>{{if eq .Etapa "previa"}}Duplicadas{{else}}Duplicados ignorados{{end}}</dt><dd class="pf-kv__destaque pf-num">{{.Resultado.Duplicadas}}</dd>
+      <dt>Com erro</dt><dd class="pf-kv__destaque pf-num">{{.Resultado.Rejeitadas}}</dd>
+    </dl>
+    {{if eq .Etapa "previa"}}
+      {{if .Conteudo}}
+      <form method="post" action="/painel/eventos/importar/confirmar" enctype="multipart/form-data" class="pf-row">
+        {{template "csrf" $.CSRF}}
+        <input type="hidden" name="conteudo" value="{{.Conteudo}}">
+        <button type="submit" class="pf-btn pf-btn--primary" data-teste="acao-Importar">Importar {{.Resultado.Aceitas}} {{if eq .Resultado.Aceitas 1}}evento{{else}}eventos{{end}}</button>
+        <a class="pf-btn pf-btn--quiet" href="/painel/eventos/importar">Enviar outro arquivo</a>
+      </form>
+      {{else}}
+      {{template "alerta" (alertaAtencaoTeste "Nenhuma linha pronta para importar" "Corrija as linhas abaixo e envie o arquivo de novo." "nada-a-importar")}}
+      <div><a class="pf-btn" href="/painel/eventos/importar">Enviar outro arquivo</a></div>
+      {{end}}
+    {{else}}
+      <div><a class="pf-btn" href="/painel/eventos/importar">Importar outro arquivo</a></div>
+    {{end}}
+  </div>
+</section>
+
+{{if .Resultado.Linhas}}
+<div class="pf-tablewrap">
+  <table class="pf-table" data-teste="linhas-importacao">
+    <caption class="pf-sr">Linhas que não {{if eq .Etapa "previa"}}serão importadas{{else}}foram importadas{{end}}, na ordem do arquivo</caption>
+    <thead><tr><th scope="col">Linha</th><th scope="col">Cliente</th><th scope="col">Situação</th><th scope="col">Motivo</th></tr></thead>
+    <tbody>
+    {{range .Resultado.Linhas}}
+      <tr data-teste="linha-importacao">
+        <td class="pf-num">{{.Numero}}</td>
+        <td>{{if eq .ClienteID.String "00000000-0000-0000-0000-000000000000"}}<span class="pf-muted">—</span>{{else}}{{template "uuid" .ClienteID}}{{end}}</td>
+        <td>{{if eq (estado .Situacao) "duplicada"}}<span class="pf-tag pf-tag--neutral">{{icone "vazado"}}Duplicada</span>{{else}}<span class="pf-tag pf-tag--critical">{{icone "barra"}}Com erro</span>{{end}}</td>
+        <td>{{motivoLinha .}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}
+{{end}}
+{{end}}{{end}}

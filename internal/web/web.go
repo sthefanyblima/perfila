@@ -33,7 +33,8 @@ type Dependencias struct {
 	ListarSegmentos    *usecase.ListarSegmentosUseCase
 	ListarCatalogo     *usecase.ListarCatalogoUseCase
 	Expirar            *usecase.ExpirarRecomendacoesUseCase
-	MetaEventos        int // ENGAJAMENTO_META_EVENTOS, para explicar o score
+	Importar           *usecase.ImportarEventosUseCase // RN-16 (Q-47)
+	MetaEventos        int                             // ENGAJAMENTO_META_EVENTOS, para explicar o score
 
 	Clock port.Clock
 	Log   *slog.Logger
@@ -69,7 +70,7 @@ func NovoRouter(d Dependencias) (http.Handler, error) {
 		http.Redirect(w, r, "/painel/clientes", http.StatusSeeOther)
 	}))
 	for _, rotas := range []func(*http.ServeMux, func(http.HandlerFunc) http.Handler){
-		p.rotasClientes, p.rotasFicha, p.rotasConfiguracao,
+		p.rotasClientes, p.rotasFicha, p.rotasConfiguracao, p.rotasImportacao,
 	} {
 		rotas(mux, sessao)
 	}
@@ -77,12 +78,14 @@ func NovoRouter(d Dependencias) (http.Handler, error) {
 	return p.cabecalhos(p.registro(mux)), nil
 }
 
-// acao registra uma ação do operador: só operador, ação e ID do cliente (C-09, Q-24).
-func (p *painel) acao(r *http.Request, nome, clienteID string) {
+// acao registra uma ação do operador: só operador, ação, ID do cliente e quantidades
+// (C-09, Q-24, RN-16).
+func (p *painel) acao(r *http.Request, nome, clienteID string, extras ...slog.Attr) {
 	attrs := []slog.Attr{slog.String("operador", operadorDe(r)), slog.String("acao", nome)}
 	if clienteID != "" {
 		attrs = append(attrs, slog.String("clienteId", clienteID))
 	}
+	attrs = append(attrs, extras...)
 	p.d.Log.LogAttrs(r.Context(), slog.LevelInfo, "painel_acao", attrs...)
 }
 

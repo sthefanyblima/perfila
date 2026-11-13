@@ -190,6 +190,8 @@ body.pf {
 .pf-input[aria-invalid="true"] { border-color: var(--critical); box-shadow: inset 0 0 0 1px var(--critical); }
 .pf-input[readonly], .pf-input[disabled], .pf-select[disabled] { background: var(--surface-2); }
 .pf-input--mono { font-family: var(--font-mono); font-size: 13px; }
+.pf-input--arquivo { height: auto; padding: var(--space-2); cursor: pointer; }
+.pf-input--arquivo::file-selector-button { font: inherit; margin-right: var(--space-3); padding: 0 var(--space-3); min-height: 28px; border: 1px solid var(--line-strong); border-radius: var(--radius-1); background: var(--surface-2); color: var(--ink); cursor: pointer; }
 .pf-fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: var(--space-4); min-width: 0; }
 .pf-fieldset[disabled] .pf-field { opacity: 0.6; }
 .pf-form__foot { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; padding-top: var(--space-2); }
