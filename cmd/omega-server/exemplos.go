@@ -34,8 +34,15 @@ type passo struct {
 	categoria string
 	valor     float64
 	termo     string
-	n         int // navegar: quantos eventos (espalhados nas horas seguintes)
+	n         int                    // navegar: quantos eventos (espalhados nas horas seguintes)
+	por       entity.OrigemMovimento // conceder e revogar: origem do movimento (RN-10); vazio = sistema
 }
+
+// operadorExemplo é o login do painel que aparece nos movimentos de exemplo feitos "pelo painel".
+const operadorExemplo = "operador"
+
+// pelo muda a origem do movimento de um passo de conceder ou revogar (Q-34).
+func (p passo) pelo(o entity.OrigemMovimento) passo { p.por = o; return p }
 
 type exemplo struct {
 	nome, email string
@@ -80,9 +87,9 @@ func (e exemplos) lista() []exemplo {
 			proc(54), comp(35, "moda", 120), comp(15, "moda", 160), comp(3, "moda", 75), proc(2)}},
 		{"João Sintético", "c-010@exemplo.test", []passo{ // explorador: navega, não compra
 			cad(20), conc(19, "v1"), nav(18, explorador), proc(1)}},
-		{"Karina Sintética", "c-011@exemplo.test", []passo{ // revogou e concedeu de novo, termo v2
-			cad(160), conc(158, "v1"), comp(150, "beleza", 180), comp(130, "beleza", 240), proc(120), rev(90),
-			conc(30, "v2"), comp(20, "beleza", 150), nav(19, 2), proc(3)}},
+		{"Karina Sintética", "c-011@exemplo.test", []passo{ // revogou e concedeu de novo, termo v2 (histórico, Q-34)
+			cad(160), conc(158, "v1").pelo(entity.OrigemAPI), comp(150, "beleza", 180), comp(130, "beleza", 240), proc(120),
+			rev(90).pelo(entity.OrigemPainel), conc(30, "v2").pelo(entity.OrigemPainel), comp(20, "beleza", 150), nav(19, 2), proc(3)}},
 		{"Lucas Sintético", "c-012@exemplo.test", []passo{ // concedeu e tem eventos, ainda não processado
 			cad(6), conc(5, "v2"), nav(4, 2), comp(3, "esportes", 70)}},
 		{"Marina Sintética", "c-013@exemplo.test", []passo{ // só recomendação expirada
@@ -144,7 +151,7 @@ func (e exemplos) executar(ctx context.Context, p passo, ex exemplo, id *uuid.UU
 		*id = c.ID
 		return err
 	case "conceder":
-		return consentimento.Conceder(ctx, *id, "segmentacao", p.termo)
+		return consentimento.Conceder(p.contexto(ctx), *id, "segmentacao", p.termo)
 	case "compra":
 		return evento(entity.TipoCompra, p.valor, p.categoria, carga.Agora())
 	case "navegar":
@@ -168,7 +175,7 @@ func (e exemplos) executar(ctx context.Context, p passo, ex exemplo, id *uuid.UU
 		_, err := processar.Executar(ctx, *id)
 		return err
 	case "revogar":
-		return consentimento.Revogar(ctx, *id)
+		return consentimento.Revogar(p.contexto(ctx), *id)
 	case "expirar":
 		_, err := expirar.Executar(ctx)
 		return err
@@ -181,6 +188,17 @@ func (e exemplos) executar(ctx context.Context, p passo, ex exemplo, id *uuid.UU
 		return e.repos.clientes.Salvar(ctx, c)
 	}
 	return fmt.Errorf("ação desconhecida %q", p.acao)
+}
+
+// contexto leva a origem do passo até UC-08; sem origem, o movimento fica como "sistema".
+func (p passo) contexto(ctx context.Context) context.Context {
+	switch p.por {
+	case "":
+		return ctx
+	case entity.OrigemPainel:
+		return usecase.ComOrigem(ctx, p.por, operadorExemplo)
+	}
+	return usecase.ComOrigem(ctx, p.por, "")
 }
 
 // origem varia o canal do evento para a linha do tempo não ficar repetitiva.

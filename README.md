@@ -18,10 +18,11 @@ Desenvolvido com **Spec-Driven Development** (a especificação é a fonte da ve
 | **Support** (API, middlewares, CMD, gateways), 25% | 09–13/11 | ✅ 20 cenários de API |
 | **Generic** (PostgreSQL, Docker/Nginx, LGPD), 25% | 16–19/11 | ✅ contrato nos dois backends · 3 cenários de implantação · checklist LGPD |
 | **Painel web do operador** (Spec v1.3, T-31 a T-38) | 12/11 | ✅ 26 cenários `@web` · 21 de aplicação novos · 1 de implantação |
+| **Histórico do consentimento** (Spec v1.4, T-42 a T-46, Q-34) | 12/11 | ✅ 8 cenários de aplicação · 4 `@web` · contrato e migração 006 nos dois backends |
 | Fechamento do escopo | 19/11 | daqui em diante, só correções |
 | Ensaio · evento final | 23/11 · 24/11 | roteiro em `docs/ROTEIRO_DEMONSTRACAO.md` |
 
-**158 cenários BDD** (154 no `make verify` + 4 de implantação), teste de arquitetura e suíte de contrato dos repositórios em memória e em PostgreSQL.
+**174 cenários BDD** (170 no `make verify` + 4 de implantação), teste de arquitetura e suíte de contrato dos repositórios em memória e em PostgreSQL.
 
 ## Arquitetura
 
@@ -105,10 +106,11 @@ Interface web em `/painel`, servida pelo próprio `omega-server`, seguindo o des
 | Clientes | busca por nome (sem acentos) ou ID, filtro de consentimento, 20 por página, e-mail mascarado |
 | Cadastrar cliente | UC-09; abre a ficha já com o selo "Não concedido" |
 | Ficha | selo de consentimento sempre visível; Visão geral (etapas do processamento, perfil, segmento com os critérios atendidos, recomendação), Eventos e Consentimento. Sem consentimento, nenhum dado de comportamento é lido |
+| Consentimento | registro atual e linha do tempo com cada concessão e revogação: finalidade, versão do termo e origem (API, painel com o operador, portal). Só inclusão; cliente sem movimentos mostra a linha pelas datas (Q-34) |
 | Segmentos e Catálogo | somente leitura |
 | Operação | saúde do banco e expiração de recomendações vencidas |
 
-Demonstração (Q-30, Q-32): 7 segmentos (vip, premium, fiel, engajado, explorador, ocasional, padrao), catálogo de 7 categorias e 14 clientes com história ao longo de meses: Ana (premium, com recomendações expiradas), Bruno (engajado), Carla e Davi (ocasional; Davi sem produto elegível), Elisa (nunca concedeu), Fábio (revogou), Gabi (inativa, histórico só leitura), Heitor (vip), Isabela (fiel), João (explorador), Karina (revogou e concedeu de novo, termo v2), Lucas (ainda não processado), Marina (só recomendação expirada) e Nina (padrão). No `make serve` eles entram sozinhos; na implantação, com `make exemplos`.
+Demonstração (Q-30, Q-32): 7 segmentos (vip, premium, fiel, engajado, explorador, ocasional, padrao), catálogo de 7 categorias e 14 clientes com história ao longo de meses: Ana (premium, com recomendações expiradas), Bruno (engajado), Carla e Davi (ocasional; Davi sem produto elegível), Elisa (nunca concedeu), Fábio (revogou), Gabi (inativa, histórico só leitura), Heitor (vip), Isabela (fiel), João (explorador), Karina (concedeu v1 pela API, revogou e concedeu v2 pelo painel: histórico completo), Lucas (ainda não processado), Marina (só recomendação expirada) e Nina (padrão). No `make serve` eles entram sozinhos; na implantação, com `make exemplos`.
 
 Sessão assinada sem estado (funciona com as duas réplicas), CSRF em todo envio, 5 tentativas de entrada por IP em 5 minutos, CSP `'self'`. Funciona sem JavaScript (formulários com redirecionamento e páginas de confirmação); com JavaScript, troca só a área do painel e usa diálogos nativos.
 

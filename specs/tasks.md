@@ -1,6 +1,6 @@
 # Tarefas (T-xx)
 
-Perfila · Equipe Omega · Plano SDD v1.0 · atualizado em 11/11/2026 (cronograma: escopo fecha 19/11, evento 24/11)
+Perfila · Equipe Omega · Plano SDD v1.0 · atualizado em 12/11/2026 (cronograma: escopo fecha 19/11, evento 24/11)
 
 Legenda de status: ✅ concluída · 🟡 parcial · ⬜ a fazer. "Prova" é o que precisa estar verde para a tarefa ser aceita (Definição de pronto no `specs/plan.md`, seção 3).
 
@@ -86,7 +86,7 @@ Prova de cada concessão e revogação (Q-34, RN-10, L-06). Base para os públic
 | T-43 | `MovimentoConsentimento` e `NovoMovimento`; `ConsentimentoRepository.Registrar` e `ListarMovimentos` na memória e no PostgreSQL; migração 006 com reconstrução | T-42 | testes de tabela; contrato nos dois backends; `TestMigracoes` | ✅ `TestNovoMovimento`, contrato `MovimentoConsentimento` e `TestMigracaoReconstroiMovimentos` (memória e PostgreSQL 16) |
 | T-44 | UC-08 grava o movimento e expõe `Historico`; origem pelo contexto (`ComOrigem`) na API; `ConsultarCliente` devolve o histórico | T-43 | cenários `@aplicacao` do histórico; teste da origem na API | ✅ 8 cenários `@aplicacao`; `TestConsentimentoPelaAPIRegistraOrigem` |
 | T-45 | Painel: origem `painel` com o operador; linha do tempo pelo histórico, com a linha pelas datas para quem não tem movimentos | T-44 | cenários `@web` do histórico | ✅ 4 cenários `@web`; `TestDetalheMovimento`, `TestLinhaPeloHistorico` |
-| T-46 | Exemplos (Karina: v1, revoga, v2) conferidos pelo histórico; checklist L-06; README; fluxo no navegador | T-45 | `TestCarregarExemplos`; painel conferido | ⬜ |
+| T-46 | Exemplos (Karina: v1, revoga, v2) conferidos pelo histórico; checklist L-06; README; fluxo no navegador | T-45 | `TestCarregarExemplos`; painel conferido | ✅ Karina com v1 pela API, revogação e v2 pelo painel; L-06 atendido; fluxo conferido no navegador; cobertura 91,0% |
 
 ## Fechamento
 
