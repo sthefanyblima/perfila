@@ -2,6 +2,7 @@ package entity
 
 import (
 	"errors"
+	"reflect"
 	"testing"
 	"time"
 
@@ -45,12 +46,28 @@ func TestNovoRegistroAuditoria(t *testing.T) {
 			}
 			esperado := RegistroAuditoria{ID: id, Data: data.UTC(), Operador: "admin", Acao: tc.acao,
 				AlvoTipo: tc.tipo, AlvoID: tc.id, Resultado: tc.resultado}
-			if r != esperado {
+			if !reflect.DeepEqual(r, esperado) {
 				t.Fatalf("registro\n obtido   %+v\n esperado %+v", r, esperado)
 			}
 		})
 	}
-	if len(AcoesAuditoria()) != 17 {
-		t.Fatalf("RN-13 lista 17 ações, há %d", len(AcoesAuditoria()))
+	if len(AcoesAuditoria()) != 26 {
+		t.Fatalf("RN-13 lista 26 ações (17 da v1.5 e 9 da v1.6), há %d", len(AcoesAuditoria()))
+	}
+}
+
+// Spec: RN-13 Q-44 — campos alterados: lista fechada, sem repetição, na ordem da lista.
+func TestRegistroAuditoriaCampos(t *testing.T) {
+	r, err := NovoRegistroAuditoria(uuid.New(), time.Now().UTC(), "caio", AcaoEditarSegmento, AlvoSegmento, uuid.New(),
+		ResultadoSucesso, "prioridade", "nome", "prioridade")
+	if err != nil || len(r.Campos) != 2 || r.Campos[0] != "nome" || r.Campos[1] != "prioridade" {
+		t.Fatalf("campos %v, erro %v", r.Campos, err)
+	}
+	if r, _ := NovoRegistroAuditoria(uuid.New(), time.Now().UTC(), "caio", AcaoSair, AlvoNenhum, uuid.Nil, ResultadoSucesso); r.Campos != nil {
+		t.Errorf("sem campos, esperava nil: %v", r.Campos)
+	}
+	if _, err := NovoRegistroAuditoria(uuid.New(), time.Now().UTC(), "caio", AcaoEditarProduto, AlvoProduto, uuid.New(),
+		ResultadoSucesso, "email"); !errors.Is(err, errs.ErrDadosInvalidos) {
+		t.Errorf("campo fora da lista deveria ser recusado: %v", err)
 	}
 }

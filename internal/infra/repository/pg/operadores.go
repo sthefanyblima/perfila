@@ -148,9 +148,9 @@ func (r *PgAuditoriaRepository) Registrar(ctx context.Context, a entity.Registro
 	if a.AlvoID != uuid.Nil {
 		alvo = a.AlvoID
 	}
-	if _, err := r.db.ExecContext(ctx, `INSERT INTO registros_auditoria (id, data, operador, acao, alvo_tipo, alvo_id, resultado)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-		a.ID, a.Data.UTC(), a.Operador, string(a.Acao), string(a.AlvoTipo), alvo, string(a.Resultado)); err != nil {
+	if _, err := r.db.ExecContext(ctx, `INSERT INTO registros_auditoria (id, data, operador, acao, alvo_tipo, alvo_id, resultado, campos)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+		a.ID, a.Data.UTC(), a.Operador, string(a.Acao), string(a.AlvoTipo), alvo, string(a.Resultado), strings.Join(a.Campos, ",")); err != nil {
 		return fmt.Errorf("pg: gravando auditoria %s: %w", a.ID, err)
 	}
 	return nil
@@ -187,7 +187,7 @@ func (r *PgAuditoriaRepository) Listar(ctx context.Context, f port.FiltroAuditor
 	if f.Limite > 0 {
 		limite = strconv.Itoa(f.Limite)
 	}
-	linhas, err := r.db.QueryContext(ctx, `SELECT id, data, operador, acao, alvo_tipo, alvo_id, resultado
+	linhas, err := r.db.QueryContext(ctx, `SELECT id, data, operador, acao, alvo_tipo, alvo_id, resultado, campos
 		FROM registros_auditoria `+where+` ORDER BY data DESC, ordem DESC LIMIT `+limite+
 		` OFFSET `+strconv.Itoa(max(f.Deslocamento, 0)), args...)
 	if err != nil {
@@ -197,14 +197,17 @@ func (r *PgAuditoriaRepository) Listar(ctx context.Context, f port.FiltroAuditor
 	out := []entity.RegistroAuditoria{}
 	for linhas.Next() {
 		var a entity.RegistroAuditoria
-		var acao, tipo, resultado string
+		var acao, tipo, resultado, campos string
 		var alvo uuid.NullUUID
-		if err := linhas.Scan(&a.ID, &a.Data, &a.Operador, &acao, &tipo, &alvo, &resultado); err != nil {
+		if err := linhas.Scan(&a.ID, &a.Data, &a.Operador, &acao, &tipo, &alvo, &resultado, &campos); err != nil {
 			return nil, 0, fmt.Errorf("pg: lendo auditoria: %w", err)
 		}
 		a.Data, a.Acao, a.AlvoTipo, a.Resultado = utc(a.Data), entity.AcaoAuditoria(acao), entity.TipoAlvo(tipo), entity.ResultadoAuditoria(resultado)
 		if alvo.Valid {
 			a.AlvoID = alvo.UUID
+		}
+		if campos != "" {
+			a.Campos = strings.Split(campos, ",")
 		}
 		out = append(out, a)
 	}

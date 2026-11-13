@@ -30,14 +30,32 @@ const (
 	AcaoAtivarOperador        AcaoAuditoria = "ativar_operador"
 	AcaoRedefinirSenha        AcaoAuditoria = "redefinir_senha"
 	AcaoTrocarSenha           AcaoAuditoria = "trocar_senha"
+	// v1.6 (Q-44): configuração de segmentos e catálogo.
+	AcaoCriarSegmento     AcaoAuditoria = "criar_segmento"
+	AcaoEditarSegmento    AcaoAuditoria = "editar_segmento"
+	AcaoAtivarSegmento    AcaoAuditoria = "ativar_segmento"
+	AcaoDesativarSegmento AcaoAuditoria = "desativar_segmento"
+	AcaoPreverSegmentacao AcaoAuditoria = "prever_segmentacao"
+	AcaoCriarProduto      AcaoAuditoria = "criar_produto"
+	AcaoEditarProduto     AcaoAuditoria = "editar_produto"
+	AcaoAtivarProduto     AcaoAuditoria = "ativar_produto"
+	AcaoDesativarProduto  AcaoAuditoria = "desativar_produto"
 )
+
+// CamposAuditaveis é a lista fechada de nomes de campo que a auditoria aceita, na ordem em que
+// são gravados. Nunca valores. Spec: RN-13, Q-44.
+func CamposAuditaveis() []string {
+	return []string{"nome", "descricao", "criterio", "prioridade", "ativo", "categoria", "preco"}
+}
 
 // AcoesAuditoria devolve todas as ações, na ordem da RN-13 (filtro da tela Auditoria).
 func AcoesAuditoria() []AcaoAuditoria {
 	return []AcaoAuditoria{AcaoEntrar, AcaoSair, AcaoSessaoEncerrada, AcaoAcessoNegado, AcaoLerFicha,
 		AcaoCadastrarCliente, AcaoConcederConsentimento, AcaoRevogarConsentimento, AcaoRegistrarEvento,
 		AcaoProcessar, AcaoExpirarRecomendacoes, AcaoCriarOperador, AcaoMudarPapel, AcaoDesativarOperador,
-		AcaoAtivarOperador, AcaoRedefinirSenha, AcaoTrocarSenha}
+		AcaoAtivarOperador, AcaoRedefinirSenha, AcaoTrocarSenha, AcaoCriarSegmento, AcaoEditarSegmento,
+		AcaoAtivarSegmento, AcaoDesativarSegmento, AcaoPreverSegmentacao, AcaoCriarProduto, AcaoEditarProduto,
+		AcaoAtivarProduto, AcaoDesativarProduto}
 }
 
 // Valida informa se a ação pertence à lista da RN-13.
@@ -94,10 +112,16 @@ type RegistroAuditoria struct {
 	AlvoTipo  TipoAlvo
 	AlvoID    uuid.UUID // uuid.Nil quando AlvoTipo é vazio
 	Resultado ResultadoAuditoria
+	Campos    []string // v1.6 (Q-44): nomes dos campos alterados, da lista CamposAuditaveis; nil sem campos
 }
 
-// NovoRegistroAuditoria valida os enumerados e o par tipo/ID do alvo. Spec: 3.2, RN-13.
-func NovoRegistroAuditoria(id uuid.UUID, data time.Time, operador string, acao AcaoAuditoria, alvoTipo TipoAlvo, alvoID uuid.UUID, resultado ResultadoAuditoria) (RegistroAuditoria, error) {
+// NovoRegistroAuditoria valida os enumerados, o par tipo/ID do alvo e os campos (lista fechada,
+// sem repetição, gravados na ordem da lista). Spec: 3.2, RN-13, Q-44.
+func NovoRegistroAuditoria(id uuid.UUID, data time.Time, operador string, acao AcaoAuditoria, alvoTipo TipoAlvo, alvoID uuid.UUID, resultado ResultadoAuditoria, campos ...string) (RegistroAuditoria, error) {
+	ordenados, err := ordenarCampos(campos)
+	if err != nil {
+		return RegistroAuditoria{}, err
+	}
 	switch {
 	case !acao.Valida():
 		return RegistroAuditoria{}, fmt.Errorf("%w: ação de auditoria %q", errs.ErrDadosInvalidos, acao)
@@ -109,5 +133,23 @@ func NovoRegistroAuditoria(id uuid.UUID, data time.Time, operador string, acao A
 		return RegistroAuditoria{}, fmt.Errorf("%w: resultado %q", errs.ErrDadosInvalidos, resultado)
 	}
 	return RegistroAuditoria{ID: id, Data: data.UTC(), Operador: NormalizarLogin(operador), Acao: acao,
-		AlvoTipo: alvoTipo, AlvoID: alvoID, Resultado: resultado}, nil
+		AlvoTipo: alvoTipo, AlvoID: alvoID, Resultado: resultado, Campos: ordenados}, nil
+}
+
+func ordenarCampos(campos []string) ([]string, error) {
+	pedidos := map[string]bool{}
+	for _, c := range campos {
+		pedidos[c] = true
+	}
+	var out []string
+	for _, c := range CamposAuditaveis() {
+		if pedidos[c] {
+			out = append(out, c)
+			delete(pedidos, c)
+		}
+	}
+	for c := range pedidos {
+		return nil, fmt.Errorf("%w: campo de auditoria %q fora da lista", errs.ErrDadosInvalidos, c)
+	}
+	return out, nil
 }

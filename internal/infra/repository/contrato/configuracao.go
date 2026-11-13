@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 
 	"perfila/internal/domain/entity"
+	"perfila/internal/domain/port"
 	"perfila/internal/shared/errs"
 )
 
@@ -95,4 +97,20 @@ func testarConcedidos(t *testing.T, r Repositorios) {
 	obtidos, err := r.Consentimentos.ListarConcedidos(ctx)
 	ok(t, err)
 	igual(t, "concedidos por ClienteID", obtidos, esperados)
+}
+
+// Spec: RN-13, Q-44 — os nomes dos campos alterados voltam como foram gravados.
+func testarAuditoriaCampos(t *testing.T, r Repositorios) {
+	ctx := context.Background()
+	com, err := entity.NovoRegistroAuditoria(uuid.New(), agora, "caio", entity.AcaoEditarSegmento, entity.AlvoSegmento,
+		uuid.New(), entity.ResultadoSucesso, "criterio", "prioridade")
+	ok(t, err)
+	sem, err := entity.NovoRegistroAuditoria(uuid.New(), agora.Add(-time.Minute), "caio", entity.AcaoPreverSegmentacao,
+		entity.AlvoNenhum, uuid.Nil, entity.ResultadoSucesso)
+	ok(t, err)
+	ok(t, r.Auditoria.Registrar(ctx, com))
+	ok(t, r.Auditoria.Registrar(ctx, sem))
+	lista, _, err := r.Auditoria.Listar(ctx, port.FiltroAuditoria{})
+	ok(t, err)
+	igual(t, "auditoria com campos", lista, []entity.RegistroAuditoria{com, sem})
 }

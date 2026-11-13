@@ -59,9 +59,10 @@ func Executar(t *testing.T, nova Fabrica) {
 		{"Produto", testarProduto},
 		{"Operador", testarOperador},
 		{"Auditoria", testarAuditoria},
-		{"SegmentoGravacao", testarSegmentoGravacao},   // v1.6
-		{"ProdutoGravacao", testarProdutoGravacao},     // v1.6
-		{"ConsentimentosConcedidos", testarConcedidos}, // v1.6
+		{"SegmentoGravacao", testarSegmentoGravacao}, // v1.6
+		{"ProdutoGravacao", testarProdutoGravacao},   // v1.6
+		{"ConsentimentosConcedidos", testarConcedidos},
+		{"AuditoriaCampos", testarAuditoriaCampos}, // v1.6
 	}
 	for _, c := range casos {
 		t.Run(c.nome, func(t *testing.T) { c.fn(t, nova(t)) })
