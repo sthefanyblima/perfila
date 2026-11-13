@@ -3,7 +3,7 @@
 > **Fonte:** Módulo 3 · imagem original: [`img/UML2_classes.jpg`](img/UML2_classes.jpg)
 > **Imagem corrigida (v1, gerada do Mermaid abaixo):** [`img/v1/UML2_classes_dominio.png`](img/v1/UML2_classes_dominio.png) · [`img/v1/UML2_classes_aplicacao.png`](img/v1/UML2_classes_aplicacao.png)
 > **Fonte da verdade para:** entidades, campos, métodos e nomes (Spec 1, C-04).
-> **Versão:** v1.4 (histórico do consentimento) · **Decisões relacionadas:** D-02, D-05, D-06, D-08, D-10, D-14, D-15, D-19, Q-34.
+> **Versão:** v1.5 (operadores e auditoria) · **Decisões relacionadas:** D-02, D-05, D-06, D-08, D-10, D-14, D-15, D-19, Q-34, Q-35 a Q-39.
 
 O modelo abaixo é o **implementado** em `internal/domain/entity`. Campos e métodos marcados `«ADIÇÃO»` não existem na imagem original e foram acrescentados pela Spec.
 
@@ -99,6 +99,32 @@ classDiagram
     -Ativo bool
     +AtualizarPreco(preco) error
   }
+  class Operador {
+    -ID uuid
+    -Login string
+    -Nome string
+    -Papel PapelOperador
+    -SenhaHash string
+    -Ativo bool
+    -CriadoEm time
+    -TrocarSenha bool
+    -SenhaAtualizadaEm time
+    +NovoOperador(id, login, nome, papel, senhaHash, agora) «ADIÇÃO Q-35»
+    +MudarPapel(papel) error
+    +Desativar()
+    +Ativar()
+    +DefinirSenha(senhaHash, trocar, agora) error
+  }
+  class RegistroAuditoria {
+    -ID uuid
+    -Data time
+    -Operador string
+    -Acao AcaoAuditoria
+    -AlvoTipo TipoAlvo
+    -AlvoID uuid
+    -Resultado ResultadoAuditoria
+    +NovoRegistroAuditoria(id, data, operador, acao, alvoTipo, alvoID, resultado) «ADIÇÃO Q-39»
+  }
 
   Cliente "1" --> "0..1" ConsentimentoLGPD : possui
   Cliente "1" --> "0..*" MovimentoConsentimento : histórico (Q-34)
@@ -107,9 +133,12 @@ classDiagram
   Cliente "1" --> "0..*" RecomendacaoProduto : recebe (D-15)
   PerfilCliente "0..*" --> "0..1" Segmento : pertence a (D-06)
   RecomendacaoProduto "0..*" --> "1" Produto : refere-se a
+  Operador "1" ..> "0..*" RegistroAuditoria : pelo Login (Q-39)
 ```
 
-Enumerações (C-05): `TipoEvento` = navegacao | compra | interacao · `StatusConsentimento` = NAO_CONCEDIDO | CONCEDIDO | REVOGADO · `StatusRecomendacao` = GERADA | ATIVA | EXPIRADA · `TipoMovimento` = CONCESSAO | REVOGACAO · `OrigemMovimento` = api | painel | portal | sistema | migracao (v1.4, Q-34).
+Enumerações (C-05): `TipoEvento` = navegacao | compra | interacao · `StatusConsentimento` = NAO_CONCEDIDO | CONCEDIDO | REVOGADO · `StatusRecomendacao` = GERADA | ATIVA | EXPIRADA · `TipoMovimento` = CONCESSAO | REVOGACAO · `OrigemMovimento` = api | painel | portal | sistema | migracao (v1.4, Q-34) · `PapelOperador` = ADMINISTRADOR | ATENDIMENTO | ANALISTA, com `Pode(Permissao) bool` (matriz da RN-11) · `Permissao` = clientes | consentimento | eventos | processamento | configuracao | operacao | usuarios | auditoria | relatorios | eliminacao · `AcaoAuditoria` (lista na RN-13) · `TipoAlvo` = cliente | segmento | produto | operador · `ResultadoAuditoria` = SUCESSO | NEGADO | FALHA (v1.5).
+
+`Operador` e `RegistroAuditoria` «ADIÇÃO v1.5, Q-35, Q-39» não existem na imagem original: representam quem opera o painel e a trilha do que cada um fez. O registro de auditoria cita o operador pelo login (imutável) e o alvo só por tipo e ID, sem dado pessoal; é só de inclusão.
 
 `MovimentoConsentimento` «ADIÇÃO v1.4, Q-34» é a prova de cada transição de `ConsentimentoLGPD` (RN-10): só de inclusão, sem métodos de alteração. O registro `ConsentimentoLGPD` continua sendo a fonte do estado.
 
@@ -143,6 +172,30 @@ classDiagram
   class ExpirarRecomendacoesUseCase {
     +Executar(ctx) int, error «ADIÇÃO D-08»
   }
+  class AutenticarOperadorUseCase {
+    +Executar(ctx, login, senha) Operador, error «ADIÇÃO Q-36»
+    +Conferir(ctx, id, carimbo) Operador, error «ADIÇÃO Q-38»
+  }
+  class GerenciarOperadoresUseCase {
+    +Listar(ctx, ator) []Operador, error
+    +Consultar(ctx, ator, id) Operador, error
+    +Criar(ctx, ator, login, nome, papel, senha) Operador, error
+    +MudarPapel(ctx, ator, id, papel) error
+    +Desativar(ctx, ator, id) error
+    +Ativar(ctx, ator, id) error
+    +RedefinirSenha(ctx, ator, id, senha) error
+    +TrocarSenha(ctx, ator, atual, nova) error
+    +CriarAdministradorInicial(ctx, login, senhaHash) bool, error «ADIÇÃO Q-35»
+  }
+  class RegistrarAuditoriaUseCase {
+    +Executar(ctx, operador, acao, alvoTipo, alvoID, resultado) error «ADIÇÃO Q-39»
+  }
+  class ListarAuditoriaUseCase {
+    +Executar(ctx, ator, filtro) PaginaAuditoria, error «ADIÇÃO Q-39»
+  }
+  class ExpurgarAuditoriaUseCase {
+    +Executar(ctx) int, error «ADIÇÃO Q-39»
+  }
   class PerfilamentoService {
     +GerarPerfil(clienteID, eventos) PerfilCliente
   }
@@ -161,9 +214,11 @@ classDiagram
   SegmentarClienteUseCase ..> SegmentacaoService
   GerarRecomendacaoUseCase ..> RecomendacaoService
   ColetarDadosUseCase ..> ValidadorLGPD : RN-01
+  AutenticarOperadorUseCase ..> HashSenha : Q-36
+  GerenciarOperadoresUseCase ..> HashSenha : Q-36
 ```
 
-Ports (interfaces) — declarados no **domínio** (`internal/domain/port`, C-02): `ClienteRepository`, `EventoRepository`, `PerfilRepository`, `SegmentoRepository`, `RecomendacaoRepository`, `ConsentimentoRepository`, `ProdutoRepository` «ADIÇÃO D-05», `ConsentimentoGateway`, `IntegracaoGateway`, `Clock`. Assinaturas completas na Spec 3.6.
+Ports (interfaces) — declarados no **domínio** (`internal/domain/port`, C-02): `ClienteRepository`, `EventoRepository`, `PerfilRepository`, `SegmentoRepository`, `RecomendacaoRepository`, `ConsentimentoRepository`, `ProdutoRepository` «ADIÇÃO D-05», `ConsentimentoGateway`, `IntegracaoGateway`, `Clock`; desde a v1.5, `OperadorRepository`, `AuditoriaRepository` e `HashSenha` (Q-35, Q-36, Q-39). Assinaturas completas na Spec 3.6.
 
 ## Diferenças em relação à imagem original
 
@@ -181,6 +236,7 @@ Ports (interfaces) — declarados no **domínio** (`internal/domain/port`, C-02)
 | `Segmento 1 — 1 PerfilCliente` | `PerfilCliente 0..* → 0..1 Segmento` | D-06 |
 | `ListarAtivos(): [[Segmento` | `ListarAtivos(ctx) ([]Segmento, error)` | erro de digitação no diagrama |
 | — (sem catálogo) | `ProdutoRepository` | D-05 |
+| — (sem quem opera) | `Operador`, `PapelOperador.Pode`, `RegistroAuditoria` e os casos de uso de operadores e auditoria | Q-35 a Q-39: papéis, matriz de permissões e trilha de auditoria (L-12, L-23) |
 | — (só o último registro do consentimento) | `MovimentoConsentimento`, `ConsentimentoRepository.Registrar` e `ListarMovimentos`, UC-08 `Historico` | Q-34: prova de cada concessão e revogação (L-06) |
 
 ## Rastreabilidade
