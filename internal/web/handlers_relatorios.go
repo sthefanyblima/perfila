@@ -145,6 +145,9 @@ func nomeCategoria(c usecase.LinhaCategoria) string {
 	return c.Categoria
 }
 
+// mesCurto é o rótulo do gráfico ("dez"): cabe nos 12 meses; a tabela traz o mês com o ano.
+func mesCurto(t time.Time) string { return strings.SplitN(rotuloMes(t), "/", 2)[0] }
+
 func rotuloMes(t time.Time) string {
 	t = t.In(fusoSaoPaulo())
 	meses := strings.Fields("jan fev mar abr mai jun jul ago set out nov dez")
@@ -198,7 +201,11 @@ func montarTelaRelatorio(rel usecase.Relatorio) telaRelatorio {
 	for _, c := range rel.Categorias {
 		cats.Tabela.Linhas = append(cats.Tabela.Linhas, linhaTabela{Rotulo: nomeCategoria(c), Valores: []celula{
 			exibirContagem(c.Compras), exibirContagem(c.Clientes)}})
-		barrasCat = append(barrasCat, dadoBarra{Rotulo: nomeCategoria(c), Valor: c.Compras, Tom: "accent"})
+		rotuloBarra := c.Categoria
+		if c.Outras {
+			rotuloBarra = fmt.Sprintf("Outras (%d)", c.Categorias)
+		}
+		barrasCat = append(barrasCat, dadoBarra{Rotulo: rotuloBarra, Valor: c.Compras, Tom: "accent"})
 	}
 	cats.Grafico = barrasHorizontais(barrasCat)
 	if len(barrasCat) == 0 {
@@ -215,9 +222,9 @@ func montarTelaRelatorio(rel usecase.Relatorio) telaRelatorio {
 	for _, l := range rel.Meses {
 		meses.Tabela.Linhas = append(meses.Tabela.Linhas, linhaTabela{Rotulo: rotuloMes(l.Inicio), Valores: []celula{
 			exibirContagem(l.Cadastros), exibirContagem(l.Revogacoes), exibirContagem(l.Eventos)}})
-		grupos = append(grupos, grupoColunas{Rotulo: rotuloMes(l.Inicio), Series: []dadoBarra{
+		grupos = append(grupos, grupoColunas{Rotulo: mesCurto(l.Inicio), Series: []dadoBarra{
 			{Rotulo: "Cadastros", Valor: l.Cadastros, Tom: "neutral"}, {Rotulo: "Revogações", Valor: l.Revogacoes, Tom: "critical"}}})
-		barrasEv = append(barrasEv, dadoBarra{Rotulo: rotuloMes(l.Inicio), Valor: l.Eventos, Tom: "accent"})
+		barrasEv = append(barrasEv, dadoBarra{Rotulo: mesCurto(l.Inicio), Valor: l.Eventos, Tom: "accent"})
 	}
 	meses.Grafico = colunas(grupos, []legenda{{"Cadastros", "neutral"}, {"Revogações", "critical"}})
 	eventos.Grafico = colunas(umaSerie(barrasEv), nil)

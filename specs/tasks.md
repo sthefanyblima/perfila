@@ -98,7 +98,7 @@ UC-05 e UC-07 em versão parcial: só números agregados, comportamento só com 
 | T-61 | `Contagem`, `Media`, `Percentual` e as funções de proteção; `RelatorioRepository` na memória e no PostgreSQL | T-60 | testes de tabela; contrato nos dois backends | ✅ `TestProteger*`; caso `Relatorio` do contrato verde na memória e no PostgreSQL |
 | T-62 | `GerarRelatorioUseCase` com período | T-61 | cenários `@dominio` e `@aplicacao` de `relatorios.feature` | ✅ 21 cenários (8 `@dominio`, 13 `@aplicacao`); `@wip` só nos 4 `@web` |
 | T-63 | Painel: tela Relatórios com indicadores, gráficos SVG e tabelas; CSV agregado | T-62 | cenários `@web` de `relatorios.feature`; `@wip` retirado | ✅ 4 cenários `@web` (25 no total da feature); `TestBarraOcultaNaoRevelaONumero`, `TestCelulaCSVSemFormula` |
-| T-64 | Clientes de volume nos exemplos; README, roteiro, checklist LGPD; fluxo no navegador | T-63 | `TestCarregarExemplos`; painel conferido | ⬜ |
+| T-64 | Clientes de volume nos exemplos; README, roteiro, checklist LGPD; fluxo no navegador | T-63 | `TestCarregarExemplos`; painel conferido | ✅ 60 clientes de volume; `TestRelatorioDosExemplos`; L-28 a L-32; tela e CSV conferidos no navegador |
 
 ## Fechamento
 

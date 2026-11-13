@@ -22,7 +22,7 @@ func TestCarregarExemplos(t *testing.T) {
 		}
 		e := app.exemplos
 		n, err := e.carregar(ctx)
-		if err != nil || n != 14 {
+		if err != nil || n != 14+clientesVolume {
 			t.Fatalf("meta %d: carga criou %d clientes, %v", meta, n, err)
 		}
 		if n, err := e.carregar(ctx); err != nil || n != 0 {
@@ -35,13 +35,18 @@ func TestCarregarExemplos(t *testing.T) {
 			porEmail[c.Email] = c
 		}
 		listar := usecase.NovoListarClientesUseCase(r.clientes, r.consentimentos, r.perfis, r.segmentos)
-		pagina, err := listar.Executar(ctx, usecase.FiltroListagem{})
-		if err != nil {
-			t.Fatal(err)
-		}
 		linhas := map[string]usecase.LinhaCliente{}
-		for _, l := range pagina.Linhas {
-			linhas[l.Cliente.Email] = l
+		for p := 1; ; p++ { // os clientes de volume (Q-46) espalham os nomeados por várias páginas
+			pagina, err := listar.Executar(ctx, usecase.FiltroListagem{Pagina: p})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(pagina.Linhas) == 0 {
+				break
+			}
+			for _, l := range pagina.Linhas {
+				linhas[l.Cliente.Email] = l
+			}
 		}
 		esperado := map[string]string{
 			"c-001@exemplo.test": "CONCEDIDO premium", "c-002@exemplo.test": "CONCEDIDO engajado",
@@ -93,5 +98,52 @@ func TestCarregarExemplos(t *testing.T) {
 		if len(marina) != 1 || marina[0].Status != entity.StatusExpirada {
 			t.Errorf("Marina deveria ter só uma recomendação expirada: %+v", marina)
 		}
+	}
+}
+
+// Spec: RN-15, Q-46 — com os clientes de volume, o relatório dos exemplos tem números visíveis,
+// a categoria rara fica em "Outras" e os números batem com a história dos exemplos.
+func TestRelatorioDosExemplos(t *testing.T) {
+	ctx := context.Background()
+	app, err := montar(ctx, config.Config{AuthToken: "x", LogLevel: "info", RecomendacaoValidadeDias: 30, EngajamentoMetaEventos: 10}, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := app.exemplos.carregar(ctx); err != nil {
+		t.Fatal(err)
+	}
+	r := app.exemplos.repos
+	rel, err := usecase.NovoGerarRelatorioUseCase(r.relatorios, r.segmentos, app.exemplos.clock, fusoRelatorios()).Executar(ctx, 12)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 14 nomeados (12 concedidos, Fábio revogado, Elisa sem consentimento) + 60 de volume
+	// (48 concedidos, 6 revogados, 6 sem consentimento).
+	cons := map[entity.StatusConsentimento]entity.Contagem{}
+	for _, l := range rel.Consentimento {
+		cons[l.Status] = l.Clientes
+	}
+	if rel.Clientes.Valor != 74 || cons[entity.StatusConcedido].Valor != 60 || cons[entity.StatusRevogado].Valor != 7 ||
+		cons[entity.StatusNaoConcedido].Valor != 7 || rel.TaxaConcessao.Oculta {
+		t.Fatalf("clientes e consentimento inesperados: %+v %+v %+v", rel.Clientes, cons, rel.TaxaConcessao)
+	}
+	visiveis := 0
+	for _, s := range rel.Segmentos {
+		if !s.Clientes.Oculta && s.Clientes.Valor > 0 {
+			visiveis++
+		}
+	}
+	if visiveis == 0 || rel.RecomendacoesAtivas.Oculta {
+		t.Errorf("os exemplos deveriam ter segmentos e recomendações visíveis: %+v", rel.Segmentos)
+	}
+	outras := false
+	for _, c := range rel.Categorias {
+		if c.Categoria == "papelaria" {
+			t.Error("categoria com menos de 5 compradores apareceu pelo nome")
+		}
+		outras = outras || c.Outras
+	}
+	if !outras || len(rel.Meses) != 12 {
+		t.Errorf("esperava Outras categorias e 12 meses: %+v, %d meses", rel.Categorias, len(rel.Meses))
 	}
 }
