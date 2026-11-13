@@ -75,6 +75,62 @@ type ProdutoRepository interface {
 	ListarTodos(ctx context.Context) ([]entity.Produto, error) // [ADIÇÃO] Q-23: por Categoria e Nome
 }
 
+// RelatorioRepository [ADIÇÃO] v1.7: leitura agregada dos relatórios. Devolve só contagens e
+// somas, nunca linhas de cliente. "Consentimento válido" é o registro CONCEDIDO no momento da
+// leitura (RN-02); cliente sem registro conta como NAO_CONCEDIDO (D-02). Intervalos são
+// fechados no início e abertos no fim. A proteção de grupos pequenos fica no domínio.
+// Spec: 3.6, RN-15, Q-46.
+type RelatorioRepository interface {
+	// ContarClientes conta todos os clientes, ativos e por estado do consentimento.
+	ContarClientes(ctx context.Context) (ContagemClientes, error)
+	// ResumirSegmentos agrupa os perfis de quem tem consentimento válido por SegmentoID
+	// (nil = sem segmento), em qualquer ordem.
+	ResumirSegmentos(ctx context.Context) ([]ResumoSegmento, error)
+	// ContarRecomendacoes conta as ATIVA e EXPIRADA de quem tem consentimento válido.
+	ContarRecomendacoes(ctx context.Context) (ContagemRecomendacoes, error)
+	// ContarCompras agrupa por categoria as compras com categoria preenchida em [desde, ate) de
+	// quem tem consentimento válido, por Compras decrescente e Categoria.
+	ContarCompras(ctx context.Context, desde, ate time.Time) ([]ComprasCategoria, error)
+	// ContarCompradores conta os clientes distintos com consentimento válido que compraram em
+	// alguma das categorias em [desde, ate).
+	ContarCompradores(ctx context.Context, desde, ate time.Time, categorias []string) (int, error)
+	// SerieMensal devolve um item por intervalo [limites[i], limites[i+1]), em ordem.
+	SerieMensal(ctx context.Context, limites []time.Time) ([]ContagemMes, error)
+}
+
+// ContagemClientes: todos os clientes. Spec: RN-15.
+type ContagemClientes struct {
+	Total, Ativos                     int
+	Concedido, NaoConcedido, Revogado int
+}
+
+// ResumoSegmento: perfis de clientes com consentimento válido num segmento. Spec: RN-15.
+type ResumoSegmento struct {
+	SegmentoID            *uuid.UUID
+	Clientes              int
+	SomaTicket, SomaScore float64
+}
+
+// ContagemRecomendacoes: recomendações e clientes distintos por estado. Spec: RN-15.
+type ContagemRecomendacoes struct {
+	Ativas, ClientesAtivas       int
+	Expiradas, ClientesExpiradas int
+}
+
+// ComprasCategoria: compras e clientes distintos de uma categoria. Spec: RN-15.
+type ComprasCategoria struct {
+	Categoria         string
+	Compras, Clientes int
+}
+
+// ContagemMes: cadastros e revogações (movimentos REVOGACAO) de todos os clientes; eventos e
+// seus clientes distintos só de quem tem consentimento válido. Spec: RN-15.
+type ContagemMes struct {
+	Inicio                   time.Time
+	Cadastros, Revogacoes    int
+	Eventos, ClientesEventos int
+}
+
 // ConsentimentoGateway — MVP: implementação local sobre ConsentimentoRepository (fase Support).
 type ConsentimentoGateway interface {
 	Validar(ctx context.Context, clienteID uuid.UUID) (bool, error)

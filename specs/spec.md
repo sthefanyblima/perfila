@@ -2,7 +2,7 @@
 
 **Perfila — Sistema de Segmentação e Perfilamento do Comportamento do Cliente — Go**
 
-Equipe Omega · GoLang & CLP · Documento 1 de 3 · **Versão 1.4 (12/11/2026)** · Base: Módulos 1 a 5 (casos de uso, classes, pacotes, sequência, estados, componentes e implantação), transcritos em `docs/uml/UML1..UML8`
+Equipe Omega · GoLang & CLP · Documento 1 de 3 · **Versão 1.7 (13/11/2026)** · Base: Módulos 1 a 5 (casos de uso, classes, pacotes, sequência, estados, componentes e implantação), transcritos em `docs/uml/UML1..UML8`
 
 ## Como usar este documento
 
@@ -34,9 +34,9 @@ Os diagramas foram feitos em módulos diferentes e nem sempre concordam. Para o 
 | Servidores, contêineres e configuração | Diagrama de Implantação (Mód. 5) | UML8 | Ver D-21 |
 | Trechos de código dos Mód. 2 e 3 | Nenhuma | — | São didáticos e divergem do modelo (D-11) |
 
-**Dentro do MVP:** UC-01, UC-02, UC-03, UC-04, UC-08 e UC-09 (cadastro, D-22) de ponta a ponta, como no diagrama de sequência, com consentimento obrigatório, API HTTP, PostgreSQL e implantação em contêineres; desde a v1.3, também o **painel web do operador** (`/painel`, Q-20), com as regras visuais e de texto do design system "Perfila Console" (`docs/design/`, ajustado pela Q-27).
+**Dentro do MVP:** UC-01, UC-02, UC-03, UC-04, UC-08 e UC-09 (cadastro, D-22) de ponta a ponta, como no diagrama de sequência, com consentimento obrigatório, API HTTP, PostgreSQL e implantação em contêineres; desde a v1.3, também o **painel web do operador** (`/painel`, Q-20), com as regras visuais e de texto do design system "Perfila Console" (`docs/design/`, ajustado pela Q-27); desde a v1.7, os **relatórios agregados** de UC-05 e UC-07 em versão parcial (RN-15, Q-46).
 
-**Fora do MVP:** UC-05, UC-06 e UC-07 (D-04); portal do titular (fase 2, Q-20); notificação real ao cliente; autenticação JWT e perfis de acesso; gestão de segmentos pela API (segmentos entram por migração); política de retenção e eliminação de dados (D-13).
+**Fora do MVP:** UC-06 e o restante de UC-05 e UC-07 (D-04; a v1.7 entrega só os indicadores agregados da RN-15, sem recorte por segmento, comparação entre períodos nem relatórios salvos); portal do titular (fase 2, Q-20); notificação real ao cliente; autenticação JWT e perfis de acesso; gestão de segmentos pela API (segmentos entram por migração); política de retenção e eliminação de dados (D-13).
 
 ## 2. Constituição
 
@@ -52,13 +52,13 @@ A Constituição (regras C-01 a C-12) foi movida para **`CLAUDE.md`**, na raiz d
 | UC-02 | Gerar Perfil do Cliente (incluído por UC-03) | Agente Inteligente | `GerarPerfilUseCase` | Sim |
 | UC-03 | Segmentar Clientes Automaticamente | Agente Inteligente | `SegmentarClienteUseCase` | Sim |
 | UC-04 | Recomendar Produtos Personalizados («extend» de UC-03) | Agente Inteligente | `GerarRecomendacaoUseCase` | Sim |
-| UC-05 | Analisar Padrões de Comportamento | Analista de Marketing | — | Não (D-04) |
+| UC-05 | Analisar Padrões de Comportamento | Analista de Marketing | `GerarRelatorioUseCase` | Parcial (v1.7, Q-46): categorias compradas e evolução mensal da RN-15 |
 | UC-06 | Criar Campanha de Marketing Direcionada | Analista de Marketing | — | Não (D-04) |
-| UC-07 | Visualizar Relatórios de Segmentação | Analista de Marketing | — | Não (D-04) |
+| UC-07 | Visualizar Relatórios de Segmentação | Analista de Marketing | `GerarRelatorioUseCase` | Parcial (v1.7, Q-46): clientes, consentimento, segmentos e recomendações da RN-15 |
 | UC-08 | Gerenciar Consentimento de Dados (LGPD) | Cliente (titular) e Administrador do Sistema | `GerenciarConsentimentoUseCase` | Sim |
 | UC-09 | Cadastrar Cliente [ADIÇÃO, D-22] | Cliente / Sistema Externo | `CadastrarClienteUseCase` | Sim |
 
-Administrador do Sistema: ligado a UC-08 no UML1 e, pelo UML8, executa os subcomandos do CMD (`serve`, `expirar-recomendacoes`, `hash-senha` (Q-28) e `carregar-exemplos` (Q-30)) por SSH. No painel web (v1.3), é a pessoa **operadora**: cadastra (UC-09), registra o consentimento (UC-08), lança eventos (UC-01), processa (UC-01 a UC-04) e expira recomendações.
+Administrador do Sistema: ligado a UC-08 no UML1 e, pelo UML8, executa os subcomandos do CMD (`serve`, `expirar-recomendacoes`, `hash-senha` (Q-28) e `carregar-exemplos` (Q-30)) por SSH. No painel web (v1.3), é a pessoa **operadora**: cadastra (UC-09), registra o consentimento (UC-08), lança eventos (UC-01), processa (UC-01 a UC-04) e expira recomendações. Sem perfis de acesso na main, a mesma pessoa operadora faz o papel do Analista de Marketing na tela Relatórios (v1.7, Q-46); quando os perfis entrarem, os relatórios ficam para ANALISTA e ADMINISTRADOR.
 
 Casos de uso de aplicação do painel [ADIÇÃO, Q-23, Q-26]. Não são casos de uso novos do UML1: dão ao operador a leitura do que UC-01 a UC-09 gravaram e reúnem a orquestração de RN-09.
 
@@ -68,7 +68,8 @@ Casos de uso de aplicação do painel [ADIÇÃO, Q-23, Q-26]. Não são casos de
 | `ListarClientesUseCase` | Não; o segmento de cada linha só aparece com consentimento válido (Q-21) | Painel |
 | `ConsultarClienteUseCase` | Não: só cadastro e consentimento (Q-21), como UC-08 | Painel |
 | `ConsultarResultadoUseCase` | Sim (RN-01, exceto cliente ativo: inativo é só leitura, Q-31) | Painel |
-| `ListarSegmentosUseCase`, `ListarCatalogoUseCase` | Não: configuração, sem dado pessoal | Painel | Agente Inteligente: ator de automação [ADIÇÃO] que dispara UC-03 e UC-04 (D-17).
+| `ListarSegmentosUseCase`, `ListarCatalogoUseCase` | Não: configuração, sem dado pessoal | Painel |
+| `GerarRelatorioUseCase` (v1.7, RN-15) | Não por cliente: só números agregados, e o comportamento entra só de quem tem consentimento válido | Painel (tela Relatórios e CSV) | Agente Inteligente: ator de automação [ADIÇÃO] que dispara UC-03 e UC-04 (D-17).
 
 ### 3.2 Modelo de domínio
 
@@ -161,6 +162,25 @@ type Produto struct {
     Preco     float64
     Ativo     bool
 }
+
+// [ADIÇÃO, v1.7, Q-46] Valores protegidos dos relatórios (RN-15). Não são persistidos.
+const MinimoGrupo = 5
+
+type Contagem struct {
+    Valor  int
+    Oculta bool // 1 a 4 clientes por trás do número: aparece "menos de 5"
+}
+
+type Media struct {
+    Valor  float64
+    Oculta bool // grupo de 1 a 4 clientes
+    Vazia  bool // grupo sem clientes: não há média
+}
+
+type Percentual struct {
+    Valor  float64 // de 0 a 100
+    Oculta bool    // parte ou total oculto, ou total zero
+}
 ```
 
 | Entidade | Métodos | Observação |
@@ -173,6 +193,7 @@ type Produto struct {
 | Segmento | `ClassificarPerfil(p PerfilCliente) (bool, error)` | RN-06. Nome corrigido na v1.0 para o do UML2 (era `ClassificaPerfil`, contrariando C-04) |
 | RecomendacaoProduto | `NovaRecomendacao(...)` (equivale a `Gerar()`), `Disponibilizar(agora time.Time, validadeDias int) error`, `Expirar(agora time.Time) error` | Transições da seção 3.4.2 |
 | Produto | `AtualizarPreco(preco float64) error` | Preço maior ou igual a zero |
+| Contagem, Media, Percentual [ADIÇÃO, Q-46] | `ProtegerContagem(valor, clientes int) Contagem`, `ProtegerMedia(soma float64, clientes int) Media`, `ProtegerPercentual(parte, total Contagem) Percentual` | RN-15. Funções puras; `clientes` é o número de clientes distintos por trás do valor |
 
 Desvios idiomáticos em relação aos diagramas (não são lacunas): `context.Context` como primeiro parâmetro; `error` no lugar de `bool` em `Validar` para informar a causa; construtor no lugar de `Gerar()`; tempo recebido por parâmetro ou `Clock`, nunca `time.Now()` (C-07); assinaturas dos serviços ajustadas na seção 3.6.
 
@@ -203,6 +224,15 @@ Desvios idiomáticos em relação aos diagramas (não são lacunas): `context.Co
 - **RN-08 Ciclo da recomendação.** UC-04 cria e já disponibiliza: GERADA é transitória e a recomendação é persistida uma única vez, já em ATIVA. Há no máximo uma recomendação ATIVA por cliente: antes de gravar a nova, UC-04 aplica `Expirar` às ATIVA anteriores do cliente (Q-18). Validade é DataAtivacao mais `RECOMENDACAO_VALIDADE_DIAS` (padrão 30). Expira quando Validade é menor ou igual a agora, pelo comando `expirar-recomendacoes` (D-08).
 - **RN-09 Processamento.** `ProcessarClienteUseCase` orquestra, nesta ordem, UC-01 (Executar), UC-02, UC-03 e UC-04 (v1.3, Q-26; antes ficava no handler da API) e devolve o resultado consolidado (sequência, passo 23) com o estado de cada etapa: concluída, atenção, falhou ou pendente. Erro em qualquer etapa interrompe o fluxo: a etapa fica como falhou, as seguintes como pendentes, e o que já foi persistido permanece. `ErrSemProdutoElegivel` não interrompe: a etapa 4 fica em atenção, sem recomendação. A API e o painel usam o mesmo caso de uso.
 - **RN-10 Histórico do consentimento (v1.4, Q-34).** Toda transição de 3.4.1 aplicada por UC-08 gera um `MovimentoConsentimento`, gravado junto com o registro do consentimento numa única operação atômica (`ConsentimentoRepository.Registrar`): ou os dois ficam gravados, ou nenhum. Movimentos são só de inclusão: nunca alterados nem apagados. O histórico é a lista dos movimentos do cliente em ordem cronológica (desempate pela ordem de gravação). O registro de `consentimentos_lgpd` continua sendo a fonte do estado (RN-02); o histórico é prova e não decide a validade. Transição inválida ou guarda violada não gera movimento. A origem vem do adaptador que chamou o caso de uso (API: `api`; painel: `painel` com o login do operador; portal do titular, fase 2: `portal`); sem origem informada (subcomandos, exemplos, testes): `sistema`. Movimentos criados pela migração 006 a partir das datas existentes têm origem `migracao`.
+
+- **RN-15 Relatórios agregados (v1.7, Q-46).** Os relatórios de UC-05 e UC-07 mostram só números agregados, nunca nome, e-mail, ID ou qualquer linha de cliente.
+    - **Base de cada indicador.** Contagens de cadastro (total, ativos, cadastros por mês) e de consentimento (clientes por estado, taxa de concessão, revogações por mês) incluem todos os clientes; cliente sem registro de consentimento conta como NAO_CONCEDIDO (D-02). Métricas de comportamento (segmento, ticket médio, score médio, recomendações, categorias compradas, eventos por mês) contam só clientes com consentimento válido no momento do relatório (RN-02), ativos ou inativos (Q-31); revogados e não concedidos ficam de fora, inclusive o que gravaram antes.
+    - **Grupos pequenos.** Uma contagem com 1 a 4 clientes distintos por trás aparece como "menos de 5" (`MinimoGrupo` = 5); zero aparece como 0. Contagens que não são de clientes (eventos, compras, recomendações) seguem o número de clientes distintos que as geraram. Médias (ticket médio, score médio) de grupo com 1 a 4 clientes ficam ocultas; sem clientes, não há média. A taxa de concessão (concedidos ÷ total, em %) fica oculta se uma das duas contagens estiver oculta ou se o total for zero.
+    - **Categorias.** Só compras com categoria preenchida, dentro do período, por número de compras (decrescente) e nome. Categorias com 1 a 4 clientes compradores não aparecem pelo nome: são somadas na linha "Outras categorias", cuja contagem de compras segue os clientes distintos do conjunto.
+    - **Segmentos.** Uma linha por segmento ativo, em ordem de Prioridade, com clientes, ticket médio e score médio dos perfis; segmento inativo só aparece se ainda tiver perfis; clientes com consentimento válido ainda sem segmento ficam na linha "Ainda não segmentados".
+    - **Recomendações.** ATIVA e EXPIRADA, contadas por recomendação e protegidas pelos clientes distintos de cada estado.
+    - **Período.** Últimos 6 (padrão) ou 12 meses-calendário, contando o mês atual, no fuso America/Sao_Paulo; outro valor: `ErrDadosInvalidos`. Categorias e evolução mensal (cadastros, eventos e revogações, estas pelos movimentos de RN-10) respeitam o período; clientes, consentimento, segmentos e recomendações são a situação no momento do relatório.
+    - **Exportação.** O mesmo relatório em CSV, com os mesmos valores protegidos ("menos de 5"), sem nenhuma outra coluna.
 
 ### 3.4 Máquinas de estado
 
@@ -289,6 +319,12 @@ Qualquer outra combinação: `ErrTransicaoInvalida`. O comando `expirar-recomend
 - `ListarSegmentosUseCase.Executar(ctx) ([]Segmento, error)`: segmentos ativos em ordem de Prioridade.
 - `ListarCatalogoUseCase.Executar(ctx) ([]Produto, error)`: todos os produtos, por Categoria e depois por Nome.
 
+**`GerarRelatorioUseCase`** [ADIÇÃO, v1.7, Q-46]
+
+- `Executar(ctx, periodoMeses int) (Relatorio, error)`: RN-15. Período 6 ou 12 (senão `ErrDadosInvalidos`); calcula os limites dos meses no fuso injetado pelo construtor (America/Sao_Paulo) a partir do `Clock`; lê os agregados de `RelatorioRepository` e os nomes de `SegmentoRepository` (`ListarAtivos` e, para segmento inativo com perfis, `BuscarPorID`); aplica `ProtegerContagem`, `ProtegerMedia` e `ProtegerPercentual` e junta as categorias pequenas.
+- `Relatorio` traz `GeradoEm`, `PeriodoMeses`, `Desde` e `Ate` (início do primeiro mês e o instante do relatório); `Clientes` e `Ativos`; `Consentimento` (uma linha por estado, na ordem Concedido, Não concedido, Revogado) e `TaxaConcessao`; `Segmentos` (nome, clientes, ticket médio e score médio; nome vazio = ainda não segmentados); `RecomendacoesAtivas` e `RecomendacoesExpiradas`; `Categorias` (nome, compras e clientes; `Outras` com o número de categorias somadas); `Meses` (início do mês, cadastros, eventos e revogações). Todos os números são `Contagem`, `Media` ou `Percentual` já protegidos: nenhum número cru sai do caso de uso.
+- Não verifica consentimento por cliente (não lê nenhum cliente): a base de cada indicador está no contrato de `RelatorioRepository`.
+
 Serviços de domínio calculam e só leem ports quando precisam (segmentos e produtos). Quem persiste resultados são os casos de uso (D-09).
 
 ### 3.6 Ports e serviços (assinaturas)
@@ -332,6 +368,29 @@ type ConsentimentoRepository interface {
 type ProdutoRepository interface { // [ADIÇÃO] (D-05)
     ListarAtivosPorCategoria(ctx context.Context, categoria string) ([]entity.Produto, error)
     ListarTodos(ctx context.Context) ([]entity.Produto, error) // [ADIÇÃO] Q-23: por Categoria e Nome
+}
+type RelatorioRepository interface { // [ADIÇÃO] v1.7, Q-46, RN-15: só agregados, nunca linhas de cliente
+    ContarClientes(ctx context.Context) (ContagemClientes, error)
+    ResumirSegmentos(ctx context.Context) ([]ResumoSegmento, error)          // consentimento válido; um item por SegmentoID (nil = sem segmento)
+    ContarRecomendacoes(ctx context.Context) (ContagemRecomendacoes, error)  // consentimento válido
+    ContarCompras(ctx context.Context, desde, ate time.Time) ([]ComprasCategoria, error)                       // consentimento válido; categoria preenchida; [desde, ate)
+    ContarCompradores(ctx context.Context, desde, ate time.Time, categorias []string) (int, error)             // clientes distintos que compraram em alguma das categorias
+    SerieMensal(ctx context.Context, limites []time.Time) ([]ContagemMes, error)                                // um item por intervalo [limites[i], limites[i+1])
+}
+type ContagemClientes struct{ Total, Ativos, Concedido, NaoConcedido, Revogado int } // todos os clientes; sem registro = NaoConcedido
+type ResumoSegmento struct {
+    SegmentoID           *uuid.UUID
+    Clientes             int
+    SomaTicket, SomaScore float64
+}
+type ContagemRecomendacoes struct{ Ativas, ClientesAtivas, Expiradas, ClientesExpiradas int }
+type ComprasCategoria struct {
+    Categoria         string
+    Compras, Clientes int
+}
+type ContagemMes struct {
+    Inicio                                     time.Time
+    Cadastros, Revogacoes, Eventos, ClientesEventos int // cadastros e revogações (movimentos REVOGACAO) de todos; eventos só com consentimento válido
 }
 type ConsentimentoGateway interface { // MVP: implementação local sobre ConsentimentoRepository
     Validar(ctx context.Context, clienteID uuid.UUID) (bool, error)
@@ -389,6 +448,8 @@ Adaptador de apresentação HTML em `internal/web` (irmão de `internal/api`, Q-
 | `GET` e `POST /painel/clientes/{id}/consentimento/revogar` | Confirmar e revogar | UC-08 Revogar |
 | `GET /painel/segmentos`, `GET /painel/catalogo` | Configuração (somente leitura) | `ListarSegmentos`, `ListarCatalogo` |
 | `GET /painel/operacao`, `GET` e `POST /painel/operacao/expirar` | Saúde e expiração | `ExpirarRecomendacoes` |
+| `GET /painel/relatorios?periodo=6\|12` | Relatórios (v1.7): indicadores, gráficos e tabelas | `GerarRelatorio` |
+| `GET /painel/relatorios.csv?periodo=6\|12` | Relatório agregado em CSV (v1.7) | `GerarRelatorio` |
 | `GET /painel/static/{arquivo}` | CSS, JS, fontes | — |
 
 - **Sessão (Q-22):** cookie `perfila_sessao` com `operador|expiraEm|csrf` assinado por HMAC-SHA256 (`PAINEL_CHAVE_SESSAO`), `HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/painel`, 8 h renovadas a cada uso; sem estado no servidor. Sem sessão válida, toda rota (menos Entrar e estáticos) leva a Entrar com o destino guardado; sessão vencida mostra "Sua sessão expirou." Em requisição htmx, a resposta é `HX-Redirect`.
@@ -399,6 +460,7 @@ Adaptador de apresentação HTML em `internal/web` (irmão de `internal/api`, Q-
 - **Histórico do consentimento (v1.4, Q-34):** conceder e revogar pelo painel gravam o movimento com origem `painel` e o login da sessão. A linha do tempo da aba Consentimento mostra o cadastro e cada movimento, do mais recente para o mais antigo, com finalidade, versão do termo e origem ("pela API", "pelo painel, por {operador}", "pelo portal do titular", "pelo sistema", "reconstruído das datas"). Cliente sem nenhum movimento continua com a linha montada pelas datas do registro, com o aviso de que ela não é o histórico completo.
 - **Sem JavaScript:** formulários comuns com redirecionamento 303 no sucesso (PRG) e confirmação em página própria. Com JavaScript, o htmx (`hx-boost`) faz as mesmas requisições e troca só a área do painel (`#app`), sem recarregar a página; os diálogos usam `<dialog>` nativo. Respostas de erro (4xx e 5xx) também são exibidas.
 - **Erros:** o código estável (`errs.Codigo`) escolhe a mensagem de `docs/design/03-textos.md`; o texto técnico nunca aparece. Falha inesperada mostra o código da requisição (`X-Request-ID` do Nginx).
+- **Relatórios (v1.7, RN-15, Q-46):** grupo "Análise" na navegação. Indicadores no topo; gráficos de barras desenhados no servidor em SVG inline (sem biblioteca de JavaScript, CSP inalterada), cada um com `role="img"`, título e a tabela de dados logo abaixo, que é a fonte para leitores de tela. Cores: acento ameixa para dados derivados (segmentos, categorias, eventos), cores de estado do design system no consentimento e nas recomendações, neutro para cadastros. "Menos de 5" aparece por extenso na tabela, e a barra correspondente fica tracejada, sem altura que revele o número. Filtro de período (6 ou 12 meses) por formulário GET, funcionando sem JavaScript. O CSV usa `;` como separador, vírgula decimal, UTF-8 com BOM, `Content-Disposition: attachment` e colunas `secao;item;indicador;valor`; célula que começa com `=`, `+`, `-` ou `@` ganha um apóstrofo na frente. Ver ou exportar registra a ação `ver_relatorio` ou `exportar_relatorio` com o operador e o período, sem nenhum número.
 - **Logs (C-09, Q-24):** método, caminho (só UUIDs) e status; nas ações, operador, ação e `clienteId`. Nunca nome, e-mail, senha nem o termo de busca.
 
 ### 3.8 Configuração, estrutura de pastas e persistência
@@ -427,7 +489,7 @@ perfila/                          módulo Go `perfila`
   internal/
     api/                          [Support] handlers, rotas, middlewares, DTOs
     web/                          [v1.3] painel do operador: rotas /painel, sessão, CSRF, templates e static embutidos
-    application/usecase/          [Core] os cinco casos de uso + ExpirarRecomendacoes + Precondicoes; [v1.3] ProcessarCliente e leituras do painel
+    application/usecase/          [Core] os cinco casos de uso + ExpirarRecomendacoes + Precondicoes; [v1.3] ProcessarCliente e leituras do painel; [v1.7] GerarRelatorio
     domain/entity/                [Core] entidades e enums (importa só uuid e shared/errs)
     domain/port/                  [Core] repositórios, gateways e Clock
     domain/service/               [Core] PerfilamentoService, SegmentacaoService, RecomendacaoService, ValidadorLGPD
@@ -449,6 +511,8 @@ Persistência e implantação:
 - PostgreSQL via `database/sql` com o driver `pgx/v5/stdlib` (Q-10); migrações em SQL versionado, embutidas no binário e aplicadas pelo `omega-server` ao subir, sob `pg_advisory_lock` e registradas em `schema_migracoes` (Q-09); uma tabela por entidade (clientes, eventos_comportamentais, perfis_cliente, segmentos, recomendacoes_produto, consentimentos_lgpd, produtos e, desde a v1.4, movimentos_consentimento), em snake_case.
 - Chaves UUID; timestamps em `timestamptz` (UTC); `UNIQUE(cliente_id)` em perfis_cliente e consentimentos_lgpd; `CHECK` nos enums de status; chaves estrangeiras para clientes. Reforços de integridade que só repetem regras já existentes: chaves estrangeiras `perfis_cliente.segmento_id → segmentos` (D-06) e `recomendacoes_produto.produto_id → produtos` (D-05); `CHECK` de valor ≥ 0 nos eventos (RN-04), score entre 0 e 1 (RN-05) e preço ≥ 0 (`Produto.AtualizarPreco`).
 - Clientes de exemplo (Q-30, Q-32): catorze clientes sintéticos com história (datas de cadastro, consentimento, revogação, eventos e recomendações ao longo de meses), criados pelos casos de uso com um relógio de carga; no modo memória ao subir, no PostgreSQL por `carregar-exemplos`, e só com o banco sem clientes.
+- Relatórios (v1.7, Q-46): `PgRelatorioRepository` agrega no banco (`COUNT`, `SUM`, `COUNT(DISTINCT cliente_id)`, junção com `consentimentos_lgpd` em `status = 'CONCEDIDO'`) e devolve só números; o fake em memória lê os mesmos repositórios em memória. Não há tabela nem migração nova. A suíte de contrato cobre os dois.
+- Clientes de volume (v1.7, Q-46): além dos catorze com história, a carga de exemplos cria 60 clientes sintéticos (`c-101` a `c-160`, `@exemplo.test`) com história gerada de forma determinística pelos casos de uso, para os relatórios terem grupos acima de 5.
 - A migração 006 (v1.4, Q-34) cria `movimentos_consentimento` (chave UUID, coluna de ordem de gravação, `CHECK` em tipo e origem, operador obrigatório com origem painel, chave estrangeira para clientes) com um gatilho que recusa `UPDATE` e `DELETE` (só inclusão, RN-10), e reconstrói os movimentos dos clientes antigos a partir das datas que o registro prova: a última concessão (com finalidade e termo) e a última revogação (com finalidade e termo só se o estado ainda for REVOGADO; senão, em branco), com origem `migracao`.
 - A migração 005 (Q-32) amplia a demonstração: segmentos vip, fiel, ocasional e explorador e catálogo de 7 categorias, iguais aos do modo memória.
 - A migração 004 (v1.3) cria os índices da listagem de clientes: `data_cadastro DESC` e o nome normalizado (minúsculas e sem acentos), Q-23.
@@ -492,6 +556,7 @@ Prioridade Alta: impede gerar código correto. Média: gera comportamento ambíg
 | Versão | Data | Mudanças |
 |---|---|---|
 | v0 | 27/10/2026 | Documento único (PDF) e depois dividido em três `.md` |
+| v1.7 | 13/11/2026 | Relatórios agregados, UC-05 e UC-07 parciais (Q-46): RN-15 (só agregados, comportamento só com consentimento válido, grupos de 1 a 4 clientes como "menos de 5", categorias pequenas em "Outras"); `Contagem`, `Media`, `Percentual` e as funções de proteção (3.2); `GerarRelatorioUseCase` (3.1, 3.5); `RelatorioRepository` (3.6); rotas `/painel/relatorios` e o CSV (3.7.1); clientes de volume nos exemplos (3.8). Numeração a partir de Q-46, T-60 e RN-15 para não colidir com as branches abertas (v1.5 e v1.6) |
 | v1.4 | 12/11/2026 | Histórico completo do consentimento (Q-34): entidade `MovimentoConsentimento` (3.2), RN-10, UC-08 `Historico` e origem pelo contexto (3.5), `FichaCliente.Historico`, `ConsentimentoRepository.Registrar` e `ListarMovimentos` (3.6), origem nas rotas da API e do painel e linha do tempo pelo histórico (3.7, 3.7.1), migração 006 (3.8) |
 | v1.3 | 12/11/2026 | Painel web do operador (Q-20 a Q-29): seção 3.7.1, casos de uso de aplicação do painel (3.1 e 3.5), `ProcessarClienteUseCase` com o estado por etapa (RN-09, Q-26), `ClienteRepository.Listar`, `RecomendacaoRepository.ListarPorCliente` e `ProdutoRepository.ListarTodos` (3.6), configuração `PAINEL_*` (3.8), migração 004, subcomando `hash-senha` (Q-28); camada BDD `@web` |
 | v1.2 | 11/11/2026 | Fase Generic (T-19): `DATABASE_URL` vazia mantém o modo memória fora da implantação (Q-07); dados de demonstração por migração (Q-08); migrações aplicadas pelo servidor com trava (Q-09); driver pgx (Q-10); suíte de contrato dos repositórios; reforços de integridade no esquema (FKs para segmentos e produtos, CHECKs de faixa); erro de `SegmentoRepository.BuscarPorID` explicitado. T-24: implantação com Nginx, duas réplicas e banco isolado (Q-11 a Q-14). Correções do mapeamento de bugs (Q-15 a Q-19): limite de Valor, tolerância de relógio, falhas de configuração como 500, uma recomendação ATIVA por cliente, `/saude` com o banco e corpo JSON único |

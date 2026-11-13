@@ -2,7 +2,7 @@
 
 ## Mapa do painel
 
-Todas as telas ficam sob `/painel` no próprio `omega-server`, atrás do Nginx. A navegação lateral (`SideNav`) tem três grupos:
+Todas as telas ficam sob `/painel` no próprio `omega-server`, atrás do Nginx. A navegação lateral (`SideNav`) tem quatro grupos:
 
 ```text
 /painel/entrar                         Entrar (sem sessão)
@@ -12,6 +12,9 @@ Clientes
   /painel/clientes/{id}                Ficha: visão geral
   /painel/clientes/{id}/eventos        Ficha: eventos (UC-01)
   /painel/clientes/{id}/consentimento  Ficha: consentimento (UC-08)
+Análise (v1.7, Q-46)
+  /painel/relatorios                   Relatórios agregados (UC-05 e UC-07 parciais, RN-15)
+  /painel/relatorios.csv               O mesmo relatório em CSV
 Configuração (somente leitura no MVP)
   /painel/segmentos                    Segmentos e critérios (RN-06)
   /painel/catalogo                     Produtos por categoria (RN-07)
@@ -19,7 +22,7 @@ Operação
   /painel/operacao                     Saúde do sistema e expiração de recomendações (RN-08)
 ```
 
-Fase 2, fora deste escopo: `/titular` (portal do titular para ver e revogar o próprio consentimento, que exige autenticação do titular) e relatórios de segmento (UC-05 a UC-07).
+Fase 2, fora deste escopo: `/titular` (portal do titular para ver e revogar o próprio consentimento, que exige autenticação do titular) e o restante de UC-05 a UC-07 (campanhas, recortes por segmento, comparação entre períodos).
 
 ## Moldura de toda tela
 

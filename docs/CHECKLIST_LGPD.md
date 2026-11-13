@@ -56,6 +56,16 @@ Interpretação técnica da equipe sobre a Lei 13.709/2018, **não é parecer ju
 | L-26 | Proteção contra envio forjado e enquadramento | CSRF em todo POST, cookies `HttpOnly`, `Secure`, `SameSite=Strict`; `frame-ancestors 'none'` e `X-Frame-Options: DENY` | cenário "Envio sem o token CSRF é recusado" | ✅ |
 | L-27 | Atos com efeito jurídico deliberados | Conceder e revogar passam por confirmação que diz o efeito (diálogo ou página própria); em revogar, o foco inicial fica em Cancelar | cenário "Revogar exige confirmação" | ✅ |
 
+## 4c. Relatórios agregados (Spec RN-15, v1.7, Q-46)
+
+| # | Requisito | Como o Perfila atende | Evidência | |
+|---|---|---|---|---|
+| L-28 | Relatório não identifica ninguém | Só contagens, somas e médias: o `RelatorioRepository` nunca devolve linha de cliente, e a tela e o CSV não têm nome, e-mail nem ID | contrato `Relatorio` (memória e PostgreSQL); cenários "A tela Relatórios mostra… sem identificar ninguém" e "…exportado em CSV, sem identificadores" | ✅ |
+| L-29 | Comportamento só de quem consente | Segmento, médias, recomendações, categorias e eventos contam só clientes com consentimento CONCEDIDO no momento do relatório; revogados saem, inclusive o que gravaram antes (RN-03) | cenários "Revogados não entram nas métricas de comportamento" e "Clientes sem consentimento contam no cadastro e não no comportamento" | ✅ |
+| L-30 | Grupos pequenos não reidentificam | Grupo de 1 a 4 clientes aparece como "menos de 5"; médias de grupo pequeno ocultas; taxa de concessão oculta se depender de um grupo oculto; categorias com menos de 5 compradores somadas em "Outras", sem nome | `TestProteger*`; cenários `@dominio` e "Grupos pequenos ficam ocultos…"; `TestRelatorioDosExemplos` | ⚠️ supressão só primária: a diferença entre o total e as partes visíveis pode revelar o tamanho de um grupo oculto (nunca um atributo de comportamento, porque as médias também ficam ocultas) |
+| L-31 | Exportação sem vazamento | O CSV traz os mesmos valores protegidos da tela; célula que começa com `=`, `+`, `-` ou `@` ganha apóstrofo; o log registra só operador, ação e período | `TestCelulaCSVSemFormula`; cenário do CSV | ✅ |
+| L-32 | Quem pode ver | Sem perfis de acesso na main, a pessoa operadora vê os relatórios; ao juntar com os perfis, restringir a ANALISTA e ADMINISTRADOR | Q-46 (8) | ⚠️ depende do PR de usuários e perfis |
+
 ## 5. Auditoria de logs (C-09)
 
 Todos os eventos de log do sistema, conferidos no código em 11/11/2026 (`grep` por chamadas de `slog` em `cmd/` e `internal/`):
@@ -69,7 +79,7 @@ Todos os eventos de log do sistema, conferidos no código em 11/11/2026 (`grep` 
 | `postgres_conectado` | `cmd/omega-server` | versões de migração aplicadas | Não. A URL do banco não é registrada |
 | `recomendacoes_expiradas` | subcomando `expirar-recomendacoes` | quantidade | Não |
 | `painel_http` | `web.registro` | método, caminho (só UUIDs), status | Não. Sem query string (termo de busca) |
-| `painel_acao` | handlers do painel | operador, ação, `clienteId` | Não. O operador é o login da equipe, não o titular |
+| `painel_acao` | handlers do painel | operador, ação, `clienteId`; nos relatórios (`ver_relatorio`, `exportar_relatorio`), operador, ação e período, sem nenhum número | Não. O operador é o login da equipe, não o titular |
 | `painel_erro_interno`, `painel_template` | painel (só falhas 500) | caminho, mensagem do erro | Não |
 | `painel_desligado` | `cmd/omega-server` | aviso fixo | Não |
 | acesso do Nginx | `deploy/nginx/nginx.conf` (`log_format omega`) | horário, método, caminho sem query string, status, tempo, réplica, id da requisição | Não. **Sem IP do cliente** (IP é dado pessoal, Q-14) |

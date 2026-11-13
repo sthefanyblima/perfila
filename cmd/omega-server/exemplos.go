@@ -64,7 +64,7 @@ func (e exemplos) lista() []exemplo {
 	meta := float64(e.metaEventos)
 	engajado := int(math.Ceil(0.8 * meta))   // 80% da meta em 30 dias: engajado
 	explorador := int(math.Ceil(0.5 * meta)) // 50% da meta, sem compras: explorador
-	return []exemplo{
+	nomeados := []exemplo{
 		{"Ana Sintética", "c-001@exemplo.test", []passo{ // premium, com histórico de recomendações
 			cad(150), conc(148, "v1"), comp(140, "livros", 520), nav(139, 2), proc(139),
 			comp(100, "livros", 610), comp(60, "livros", 700), proc(59), comp(20, "livros", 640), comp(5, "livros", 550), nav(4, 3), proc(4)}},
@@ -97,6 +97,7 @@ func (e exemplos) lista() []exemplo {
 		{"Nina Sintética", "c-014@exemplo.test", []passo{ // padrao
 			cad(60), conc(59, "v1"), comp(50, "esportes", 70), comp(35, "esportes", 120), comp(10, "esportes", 90), proc(9)}},
 	}
+	return append(nomeados, e.volume()...) // Q-46: clientes de volume para os relatórios
 }
 
 // casos monta os casos de uso sobre os mesmos repositórios, com o relógio de carga.

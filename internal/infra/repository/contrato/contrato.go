@@ -1,4 +1,4 @@
-// Package contrato define a suíte de contrato dos sete ports de repositório: o comportamento
+// Package contrato define a suíte de contrato dos ports de repositório (os sete e, desde a v1.7, o de relatórios): o comportamento
 // observável que toda implementação (fakes em memória e PostgreSQL) precisa ter para que os
 // casos de uso funcionem igual nos dois backends. Usado apenas por testes.
 //
@@ -30,6 +30,7 @@ type Repositorios struct {
 	Recomendacoes  port.RecomendacaoRepository
 	Consentimentos port.ConsentimentoRepository
 	Produtos       port.ProdutoRepository
+	Relatorios     port.RelatorioRepository // v1.7: lê os mesmos dados dos outros sete (RN-15)
 
 	AdicionarSegmento func(t *testing.T, s entity.Segmento)
 	AdicionarProduto  func(t *testing.T, p entity.Produto)
@@ -55,6 +56,7 @@ func Executar(t *testing.T, nova Fabrica) {
 		{"Consentimento", testarConsentimento},
 		{"MovimentoConsentimento", testarMovimentos},
 		{"Produto", testarProduto},
+		{"Relatorio", testarRelatorio},
 	}
 	for _, c := range casos {
 		t.Run(c.nome, func(t *testing.T) { c.fn(t, nova(t)) })

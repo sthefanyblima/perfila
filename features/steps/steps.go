@@ -21,6 +21,7 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 	registrarPassosAPI(sc, m)
 	registrarPassosProcessamento(sc, m)
 	registrarPassosLeitura(sc, m)
+	registrarPassosRelatorio(sc, m)
 	registrarPassosHistorico(sc, m)
 	registrarPassosHistoricoWeb(sc, m)
 	registrarPassosWeb(sc, m)
