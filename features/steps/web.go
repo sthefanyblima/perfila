@@ -115,7 +115,7 @@ func (m *Mundo) painelNoAr(usuario, senha string) error {
 		Usuario: usuario, SenhaHash: hash, ChaveSessao: chave, Finalidade: "segmentacao", VersaoTermo: "v1",
 		Cadastrar: c.cadastrar, Consentimento: c.consentimento, Coletar: c.coletar, Processar: c.processar,
 		ListarClientes: c.listarClientes, ConsultarCliente: c.consultarCliente, ConsultarResultado: c.consultarResultado,
-		ListarSegmentos: c.listarSegmentos, ListarCatalogo: c.listarCatalogo, Expirar: c.expirar,
+		ListarSegmentos: c.listarSegmentos, ListarCatalogo: c.listarCatalogo, Expirar: c.expirar, GerarRelatorio: c.gerarRelatorio,
 		MetaEventos: m.metaEventos, Clock: m.clock, Log: slog.New(slog.NewTextHandler(&m.web.log, nil)),
 	})
 	return err

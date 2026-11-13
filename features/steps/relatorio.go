@@ -66,6 +66,33 @@ func registrarPassosRelatorio(sc *godog.ScenarioContext, m *Mundo) {
 		}
 		return iguais("compras de "+cat, obtido, quer)
 	})
+	sc.Step(`^a página tem o gráfico e a tabela "([^"]*)"$`, func(g string) error {
+		if err := m.paginaTemMarcador(`data-teste="grafico-`+g+`"`, true); err != nil {
+			return err
+		}
+		return m.paginaTemMarcador(`data-teste="tabela-`+g+`"`, true)
+	})
+	sc.Step(`^a página não mostra "([^"]*)"$`, func(t string) error {
+		if strings.Contains(m.web.pagina, t) {
+			return fmt.Errorf("a página mostra %q", t)
+		}
+		return nil
+	})
+	sc.Step(`^a resposta é um arquivo CSV$`, func() error {
+		h := m.api.resposta.Header()
+		if !strings.HasPrefix(h.Get("Content-Type"), "text/csv") || !strings.HasPrefix(h.Get("Content-Disposition"), "attachment") {
+			return fmt.Errorf("não é um CSV para baixar: %q, %q", h.Get("Content-Type"), h.Get("Content-Disposition"))
+		}
+		return nil
+	})
+	sc.Step(`^o arquivo tem a linha "([^"]*)"$`, func(linha string) error {
+		for _, l := range strings.Split(strings.TrimPrefix(m.web.pagina, "\ufeff"), "\n") {
+			if strings.TrimRight(l, "\r") == linha {
+				return nil
+			}
+		}
+		return fmt.Errorf("o arquivo não tem a linha %q", linha)
+	})
 	sc.Step(`^o relatório tem (\d+) meses, de "([^"]*)" a "([^"]*)"$`, func(n int, primeiro, ultimo string) error {
 		if err := m.semErro(); err != nil {
 			return err

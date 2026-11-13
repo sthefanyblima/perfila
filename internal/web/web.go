@@ -33,7 +33,8 @@ type Dependencias struct {
 	ListarSegmentos    *usecase.ListarSegmentosUseCase
 	ListarCatalogo     *usecase.ListarCatalogoUseCase
 	Expirar            *usecase.ExpirarRecomendacoesUseCase
-	MetaEventos        int // ENGAJAMENTO_META_EVENTOS, para explicar o score
+	GerarRelatorio     *usecase.GerarRelatorioUseCase // v1.7 (RN-15)
+	MetaEventos        int                            // ENGAJAMENTO_META_EVENTOS, para explicar o score
 
 	Clock port.Clock
 	Log   *slog.Logger
@@ -69,7 +70,7 @@ func NovoRouter(d Dependencias) (http.Handler, error) {
 		http.Redirect(w, r, "/painel/clientes", http.StatusSeeOther)
 	}))
 	for _, rotas := range []func(*http.ServeMux, func(http.HandlerFunc) http.Handler){
-		p.rotasClientes, p.rotasFicha, p.rotasConfiguracao,
+		p.rotasClientes, p.rotasFicha, p.rotasConfiguracao, p.rotasRelatorios,
 	} {
 		rotas(mux, sessao)
 	}

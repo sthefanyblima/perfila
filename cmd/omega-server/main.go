@@ -136,6 +136,7 @@ type repositorios struct {
 	recomendacoes  port.RecomendacaoRepository
 	consentimentos port.ConsentimentoRepository
 	produtos       port.ProdutoRepository
+	relatorios     port.RelatorioRepository        // v1.7: leitura agregada (RN-15)
 	saude          func(ctx context.Context) error // nil no modo memória (Q-19)
 	migracoes      string                          // versão do esquema, para a tela de Operação
 	fechar         func()
@@ -189,6 +190,7 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 			ListarSegmentos:    usecase.NovoListarSegmentosUseCase(repos.segmentos),
 			ListarCatalogo:     usecase.NovoListarCatalogoUseCase(repos.produtos),
 			Expirar:            expirar,
+			GerarRelatorio:     usecase.NovoGerarRelatorioUseCase(repos.relatorios, repos.segmentos, clock, fusoRelatorios()),
 			MetaEventos:        cfg.EngajamentoMetaEventos,
 			Clock:              clock, Log: log, Saude: repos.saude, Migracoes: repos.migracoes,
 		})
@@ -210,19 +212,31 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 	}, nil
 }
 
+// fusoRelatorios é o fuso dos meses-calendário dos relatórios (RN-15): America/Sao_Paulo, com
+// o deslocamento fixo de -3 h quando a base de fusos não estiver disponível.
+func fusoRelatorios() *time.Location {
+	if loc, err := time.LoadLocation("America/Sao_Paulo"); err == nil {
+		return loc
+	}
+	return time.FixedZone("BRT", -3*60*60)
+}
+
 // repositoriosEmMemoria monta os fakes com segmentos e catálogo sintéticos (D-23).
 func repositoriosEmMemoria() repositorios {
 	segmentos := memoria.NovoSegmentoRepository()
 	produtos := memoria.NovoProdutoRepository()
 	memoria.CarregarDemonstracao(segmentos, produtos)
+	clientes, eventos, perfis := memoria.NovoClienteRepository(), memoria.NovoEventoRepository(), memoria.NovoPerfilRepository()
+	recomendacoes, consentimentos := memoria.NovoRecomendacaoRepository(), memoria.NovoConsentimentoRepository()
 	return repositorios{
-		clientes:       memoria.NovoClienteRepository(),
-		eventos:        memoria.NovoEventoRepository(),
-		perfis:         memoria.NovoPerfilRepository(),
+		clientes:       clientes,
+		eventos:        eventos,
+		perfis:         perfis,
 		segmentos:      segmentos,
-		recomendacoes:  memoria.NovoRecomendacaoRepository(),
-		consentimentos: memoria.NovoConsentimentoRepository(),
+		recomendacoes:  recomendacoes,
+		consentimentos: consentimentos,
 		produtos:       produtos,
+		relatorios:     memoria.NovoRelatorioRepository(clientes, eventos, perfis, recomendacoes, consentimentos),
 		fechar:         func() {},
 	}
 }
@@ -248,6 +262,7 @@ func repositoriosPostgres(ctx context.Context, url string, log *slog.Logger) (re
 		recomendacoes:  pg.NovoPgRecomendacaoRepository(db),
 		consentimentos: pg.NovoPgConsentimentoRepository(db),
 		produtos:       pg.NovoPgProdutoRepository(db),
+		relatorios:     pg.NovoPgRelatorioRepository(db),
 		saude:          db.PingContext,
 		migracoes:      pg.UltimaMigracao(),
 		fechar:         func() { db.Close() },
