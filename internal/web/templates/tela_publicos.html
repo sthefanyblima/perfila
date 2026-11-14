@@ -45,8 +45,9 @@
 
 {{with .Gerada}}
 <div class="pf-alert pf-alert--ok" data-teste="arquivo-gerado">
-  <div><strong>Arquivo gerado com {{.Quantidade}} {{if eq .Quantidade 1}}cliente{{else}}clientes{{end}}.</strong> Disponível para baixar até {{dataHora .ArquivoExpiraEm}}.</div>
-  {{if .Disponivel}}<a class="pf-btn pf-btn--primary" href="/painel/publicos/exportacoes/{{.ID}}/arquivo" hx-boost="false" data-teste="acao-baixar">Baixar arquivo</a>{{end}}
+  <span class="pf-alert__badge" aria-hidden="true">{{icone "ok"}}</span>
+  <div><p class="pf-alert__title">Arquivo gerado com {{.Quantidade}} {{if eq .Quantidade 1}}cliente{{else}}clientes{{end}}</p><p class="pf-alert__text">Disponível para baixar até {{dataHora .ArquivoExpiraEm}}. Depois de subir na plataforma, apague a cópia baixada.</p></div>
+  {{if .Disponivel}}<a class="pf-btn pf-btn--sm pf-alert__acao" href="/painel/publicos/exportacoes/{{.ID}}/arquivo" hx-boost="false" data-teste="acao-baixar">Baixar arquivo</a>{{end}}
 </div>
 {{end}}
 

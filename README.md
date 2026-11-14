@@ -19,10 +19,11 @@ Desenvolvido com **Spec-Driven Development** (a especificação é a fonte da ve
 | **Generic** (PostgreSQL, Docker/Nginx, LGPD), 25% | 16–19/11 | ✅ contrato nos dois backends · 3 cenários de implantação · checklist LGPD |
 | **Painel web do operador** (Spec v1.3, T-31 a T-38) | 12/11 | ✅ 26 cenários `@web` · 21 de aplicação novos · 1 de implantação |
 | **Histórico do consentimento** (Spec v1.4, T-42 a T-46, Q-34) | 12/11 | ✅ 8 cenários de aplicação · 4 `@web` · contrato e migração 006 nos dois backends |
+| **Públicos para campanhas** (Spec v1.9, T-69 a T-74, Q-48 a Q-54) | 13–14/11 | ✅ consentimento por finalidade · 36 cenários de aplicação, domínio e API · 10 `@web` · contrato e migração 009 nos dois backends |
 | Fechamento do escopo | 19/11 | daqui em diante, só correções |
 | Ensaio · evento final | 23/11 · 24/11 | roteiro em `docs/ROTEIRO_DEMONSTRACAO.md` |
 
-**174 cenários BDD** (170 no `make verify` + 4 de implantação), teste de arquitetura e suíte de contrato dos repositórios em memória e em PostgreSQL.
+**220 cenários BDD** (216 no `make verify` + 4 de implantação), teste de arquitetura e suíte de contrato dos repositórios em memória e em PostgreSQL.
 
 ## Arquitetura
 
@@ -79,7 +80,8 @@ make derrubar          # derruba (os dados ficam no volume omega_db)
 | `LOG_LEVEL` | info | debug, info, warn ou error |
 | `PAINEL_USUARIO` | operador | login do operador do painel |
 | `PAINEL_SENHA_HASH`, `PAINEL_CHAVE_SESSAO` | vazias = painel desligado | hash bcrypt (`omega-server hash-senha`) e chave HMAC de 64 dígitos hexadecimais (Q-22, Q-29) |
-| `PAINEL_FINALIDADE`, `PAINEL_VERSAO_TERMO` | segmentacao, v1 | sugeridos ao conceder o consentimento (Q-25) |
+| `PAINEL_VERSAO_TERMO` | v1 | versão do termo sugerida ao conceder (Q-25); `PAINEL_FINALIDADE` deixou de existir na v1.9 (a finalidade vem do botão, Q-48) |
+| `PUBLICOS_ARQUIVO_HORAS` | 24 | por quanto tempo o arquivo de público pode ser baixado, de 1 a 168 (Q-51) |
 
 O ambiente prevalece sobre o arquivo. Exemplo em `deploy/config.env.example`.
 
@@ -88,9 +90,9 @@ O ambiente prevalece sobre o arquivo. Exemplo em `deploy/config.env.example`.
 | Rota | Caso de uso | Exige |
 |---|---|---|
 | `POST /v1/clientes` | UC-09 Cadastrar | token |
-| `PUT /v1/clientes/{id}/consentimento` | UC-08 Conceder | token |
-| `POST /v1/clientes/{id}/consentimento/revogacao` | UC-08 Revogar | token |
-| `GET /v1/clientes/{id}/consentimento` | UC-08 Consultar | token |
+| `PUT /v1/clientes/{id}/consentimento` | UC-08 Conceder (`finalidade`: `segmentacao` ou `publicidade_terceiros`) | token |
+| `POST /v1/clientes/{id}/consentimento/revogacao` | UC-08 Revogar (sem corpo: `segmentacao`; ou `{"finalidade": ...}`) | token |
+| `GET /v1/clientes/{id}/consentimento` | UC-08 Consultar (a `segmentacao` no topo e a lista `finalidades`) | token |
 | `POST /v1/clientes/{id}/eventos` | UC-01 Registrar evento | token + consentimento |
 | `POST /v1/clientes/{id}/processamento` | UC-01 → UC-02 → UC-03 → UC-04 (RN-09) | token + consentimento |
 | `GET /saude` | saúde, para o balanceador | — |
@@ -107,16 +109,19 @@ Interface web em `/painel`, servida pelo próprio `omega-server`, seguindo o des
 | Cadastrar cliente | UC-09; abre a ficha já com o selo "Não concedido" |
 | Ficha | selo de consentimento sempre visível; Visão geral (etapas do processamento, perfil, segmento com os critérios atendidos, recomendação), Eventos e Consentimento. Sem consentimento, nenhum dado de comportamento é lido |
 | Consentimento | registro atual e linha do tempo com cada concessão e revogação: finalidade, versão do termo e origem (API, painel com o operador, portal). Só inclusão; cliente sem movimentos mostra a linha pelas datas (Q-34) |
+| Consentimento por finalidade (v1.9) | um registro por finalidade: **Segmentação** (perfil, segmento e recomendação) e **Publicidade com terceiros** (entrar nos públicos de anúncio), cada um com selo, ações e linha do tempo (Q-48) |
+| Públicos (v1.9) | escolher o segmento, ver quantos entram e quantos ficam de fora, gerar com confirmação e baixar o CSV (só o e-mail em SHA-256 e o nome do segmento), remoções pendentes depois de uma revogação e histórico de exportações (RN-17) |
+| Relatório agregado (v1.9) | por segmento, quantidade, ticket médio e categoria mais comum, sem identificador; grupos com menos de 5 aparecem como "menos de 5" (RN-18) |
 | Segmentos e Catálogo | somente leitura |
 | Operação | saúde do banco e expiração de recomendações vencidas |
 
-Demonstração (Q-30, Q-32): 7 segmentos (vip, premium, fiel, engajado, explorador, ocasional, padrao), catálogo de 7 categorias e 14 clientes com história ao longo de meses: Ana (premium, com recomendações expiradas), Bruno (engajado), Carla e Davi (ocasional; Davi sem produto elegível), Elisa (nunca concedeu), Fábio (revogou), Gabi (inativa, histórico só leitura), Heitor (vip), Isabela (fiel), João (explorador), Karina (concedeu v1 pela API, revogou e concedeu v2 pelo painel: histórico completo), Lucas (ainda não processado), Marina (só recomendação expirada) e Nina (padrão). No `make serve` eles entram sozinhos; na implantação, com `make exemplos`.
+Demonstração (Q-30, Q-32): 7 segmentos (vip, premium, fiel, engajado, explorador, ocasional, padrao), catálogo de 7 categorias e 14 clientes com história ao longo de meses: Ana (premium, com recomendações expiradas), Bruno (engajado), Carla e Davi (ocasional; Davi sem produto elegível), Elisa (nunca concedeu), Fábio (revogou), Gabi (inativa, histórico só leitura), Heitor (vip), Isabela (fiel), João (explorador), Karina (concedeu v1 pela API, revogou e concedeu v2 pelo painel: histórico completo), Lucas (ainda não processado), Marina (só recomendação expirada) e Nina (padrão). Desde a v1.9, Ana, Bruno, Heitor e Isabela também concederam **Publicidade com terceiros**, e Carla concedeu e revogou (a segmentação dela continua valendo). No `make serve` eles entram sozinhos; na implantação, com `make exemplos`.
 
 Sessão assinada sem estado (funciona com as duas réplicas), CSRF em todo envio, 5 tentativas de entrada por IP em 5 minutos, CSP `'self'`. Funciona sem JavaScript (formulários com redirecionamento e páginas de confirmação); com JavaScript, troca só a área do painel e usa diálogos nativos.
 
 ## LGPD
 
-Nenhum caso de uso que processa dado pessoal roda sem consentimento válido (C-03), e a revogação tem efeito imediato (RN-03). Os logs da aplicação e do Nginx não trazem nome, e-mail nem IP (C-09), e os testes usam só dados sintéticos. O checklist completo, com a evidência de cada item e o que ficou para depois do MVP, está em [`docs/CHECKLIST_LGPD.md`](docs/CHECKLIST_LGPD.md). Os requisitos são interpretação técnica da equipe, não parecer jurídico.
+Nenhum caso de uso que processa dado pessoal roda sem consentimento válido para a sua finalidade (C-03, RN-02): `segmentacao` para perfil, segmento e recomendação, e também `publicidade_terceiros` para entrar num público de campanha. A revogação tem efeito imediato (RN-03) e, nos públicos, deixa o cliente pendente de remoção nos arquivos já gerados (RN-17, art. 18 §6º). O arquivo de público leva só o e-mail em hash, que continua sendo dado pessoal, e fica disponível por 24 horas. Não há integração real com plataformas de anúncio: o arquivo é subido pela equipe. Os logs da aplicação e do Nginx não trazem nome, e-mail nem IP (C-09), e os testes usam só dados sintéticos. O checklist completo, com a evidência de cada item e o que ficou para depois do MVP, está em [`docs/CHECKLIST_LGPD.md`](docs/CHECKLIST_LGPD.md). Os requisitos são interpretação técnica da equipe, não parecer jurídico.
 
 ## Mapa do repositório
 
