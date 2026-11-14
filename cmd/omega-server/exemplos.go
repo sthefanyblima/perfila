@@ -100,6 +100,8 @@ func (e exemplos) lista() []exemplo {
 			cad(80), conc(79, "v1"), comp(70, "casa", 290), proc(69), exp(35)}},
 		{"Nina Sintética", "c-014@exemplo.test", []passo{ // padrao
 			cad(60), conc(59, "v1"), comp(50, "esportes", 70), comp(35, "esportes", 120), comp(10, "esportes", 90), proc(9)}},
+		{"Olga Sintética", "c-015@exemplo.test", []passo{ // revogou há mais de 180 dias: a retenção apaga o comportamento (RN-18)
+			cad(320), conc(318, "v1"), comp(300, "casa", 210), comp(270, "casa", 180), nav(269, 2), proc(268), rev(220)}},
 	}
 }
 
