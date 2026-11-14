@@ -40,6 +40,8 @@ type EventoRepository interface {
 type PerfilRepository interface {
 	Salvar(ctx context.Context, p entity.PerfilCliente) (entity.PerfilCliente, error)
 	BuscarPorCliente(ctx context.Context, clienteID uuid.UUID) (entity.PerfilCliente, error)
+	// ListarPorSegmento [ADIÇÃO] v1.9: os perfis do segmento, em ordem de ClienteID. Spec: RN-17, RN-18.
+	ListarPorSegmento(ctx context.Context, segmentoID uuid.UUID) ([]entity.PerfilCliente, error)
 }
 
 // SegmentoRepository. ListarAtivos devolve em ordem crescente de Prioridade (RN-06).
@@ -76,6 +78,28 @@ type ConsentimentoRepository interface {
 type ProdutoRepository interface {
 	ListarAtivosPorCategoria(ctx context.Context, categoria string) ([]entity.Produto, error)
 	ListarTodos(ctx context.Context) ([]entity.Produto, error) // [ADIÇÃO] Q-23: por Categoria e Nome
+}
+
+// PublicoRepository [ADIÇÃO] v1.9 guarda as exportações de públicos, o conteúdo dos arquivos
+// (até ArquivoExpiraEm) e os membros. Spec: 3.6, RN-17, Q-51.
+type PublicoRepository interface {
+	// RegistrarExportacao é atômica: insere a exportação e o conteúdo, insere os membros novos e
+	// atualiza os existentes; exportação repetida falha sem gravar nada.
+	RegistrarExportacao(ctx context.Context, e entity.ExportacaoPublico, conteudo []byte, membros []entity.MembroPublico) error
+	ListarExportacoes(ctx context.Context, segmentoID uuid.UUID) ([]entity.ExportacaoPublico, error) // Data decrescente
+	// BuscarArquivo devolve errs.ErrArquivoIndisponivel se não houver conteúdo.
+	BuscarArquivo(ctx context.Context, exportacaoID uuid.UUID) (entity.ExportacaoPublico, []byte, error)
+	ApagarArquivosVencidos(ctx context.Context, agora time.Time) (int, error)                                                       // ArquivoExpiraEm <= agora
+	ListarMembrosPorSegmento(ctx context.Context, segmentoID uuid.UUID, status entity.StatusMembro) ([]entity.MembroPublico, error) // por HashEmail
+	ListarMembrosPorCliente(ctx context.Context, clienteID uuid.UUID, status entity.StatusMembro) ([]entity.MembroPublico, error)   // por HashEmail
+	// AtualizarMembros grava estado e datas; ID inexistente falha sem gravar nada.
+	AtualizarMembros(ctx context.Context, ms []entity.MembroPublico) error
+}
+
+// DestinoPublicitarioGateway [ADIÇÃO] v1.9 entrega o lote a uma plataforma de anúncio. No MVP,
+// gera um arquivo CSV (infra/external); trocar por API não muda os casos de uso. Spec: RN-17, Q-49.
+type DestinoPublicitarioGateway interface {
+	Enviar(ctx context.Context, lote entity.LotePublico) (entity.ReciboEnvio, error)
 }
 
 // ConsentimentoGateway — MVP: implementação local sobre ConsentimentoRepository (fase Support).

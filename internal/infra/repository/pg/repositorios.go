@@ -227,6 +227,31 @@ func (r *PgPerfilRepository) BuscarPorCliente(ctx context.Context, clienteID uui
 	return p, nil
 }
 
+// ListarPorSegmento devolve os perfis do segmento, em ordem de ClienteID. Spec: 3.6, RN-17, RN-18.
+func (r *PgPerfilRepository) ListarPorSegmento(ctx context.Context, segmentoID uuid.UUID) ([]entity.PerfilCliente, error) {
+	linhas, err := r.db.QueryContext(ctx, `
+		SELECT id, cliente_id, frequencia_compras, ticket_medio, categoria_preferida, score_engajamento
+		FROM perfis_cliente WHERE segmento_id = $1 ORDER BY cliente_id`, segmentoID)
+	if err != nil {
+		return nil, fmt.Errorf("pg: listando perfis do segmento %s: %w", segmentoID, err)
+	}
+	defer linhas.Close()
+	out := []entity.PerfilCliente{}
+	for linhas.Next() {
+		var p entity.PerfilCliente
+		if err := linhas.Scan(&p.ID, &p.ClienteID, &p.FrequenciaCompras, &p.TicketMedio, &p.CategoriaPreferida, &p.ScoreEngajamento); err != nil {
+			return nil, fmt.Errorf("pg: lendo perfil do segmento %s: %w", segmentoID, err)
+		}
+		s := segmentoID
+		p.SegmentoID = &s
+		out = append(out, p)
+	}
+	if err := linhas.Err(); err != nil {
+		return nil, fmt.Errorf("pg: listando perfis do segmento %s: %w", segmentoID, err)
+	}
+	return out, nil
+}
+
 // ---------- Segmento ----------
 
 // PgSegmentoRepository lê `segmentos` (populados por migração). Spec: UC-03, RN-06.

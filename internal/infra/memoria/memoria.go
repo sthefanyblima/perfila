@@ -28,6 +28,7 @@ var (
 	_ port.RecomendacaoRepository  = (*RecomendacaoRepository)(nil)
 	_ port.ConsentimentoRepository = (*ConsentimentoRepository)(nil)
 	_ port.ProdutoRepository       = (*ProdutoRepository)(nil)
+	_ port.PublicoRepository       = (*PublicoRepository)(nil)
 )
 
 // ---------- Cliente ----------
@@ -171,6 +172,20 @@ func (r *PerfilRepository) BuscarPorCliente(_ context.Context, clienteID uuid.UU
 		return entity.PerfilCliente{}, errs.ErrPerfilNaoEncontrado
 	}
 	return p, nil
+}
+
+// ListarPorSegmento devolve os perfis do segmento, em ordem de ClienteID. Spec: 3.6, RN-17, RN-18.
+func (r *PerfilRepository) ListarPorSegmento(_ context.Context, segmentoID uuid.UUID) ([]entity.PerfilCliente, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	out := []entity.PerfilCliente{}
+	for _, p := range r.dados {
+		if p.SegmentoID != nil && *p.SegmentoID == segmentoID {
+			out = append(out, p)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].ClienteID.String() < out[j].ClienteID.String() })
+	return out, nil
 }
 
 // Total devolve o número de perfis gravados (apoio a testes).

@@ -30,6 +30,7 @@ type Repositorios struct {
 	Recomendacoes  port.RecomendacaoRepository
 	Consentimentos port.ConsentimentoRepository
 	Produtos       port.ProdutoRepository
+	Publicos       port.PublicoRepository // v1.9, RN-17
 
 	AdicionarSegmento func(t *testing.T, s entity.Segmento)
 	AdicionarProduto  func(t *testing.T, p entity.Produto)
@@ -55,6 +56,8 @@ func Executar(t *testing.T, nova Fabrica) {
 		{"Consentimento", testarConsentimento},
 		{"MovimentoConsentimento", testarMovimentos},
 		{"Produto", testarProduto},
+		{"PerfilPorSegmento", testarPerfisPorSegmento},
+		{"Publico", testarPublico},
 	}
 	for _, c := range casos {
 		t.Run(c.nome, func(t *testing.T) { c.fn(t, nova(t)) })
