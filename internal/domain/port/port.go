@@ -56,12 +56,15 @@ type RecomendacaoRepository interface {
 	ListarPorCliente(ctx context.Context, clienteID uuid.UUID) ([]entity.RecomendacaoProduto, error)       // [ADIÇÃO] Q-23: DataGeracao decrescente
 }
 
-// ConsentimentoRepository. Salvar faz upsert por ClienteID, sem movimento (cargas e testes).
+// ConsentimentoRepository guarda um registro por (ClienteID, Finalidade) desde a v1.9 (Q-48).
+// Salvar faz upsert por (ClienteID, Finalidade), sem movimento (cargas e testes).
 // BuscarPorCliente devolve errs.ErrConsentimentoNaoEncontrado se não existir.
-// Spec: 3.6, RN-10, Q-34.
+// Spec: 3.6, RN-02, RN-10, Q-34, Q-48.
 type ConsentimentoRepository interface {
 	Salvar(ctx context.Context, c entity.ConsentimentoLGPD) error
-	BuscarPorCliente(ctx context.Context, clienteID uuid.UUID) (entity.ConsentimentoLGPD, error)
+	BuscarPorCliente(ctx context.Context, clienteID uuid.UUID, finalidade entity.Finalidade) (entity.ConsentimentoLGPD, error)
+	// ListarPorCliente [ADIÇÃO] v1.9: só os registros que existem, em ordem de Finalidade.
+	ListarPorCliente(ctx context.Context, clienteID uuid.UUID) ([]entity.ConsentimentoLGPD, error)
 	// Registrar [ADIÇÃO] v1.4: upsert do registro e inclusão do movimento numa operação atômica;
 	// ID de movimento repetido falha sem gravar nada.
 	Registrar(ctx context.Context, c entity.ConsentimentoLGPD, m entity.MovimentoConsentimento) error

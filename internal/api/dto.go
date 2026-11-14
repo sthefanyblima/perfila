@@ -109,7 +109,7 @@ func clienteDTO(c entity.Cliente) ClienteResponse {
 func consentimentoDTO(c entity.ConsentimentoLGPD) ConsentimentoResponse {
 	r := ConsentimentoResponse{
 		ClienteID: c.ClienteID.String(), Status: string(c.Status), Valido: c.EstaValido(),
-		Finalidade: c.Finalidade, VersaoTermo: c.VersaoTermo, DataRevogacao: c.DataRevogacao,
+		Finalidade: string(c.Finalidade), VersaoTermo: c.VersaoTermo, DataRevogacao: c.DataRevogacao,
 		DataAtualizacao: c.DataAtualizacao,
 	}
 	if !c.DataConsentimento.IsZero() {

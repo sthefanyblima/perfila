@@ -58,7 +58,7 @@ func bancoDeTeste(t *testing.T, esquema string) *sql.DB {
 
 func esvaziar(t *testing.T, db *sql.DB) {
 	t.Helper()
-	_, err := db.Exec(`TRUNCATE recomendacoes_produto, perfis_cliente, eventos_comportamentais,
+	_, err := db.Exec(`TRUNCATE membros_publico, exportacoes_publico, recomendacoes_produto, perfis_cliente, eventos_comportamentais,
 		movimentos_consentimento, consentimentos_lgpd, clientes, produtos, segmentos`)
 	if err != nil {
 		t.Fatal(err)
@@ -109,7 +109,7 @@ func TestMigracoes(t *testing.T) {
 		versoes = append(versoes, v)
 	}
 	linhas.Close()
-	if !reflect.DeepEqual(versoes, []string{"001_inicial", "002_dados_demonstracao", "003_recomendacoes_ativas_por_cliente", "004_listagem_de_clientes", "005_demonstracao_ampliada", "006_movimentos_consentimento"}) {
+	if !reflect.DeepEqual(versoes, []string{"001_inicial", "002_dados_demonstracao", "003_recomendacoes_ativas_por_cliente", "004_listagem_de_clientes", "005_demonstracao_ampliada", "006_movimentos_consentimento", "009_finalidades_e_publicos"}) {
 		t.Fatalf("migrações registradas: %v", versoes)
 	}
 	aplicadas, err := pg.Migrar(ctx, db)
@@ -141,6 +141,45 @@ func TestMigracoes(t *testing.T) {
 	}
 }
 
+// Spec: RN-02, Q-48 — a 009 põe "segmentacao" nos registros antigos (texto livre), passa a chave
+// para (cliente, finalidade) e recusa finalidade fora do enumerado; os movimentos não mudam.
+func TestMigracaoFinalidades(t *testing.T) {
+	db := bancoDeTeste(t, "teste_finalidades")
+	ctx := context.Background()
+	agora := time.Date(2026, 11, 1, 10, 0, 0, 0, time.UTC)
+	id := uuid.New()
+	if err := pg.NovoPgClienteRepository(db).Salvar(ctx, entity.Cliente{ID: id, Nome: "Cliente Sintético",
+		Email: "c-001@exemplo.test", DataCadastro: agora, Ativo: true}); err != nil {
+		t.Fatal(err)
+	}
+	// Simula um banco anterior à 009, com a finalidade em texto livre e a chave só por cliente.
+	if _, err := db.Exec(`DROP TABLE membros_publico; DROP TABLE exportacoes_publico;
+		ALTER TABLE consentimentos_lgpd DROP CONSTRAINT consentimentos_lgpd_cliente_finalidade,
+			DROP CONSTRAINT consentimentos_lgpd_finalidade, ADD CONSTRAINT consentimentos_lgpd_cliente_id_key UNIQUE (cliente_id);
+		DELETE FROM schema_migracoes WHERE versao = '009_finalidades_e_publicos'`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO consentimentos_lgpd (id, cliente_id, status, finalidade, versao_termo,
+		data_consentimento, data_atualizacao) VALUES ($1, $2, 'CONCEDIDO', 'uso interno', 'v1', $3, $3)`, uuid.New(), id, agora); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pg.Migrar(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	cons := pg.NovoPgConsentimentoRepository(db)
+	c, err := cons.BuscarPorCliente(ctx, id, entity.FinalidadeSegmentacao)
+	if err != nil || !c.EstaValido() || c.VersaoTermo != "v1" {
+		t.Fatalf("registro antigo depois da 009: %+v %v", c, err)
+	}
+	p := entity.NovoConsentimento(uuid.New(), id, entity.FinalidadePublicidadeTerceiros, agora)
+	if err := cons.Salvar(ctx, p); err != nil {
+		t.Fatalf("segunda finalidade do mesmo cliente: %v", err)
+	}
+	if err := cons.Salvar(ctx, entity.NovoConsentimento(uuid.New(), id, entity.Finalidade("marketing"), agora)); err == nil {
+		t.Fatal("finalidade fora do enumerado deveria ser recusada pelo banco")
+	}
+}
+
 // Spec: RN-10, Q-34 — a 006 reconstrói só o que as datas provam, com origem migracao, e o banco
 // recusa alterar ou apagar um movimento.
 func TestMigracaoReconstroiMovimentos(t *testing.T) {
@@ -156,14 +195,15 @@ func TestMigracaoReconstroiMovimentos(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	a := entity.NovoConsentimento(uuid.New(), revogado, dia(1))
-	_ = a.Conceder("segmentacao", "v1", dia(2))
+	seg := entity.FinalidadeSegmentacao
+	a := entity.NovoConsentimento(uuid.New(), revogado, seg, dia(1))
+	_ = a.Conceder(seg, "v1", dia(2))
 	_ = a.Revogar(dia(3))
-	b := entity.NovoConsentimento(uuid.New(), reconcedido, dia(1))
-	_ = b.Conceder("segmentacao", "v1", dia(2))
+	b := entity.NovoConsentimento(uuid.New(), reconcedido, seg, dia(1))
+	_ = b.Conceder(seg, "v1", dia(2))
 	_ = b.Revogar(dia(3))
-	_ = b.Conceder("segmentacao", "v2", dia(4))
-	for _, c := range []entity.ConsentimentoLGPD{a, b, entity.NovoConsentimento(uuid.New(), nunca, dia(1))} {
+	_ = b.Conceder(seg, "v2", dia(4))
+	for _, c := range []entity.ConsentimentoLGPD{a, b, entity.NovoConsentimento(uuid.New(), nunca, seg, dia(1))} {
 		if err := cons.Salvar(ctx, c); err != nil {
 			t.Fatal(err)
 		}

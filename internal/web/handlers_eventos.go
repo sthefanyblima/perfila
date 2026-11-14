@@ -125,10 +125,10 @@ func (p *painel) alterarConsentimento(w http.ResponseWriter, r *http.Request) {
 			f.ErroVersao = "Informe a versão do termo que o titular aceitou."
 		}
 		if f.ErroFinalidade == "" && f.ErroVersao == "" {
-			err = p.d.Consentimento.Conceder(ctx, id, f.Finalidade, f.VersaoTermo)
+			err = p.d.Consentimento.Conceder(ctx, id, entity.Finalidade(f.Finalidade), f.VersaoTermo)
 		}
 	} else {
-		err = p.d.Consentimento.Revogar(ctx, id)
+		err = p.d.Consentimento.Revogar(ctx, id, entity.FinalidadeSegmentacao)
 	}
 	if err == nil && f.ErroFinalidade == "" && f.ErroVersao == "" {
 		p.acao(r, acao+"_consentimento", id.String())

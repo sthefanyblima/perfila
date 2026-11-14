@@ -150,7 +150,7 @@ func (d dadosFicha) marcosPelasDatas() []marco {
 	var ms []marco
 	if !c.DataConsentimento.IsZero() {
 		m := marco{Data: c.DataConsentimento, Titulo: "Consentimento concedido", Icone: "ok",
-			Detalhe: "Finalidade " + c.Finalidade + " · termo " + c.VersaoTermo}
+			Detalhe: "Finalidade " + string(c.Finalidade) + " · termo " + c.VersaoTermo}
 		if c.DataRevogacao != nil && c.DataRevogacao.Before(c.DataConsentimento) {
 			m.Titulo = "Consentimento concedido novamente"
 		}

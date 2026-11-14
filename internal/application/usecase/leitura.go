@@ -93,7 +93,7 @@ func (uc *ListarClientesUseCase) Executar(ctx context.Context, f FiltroListagem)
 }
 
 func (uc *ListarClientesUseCase) statusConsentimento(ctx context.Context, clienteID uuid.UUID) (entity.StatusConsentimento, error) {
-	c, err := uc.consentimentos.BuscarPorCliente(ctx, clienteID)
+	c, err := uc.consentimentos.BuscarPorCliente(ctx, clienteID, entity.FinalidadeSegmentacao) // a que libera a ficha (RN-01)
 	if errors.Is(err, errs.ErrConsentimentoNaoEncontrado) {
 		return entity.StatusNaoConcedido, nil // D-02
 	}
@@ -129,7 +129,8 @@ func (uc *ListarClientesUseCase) nomeDoSegmento(ctx context.Context, clienteID u
 // FichaCliente é o cadastro e o consentimento: o que o painel mostra sem consentimento (Q-21).
 type FichaCliente struct {
 	Cliente       entity.Cliente
-	Consentimento entity.ConsentimentoLGPD
+	Consentimento entity.ConsentimentoLGPD        // o de segmentacao, que libera a ficha (RN-01, v1.9)
+	Finalidades   []entity.ConsentimentoLGPD      // um por finalidade, na ordem de entity.Finalidades() (v1.9, Q-48)
 	Historico     []entity.MovimentoConsentimento // ordem cronológica; vazio = sem movimentos (v1.4, RN-10)
 }
 
@@ -151,7 +152,7 @@ func (uc *ConsultarClienteUseCase) Executar(ctx context.Context, clienteID uuid.
 	if err != nil {
 		return FichaCliente{}, err
 	}
-	cons, err := uc.consentimento.Consultar(ctx, clienteID)
+	finalidades, err := uc.consentimento.ConsultarFinalidades(ctx, clienteID)
 	if err != nil {
 		return FichaCliente{}, err
 	}
@@ -159,7 +160,7 @@ func (uc *ConsultarClienteUseCase) Executar(ctx context.Context, clienteID uuid.
 	if err != nil {
 		return FichaCliente{}, err
 	}
-	return FichaCliente{Cliente: c, Consentimento: cons, Historico: hist}, nil
+	return FichaCliente{Cliente: c, Consentimento: finalidades[0], Finalidades: finalidades, Historico: hist}, nil
 }
 
 // ResultadoCliente é o comportamento do cliente: só sai com consentimento válido (RN-01).

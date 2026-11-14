@@ -1,5 +1,5 @@
 # language: pt
-@UC-06 @RN-17 @Q-48 @Q-49 @wip
+@UC-06 @RN-17 @Q-48 @Q-49
 Funcionalidade: Públicos para campanhas e consentimento por finalidade
   Para anunciar a um segmento em plataformas de terceiros
   O sistema gera o público só com quem concedeu a finalidade "publicidade_terceiros",
@@ -58,7 +58,7 @@ Funcionalidade: Públicos para campanhas e consentimento por finalidade
 
   # ---- Quem entra no público (RN-17) ----
 
-  @aplicacao @lgpd
+  @aplicacao @lgpd @wip
   Cenário: Só entra no público quem concedeu as duas finalidades
     Dado que o cliente "c-001" com o e-mail "c-001@exemplo.test" está no segmento "vip" com as finalidades "segmentacao,publicidade_terceiros"
     E que o cliente "c-002" com o e-mail "c-002@exemplo.test" está no segmento "vip" com as finalidades "segmentacao"
@@ -66,7 +66,7 @@ Funcionalidade: Públicos para campanhas e consentimento por finalidade
     Então entram no público 1 cliente e ficam de fora 1
     E o público contém o cliente "c-001"
 
-  @aplicacao @lgpd
+  @aplicacao @lgpd @wip
   Esquema do Cenário: Inativo, revogado ou sem consentimento fica de fora
     Dado que o cliente "c-001" com o e-mail "c-001@exemplo.test" está no segmento "vip" com as finalidades "segmentacao,publicidade_terceiros"
     E que o cliente "c-002" com o e-mail "c-002@exemplo.test" está no segmento "vip" com as finalidades "segmentacao,publicidade_terceiros"
@@ -81,13 +81,13 @@ Funcionalidade: Públicos para campanhas e consentimento por finalidade
       | a finalidade "publicidade_terceiros" foi revogada |
       | a finalidade "segmentacao" foi revogada      |
 
-  @aplicacao
+  @aplicacao @wip
   Cenário: O público é do segmento atual do perfil
     Dado que o cliente "c-001" com o e-mail "c-001@exemplo.test" está no segmento "fiel" com as finalidades "segmentacao,publicidade_terceiros"
     Quando o público do segmento "vip" é gerado
     Então entram no público 0 clientes e ficam de fora 0
 
-  @aplicacao
+  @aplicacao @wip
   Cenário: Público vazio não gera arquivo
     Dado que o cliente "c-001" com o e-mail "c-001@exemplo.test" está no segmento "vip" com as finalidades "segmentacao"
     Quando o operador "analista" exporta o público do segmento "vip"
@@ -96,7 +96,7 @@ Funcionalidade: Públicos para campanhas e consentimento por finalidade
 
   # ---- O arquivo (mínimo de dados) ----
 
-  @aplicacao @lgpd
+  @aplicacao @lgpd @wip
   Cenário: O arquivo leva só o e-mail em hash e o nome do segmento
     Dado que o cliente "c-001" com o e-mail "c-001@exemplo.test" está no segmento "vip" com as finalidades "segmentacao,publicidade_terceiros"
     Quando o operador "analista" exporta o público do segmento "vip"
@@ -107,7 +107,7 @@ Funcionalidade: Públicos para campanhas e consentimento por finalidade
       """
     E o arquivo exportado não contém "c-001@exemplo.test" nem o nome do cliente "c-001"
 
-  @dominio
+  @dominio @wip
   Esquema do Cenário: O e-mail é normalizado antes do hash
     Quando o hash do e-mail "<email>" é calculado
     Então o hash é "9c4cd21419f4d9f66ea792856912326980a93ed91c0f9b487dc9df386b13a7ef"
@@ -118,14 +118,14 @@ Funcionalidade: Públicos para campanhas e consentimento por finalidade
       | C-001 @Exemplo.TEST   |
       | c-0 01@exemplo.test   |
 
-  @aplicacao @lgpd
+  @aplicacao @lgpd @wip
   Cenário: A exportação fica registrada sem dado pessoal
     Dado que o cliente "c-001" com o e-mail "c-001@exemplo.test" está no segmento "vip" com as finalidades "segmentacao,publicidade_terceiros"
     Quando o operador "analista" exporta o público do segmento "vip"
     Então a exportação registra o operador "analista", o segmento "vip", o tipo "INCLUSAO", 1 cliente e o hash do arquivo
     E o log não contém o e-mail, o hash do e-mail nem o nome do cliente "c-001"
 
-  @aplicacao
+  @aplicacao @wip
   Cenário: O arquivo pode ser baixado dentro do prazo
     Dado que o cliente "c-001" com o e-mail "c-001@exemplo.test" está no segmento "vip" com as finalidades "segmentacao,publicidade_terceiros"
     E que o operador "analista" exportou o público do segmento "vip"
@@ -133,7 +133,7 @@ Funcionalidade: Públicos para campanhas e consentimento por finalidade
     Quando o arquivo da última exportação é baixado
     Então o arquivo baixado é igual ao exportado
 
-  @aplicacao @lgpd @Q-51
+  @aplicacao @lgpd @Q-51 @wip
   Cenário: Depois do prazo o arquivo não é mais entregue
     Dado que o cliente "c-001" com o e-mail "c-001@exemplo.test" está no segmento "vip" com as finalidades "segmentacao,publicidade_terceiros"
     E que o operador "analista" exportou o público do segmento "vip"
@@ -143,7 +143,7 @@ Funcionalidade: Públicos para campanhas e consentimento por finalidade
 
   # ---- Remoção propagada (Q-50) ----
 
-  @aplicacao @lgpd @RN-03 @Q-50
+  @aplicacao @lgpd @RN-03 @Q-50 @wip
   Esquema do Cenário: Revogar qualquer finalidade tira o cliente do público exportado
     Dado que o cliente "c-001" com o e-mail "c-001@exemplo.test" está no segmento "vip" com as finalidades "segmentacao,publicidade_terceiros"
     E que o operador "analista" exportou o público do segmento "vip"
@@ -156,7 +156,7 @@ Funcionalidade: Públicos para campanhas e consentimento por finalidade
       | publicidade_terceiros |
       | segmentacao           |
 
-  @aplicacao @lgpd @Q-50
+  @aplicacao @lgpd @Q-50 @wip
   Cenário: O arquivo de remoção leva quem revogou e encerra a pendência
     Dado que o cliente "c-001" com o e-mail "c-001@exemplo.test" está no segmento "vip" com as finalidades "segmentacao,publicidade_terceiros"
     E que o operador "analista" exportou o público do segmento "vip"
@@ -166,14 +166,14 @@ Funcionalidade: Públicos para campanhas e consentimento por finalidade
     E o segmento "vip" tem 0 remoções pendentes
     E o membro do cliente "c-001" no segmento "vip" está no estado "REMOVIDO"
 
-  @aplicacao @Q-50
+  @aplicacao @Q-50 @wip
   Cenário: Sem remoção pendente não há arquivo de remoção
     Dado que o cliente "c-001" com o e-mail "c-001@exemplo.test" está no segmento "vip" com as finalidades "segmentacao,publicidade_terceiros"
     E que o operador "analista" exportou o público do segmento "vip"
     Quando o operador "analista" exporta as remoções do segmento "vip"
     Então a operação falha com o erro "dados_invalidos"
 
-  @aplicacao @lgpd @Q-50
+  @aplicacao @lgpd @Q-50 @wip
   Cenário: Quem mudou de segmento fica pendente de remoção na exportação seguinte
     Dado que o cliente "c-001" com o e-mail "c-001@exemplo.test" está no segmento "vip" com as finalidades "segmentacao,publicidade_terceiros"
     E que o cliente "c-002" com o e-mail "c-002@exemplo.test" está no segmento "vip" com as finalidades "segmentacao,publicidade_terceiros"
@@ -182,7 +182,7 @@ Funcionalidade: Públicos para campanhas e consentimento por finalidade
     Quando o operador "analista" exporta o público do segmento "vip"
     Então o membro do cliente "c-001" no segmento "vip" está no estado "REMOCAO_PENDENTE"
 
-  @dominio @Q-50
+  @dominio @Q-50 @wip
   Esquema do Cenário: Transições inválidas do membro do público são rejeitadas
     Dado que existe um membro de público no estado "<estado>"
     Quando tenta-se "<acao>" o membro
@@ -197,7 +197,7 @@ Funcionalidade: Públicos para campanhas e consentimento por finalidade
 
   # ---- Relatório agregado (RN-18, Q-52) ----
 
-  @aplicacao @lgpd @RN-18 @Q-52
+  @aplicacao @lgpd @RN-18 @Q-52 @wip
   Cenário: O agregado esconde grupos com menos de 5 clientes
     Dado que 5 clientes estão no segmento "vip" com ticket médio 600 e a categoria preferida "livros"
     E que 4 clientes estão no segmento "fiel" com ticket médio 80 e a categoria preferida "casa"
@@ -205,14 +205,14 @@ Funcionalidade: Públicos para campanhas e consentimento por finalidade
     Então a linha do segmento "vip" mostra 5 clientes, ticket médio 600 e a categoria "livros"
     E a linha do segmento "fiel" mostra "menos de 5" sem ticket nem categoria
 
-  @aplicacao @lgpd @RN-18
+  @aplicacao @lgpd @RN-18 @wip
   Cenário: O agregado conta só quem tem a segmentação válida
     Dado que 5 clientes estão no segmento "vip" com ticket médio 600 e a categoria preferida "livros"
     E que 1 dos clientes do segmento "vip" revogou a segmentação
     Quando o relatório agregado por segmento é gerado
     Então a linha do segmento "vip" mostra "menos de 5" sem ticket nem categoria
 
-  @aplicacao @lgpd @RN-18
+  @aplicacao @lgpd @RN-18 @wip
   Cenário: O CSV do agregado não tem identificador
     Dado que 5 clientes estão no segmento "vip" com ticket médio 600 e a categoria preferida "livros"
     Quando o relatório agregado por segmento é exportado em CSV
@@ -225,7 +225,7 @@ Funcionalidade: Públicos para campanhas e consentimento por finalidade
 
   # ---- API (Spec 3.7, Q-48) ----
 
-  @api @lgpd
+  @api @lgpd @wip
   Cenário: A API concede a publicidade sem mexer na segmentação
     Dado que a API está no ar e exige o token "token-de-teste"
     E que existe o cliente "c-001" ativo
@@ -237,7 +237,7 @@ Funcionalidade: Públicos para campanhas e consentimento por finalidade
     E o consentimento do cliente "c-001" para "publicidade_terceiros" está no estado "CONCEDIDO"
     E o consentimento do cliente "c-001" para "segmentacao" está no estado "NAO_CONCEDIDO"
 
-  @api
+  @api @wip
   Cenário: A API recusa finalidade fora do enumerado
     Dado que a API está no ar e exige o token "token-de-teste"
     E que existe o cliente "c-001" ativo
@@ -248,7 +248,7 @@ Funcionalidade: Públicos para campanhas e consentimento por finalidade
     Então a resposta tem status 422
     E o corpo tem o código "dados_invalidos"
 
-  @api @lgpd @RN-03
+  @api @lgpd @RN-03 @wip
   Cenário: Revogação sem corpo continua revogando a segmentação
     Dado que a API está no ar e exige o token "token-de-teste"
     E que existe o cliente "c-001" ativo
@@ -258,7 +258,7 @@ Funcionalidade: Públicos para campanhas e consentimento por finalidade
     Então o consentimento do cliente "c-001" para "segmentacao" está no estado "REVOGADO"
     E o consentimento do cliente "c-001" para "publicidade_terceiros" está no estado "CONCEDIDO"
 
-  @api
+  @api @wip
   Cenário: A consulta pela API lista as duas finalidades
     Dado que a API está no ar e exige o token "token-de-teste"
     E que existe o cliente "c-001" ativo

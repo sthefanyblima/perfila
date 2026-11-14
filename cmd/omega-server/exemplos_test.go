@@ -62,12 +62,12 @@ func TestCarregarExemplos(t *testing.T) {
 			t.Error("Gabi deveria estar inativa")
 		}
 		// Datas diferentes: cadastro, concessão e revogação não caem no mesmo instante.
-		cons, _ := r.consentimentos.BuscarPorCliente(ctx, porEmail["c-006@exemplo.test"].ID)
+		cons, _ := r.consentimentos.BuscarPorCliente(ctx, porEmail["c-006@exemplo.test"].ID, entity.FinalidadeSegmentacao)
 		if cons.DataRevogacao == nil || !cons.DataConsentimento.Before(*cons.DataRevogacao) ||
 			!porEmail["c-006@exemplo.test"].DataCadastro.Before(cons.DataConsentimento) {
 			t.Errorf("Fábio: datas fora de ordem: %+v", cons)
 		}
-		karina, _ := r.consentimentos.BuscarPorCliente(ctx, porEmail["c-011@exemplo.test"].ID)
+		karina, _ := r.consentimentos.BuscarPorCliente(ctx, porEmail["c-011@exemplo.test"].ID, entity.FinalidadeSegmentacao)
 		if karina.VersaoTermo != "v2" || karina.DataRevogacao == nil || !karina.DataRevogacao.Before(karina.DataConsentimento) {
 			t.Errorf("Karina deveria ter concedido de novo, termo v2: %+v", karina)
 		}

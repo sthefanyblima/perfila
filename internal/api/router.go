@@ -137,7 +137,7 @@ func (h handlers) concederConsentimento(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	ctx := usecase.ComOrigem(r.Context(), entity.OrigemAPI, "") // RN-10
-	if err := h.d.Consentimento.Conceder(ctx, id, req.Finalidade, req.VersaoTermo); err != nil {
+	if err := h.d.Consentimento.Conceder(ctx, id, entity.Finalidade(req.Finalidade), req.VersaoTermo); err != nil {
 		escreverErro(w, r, h.d.Log, err)
 		return
 	}
@@ -152,7 +152,7 @@ func (h handlers) revogarConsentimento(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := usecase.ComOrigem(r.Context(), entity.OrigemAPI, "") // RN-10
-	if err := h.d.Consentimento.Revogar(ctx, id); err != nil {
+	if err := h.d.Consentimento.Revogar(ctx, id, entity.FinalidadeSegmentacao); err != nil {
 		escreverErro(w, r, h.d.Log, err)
 		return
 	}
@@ -170,7 +170,7 @@ func (h handlers) responderConsentimento(w http.ResponseWriter, r *http.Request)
 		escreverErro(w, r, h.d.Log, err)
 		return
 	}
-	c, err := h.d.Consentimento.Consultar(r.Context(), id)
+	c, err := h.d.Consentimento.Consultar(r.Context(), id, entity.FinalidadeSegmentacao)
 	if err != nil {
 		escreverErro(w, r, h.d.Log, err)
 		return

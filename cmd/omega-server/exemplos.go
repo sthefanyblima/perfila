@@ -151,7 +151,7 @@ func (e exemplos) executar(ctx context.Context, p passo, ex exemplo, id *uuid.UU
 		*id = c.ID
 		return err
 	case "conceder":
-		return consentimento.Conceder(p.contexto(ctx), *id, "segmentacao", p.termo)
+		return consentimento.Conceder(p.contexto(ctx), *id, entity.FinalidadeSegmentacao, p.termo)
 	case "compra":
 		return evento(entity.TipoCompra, p.valor, p.categoria, carga.Agora())
 	case "navegar":
@@ -175,7 +175,7 @@ func (e exemplos) executar(ctx context.Context, p passo, ex exemplo, id *uuid.UU
 		_, err := processar.Executar(ctx, *id)
 		return err
 	case "revogar":
-		return consentimento.Revogar(p.contexto(ctx), *id)
+		return consentimento.Revogar(p.contexto(ctx), *id, entity.FinalidadeSegmentacao)
 	case "expirar":
 		_, err := expirar.Executar(ctx)
 		return err

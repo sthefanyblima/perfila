@@ -95,10 +95,10 @@ func executar(w io.Writer) error {
 	linha(w, "bloqueado → %s", errs.Codigo(err))
 
 	passo(w, 3, "UC-08", "Conceder consentimento LGPD")
-	if err := consentimento.Conceder(ctx, cliente.ID, "segmentacao", "v1"); err != nil {
+	if err := consentimento.Conceder(ctx, cliente.ID, entity.FinalidadeSegmentacao, "v1"); err != nil {
 		return err
 	}
-	c, _ := consentimento.Consultar(ctx, cliente.ID)
+	c, _ := consentimento.Consultar(ctx, cliente.ID, entity.FinalidadeSegmentacao)
 	linha(w, "NAO_CONCEDIDO → %s (finalidade %q, termo %q)", c.Status, c.Finalidade, c.VersaoTermo)
 
 	passo(w, 4, "UC-01", "Registrar eventos comportamentais")
@@ -149,7 +149,7 @@ func executar(w io.Writer) error {
 	linha(w, "válida até %s (30 dias)", rec.Validade.Format("02/01/2006"))
 
 	passo(w, 8, "UC-08", "Revogar consentimento (RN-03: efeito imediato)")
-	if err := consentimento.Revogar(ctx, cliente.ID); err != nil {
+	if err := consentimento.Revogar(ctx, cliente.ID, entity.FinalidadeSegmentacao); err != nil {
 		return err
 	}
 	_, err = recomendar.Executar(ctx, cliente.ID)
