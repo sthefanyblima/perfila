@@ -117,6 +117,14 @@ func TestArgumentosEConfig(t *testing.T) {
 	if err := executar([]string{"expirar-recomendacoes"}, soToken, io.Discard); err != nil {
 		t.Fatalf("expirar-recomendacoes: %v", err)
 	}
+	// Spec: RN-18, Q-51 — o subcomando da retenção registra só a quantidade.
+	var log strings.Builder
+	if err := executar([]string{"aplicar-retencao"}, soToken, &log); err != nil {
+		t.Fatalf("aplicar-retencao: %v", err)
+	}
+	if !strings.Contains(log.String(), `"msg":"retencao_aplicada","quantidade":0,"prazo_dias":180`) {
+		t.Fatalf("log da retenção: %s", log.String())
+	}
 }
 
 // Spec: Q-28 — hash-senha imprime um bcrypt que confere com a senha e nunca a senha.

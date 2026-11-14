@@ -16,13 +16,14 @@ import (
 func TestCarregarExemplos(t *testing.T) {
 	for _, meta := range []int{10, 30} {
 		ctx := context.Background()
-		app, err := montar(ctx, config.Config{AuthToken: "x", LogLevel: "info", RecomendacaoValidadeDias: 30, EngajamentoMetaEventos: meta}, io.Discard)
+		app, err := montar(ctx, config.Config{AuthToken: "x", LogLevel: "info", RecomendacaoValidadeDias: 30, EngajamentoMetaEventos: meta,
+			RetencaoDiasRevogado: 180}, io.Discard)
 		if err != nil {
 			t.Fatal(err)
 		}
 		e := app.exemplos
 		n, err := e.carregar(ctx)
-		if err != nil || n != 14 {
+		if err != nil || n != 15 {
 			t.Fatalf("meta %d: carga criou %d clientes, %v", meta, n, err)
 		}
 		if n, err := e.carregar(ctx); err != nil || n != 0 {
@@ -51,6 +52,7 @@ func TestCarregarExemplos(t *testing.T) {
 			"c-009@exemplo.test": "CONCEDIDO fiel", "c-010@exemplo.test": "CONCEDIDO explorador",
 			"c-011@exemplo.test": "CONCEDIDO padrao", "c-012@exemplo.test": "CONCEDIDO ",
 			"c-013@exemplo.test": "CONCEDIDO ocasional", "c-014@exemplo.test": "CONCEDIDO padrao",
+			"c-015@exemplo.test": "REVOGADO ",
 		}
 		for email, quer := range esperado {
 			l := linhas[email]
@@ -92,6 +94,18 @@ func TestCarregarExemplos(t *testing.T) {
 		marina, _ := r.recomendacoes.ListarPorCliente(ctx, porEmail["c-013@exemplo.test"].ID)
 		if len(marina) != 1 || marina[0].Status != entity.StatusExpirada {
 			t.Errorf("Marina deveria ter só uma recomendação expirada: %+v", marina)
+		}
+		// Retenção (RN-18, Q-51): só Olga revogou há 180 dias ou mais; Fábio, há 45, continua com os dados.
+		if n, err := app.retencao.Executar(ctx); err != nil || n != 1 {
+			t.Fatalf("meta %d: retenção atingiu %d clientes, %v", meta, n, err)
+		}
+		olga, _ := r.eventos.BuscarPorCliente(ctx, porEmail["c-015@exemplo.test"].ID)
+		fabio, _ := r.eventos.BuscarPorCliente(ctx, porEmail["c-006@exemplo.test"].ID)
+		if len(olga) != 0 || len(fabio) == 0 {
+			t.Errorf("retenção: Olga com %d eventos, Fábio com %d", len(olga), len(fabio))
+		}
+		if movs, _ := r.consentimentos.ListarMovimentos(ctx, porEmail["c-015@exemplo.test"].ID); len(movs) != 2 {
+			t.Errorf("Olga: a retenção não pode apagar a prova do consentimento: %+v", movs)
 		}
 	}
 }

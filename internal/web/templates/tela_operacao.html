@@ -28,9 +28,38 @@
       {{end}}
     </div>
   </section>
+
+  <section class="pf-panel" aria-labelledby="titulo-retencao" data-teste="painel-retencao">
+    <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-retencao">Retenção após a revogação</h2></div>
+    <div class="pf-panel__body">
+      <p>Apaga eventos, perfil e recomendações de quem revogou o consentimento há {{.PrazoRetencao}} dias ou mais. Cadastro e histórico do consentimento ficam. É o mesmo efeito do comando <span class="pf-mono">aplicar-retencao</span>.</p>
+      {{if .ConfirmarRetencao}}
+      <div class="pf-confirm" data-teste="confirmar-retencao">{{template "form-retencao" (formRetencao $.CSRF .PrazoRetencao false)}}</div>
+      {{else}}
+      <div><a class="pf-btn pf-btn--danger" href="/painel/operacao/retencao" data-dialogo="dlg-retencao" hx-boost="false" data-teste="acao-retencao">Aplicar retenção</a></div>
+      {{end}}
+    </div>
+  </section>
 </div>
 {{if not .Confirmar}}<dialog class="pf-dialog" id="dlg-expirar" aria-labelledby="titulo-dlg-expirar">{{template "form-expirar" $.CSRF}}</dialog>{{end}}
+{{if not .ConfirmarRetencao}}<dialog class="pf-dialog" id="dlg-retencao" aria-labelledby="titulo-dlg-retencao">{{template "form-retencao" (formRetencao $.CSRF .PrazoRetencao true)}}</dialog>{{end}}
 {{end}}{{end}}
+
+{{/* Confirmação da retenção (RN-18): no diálogo, Cancelar fecha sem navegar e recebe o foco inicial. */}}
+{{define "form-retencao"}}
+<form method="post" action="/painel/operacao/retencao">
+  {{template "csrf" .CSRF}}
+  <div class="pf-dialog__body">
+    <h2 class="pf-dialog__title" id="titulo-dlg-retencao">Aplicar retenção</h2>
+    <p>Eventos, perfil e recomendações de quem revogou o consentimento há {{.Prazo}} dias ou mais são apagados. Cadastro e histórico do consentimento ficam. Não pode ser desfeito.</p>
+  </div>
+  <div class="pf-dialog__foot">
+    {{if .Dialogo}}<button type="button" class="pf-btn" data-fechar-dialogo data-foco-inicial>Cancelar</button>
+    {{else}}<a class="pf-btn" href="/painel/operacao" autofocus>Cancelar</a>{{end}}
+    <button type="submit" class="pf-btn pf-btn--danger-solid">Aplicar retenção</button>
+  </div>
+</form>
+{{end}}
 
 {{define "form-expirar"}}
 <form method="post" action="/painel/operacao/expirar">

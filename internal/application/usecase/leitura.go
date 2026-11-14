@@ -173,19 +173,15 @@ type ResultadoCliente struct {
 
 // ConsultarResultadoUseCase lê eventos, perfil, segmento e recomendações. Spec: 3.5, RN-01, C-03.
 type ConsultarResultadoUseCase struct {
-	pre           Precondicoes
-	eventos       port.EventoRepository
-	perfis        port.PerfilRepository
-	segmentos     port.SegmentoRepository
-	recomendacoes port.RecomendacaoRepository
-	produtos      port.ProdutoRepository
+	pre    Precondicoes
+	leitor leitorComportamento
 }
 
 // NovoConsultarResultadoUseCase injeta as dependências (C-08).
 func NovoConsultarResultadoUseCase(pre Precondicoes, eventos port.EventoRepository, perfis port.PerfilRepository,
 	segmentos port.SegmentoRepository, recomendacoes port.RecomendacaoRepository, produtos port.ProdutoRepository) *ConsultarResultadoUseCase {
-	return &ConsultarResultadoUseCase{pre: pre, eventos: eventos, perfis: perfis, segmentos: segmentos,
-		recomendacoes: recomendacoes, produtos: produtos}
+	return &ConsultarResultadoUseCase{pre: pre, leitor: leitorComportamento{eventos: eventos, perfis: perfis,
+		segmentos: segmentos, recomendacoes: recomendacoes, produtos: produtos}}
 }
 
 // Executar confere cliente e consentimento antes de ler qualquer dado de comportamento; cliente
@@ -194,14 +190,28 @@ func (uc *ConsultarResultadoUseCase) Executar(ctx context.Context, clienteID uui
 	if _, err := uc.pre.VerificarLeitura(ctx, clienteID); err != nil {
 		return ResultadoCliente{}, err
 	}
+	return uc.leitor.ler(ctx, clienteID)
+}
+
+// leitorComportamento lê o comportamento gravado de um cliente. Não confere consentimento: quem o
+// usa decide (ConsultarResultado aplica RN-01; a exportação do titular não, Q-49).
+type leitorComportamento struct {
+	eventos       port.EventoRepository
+	perfis        port.PerfilRepository
+	segmentos     port.SegmentoRepository
+	recomendacoes port.RecomendacaoRepository
+	produtos      port.ProdutoRepository
+}
+
+func (l leitorComportamento) ler(ctx context.Context, clienteID uuid.UUID) (ResultadoCliente, error) {
 	var res ResultadoCliente
 	var err error
-	if res.Eventos, err = uc.eventos.BuscarPorCliente(ctx, clienteID); err != nil {
+	if res.Eventos, err = l.eventos.BuscarPorCliente(ctx, clienteID); err != nil {
 		return ResultadoCliente{}, err
 	}
 	sort.SliceStable(res.Eventos, func(i, j int) bool { return res.Eventos[i].Timestamp.After(res.Eventos[j].Timestamp) })
 
-	p, err := uc.perfis.BuscarPorCliente(ctx, clienteID)
+	p, err := l.perfis.BuscarPorCliente(ctx, clienteID)
 	switch {
 	case err == nil:
 		res.Perfil = &p
@@ -209,7 +219,7 @@ func (uc *ConsultarResultadoUseCase) Executar(ctx context.Context, clienteID uui
 		return ResultadoCliente{}, err
 	}
 	if res.Perfil != nil && res.Perfil.SegmentoID != nil {
-		s, err := uc.segmentos.BuscarPorID(ctx, *res.Perfil.SegmentoID)
+		s, err := l.segmentos.BuscarPorID(ctx, *res.Perfil.SegmentoID)
 		switch {
 		case err == nil:
 			res.Segmento = &s
@@ -217,12 +227,12 @@ func (uc *ConsultarResultadoUseCase) Executar(ctx context.Context, clienteID uui
 			return ResultadoCliente{}, err
 		}
 	}
-	if res.Recomendacoes, err = uc.recomendacoes.ListarPorCliente(ctx, clienteID); err != nil {
+	if res.Recomendacoes, err = l.recomendacoes.ListarPorCliente(ctx, clienteID); err != nil {
 		return ResultadoCliente{}, err
 	}
 	res.Produtos = map[uuid.UUID]entity.Produto{}
 	if len(res.Recomendacoes) > 0 {
-		catalogo, err := uc.produtos.ListarTodos(ctx)
+		catalogo, err := l.produtos.ListarTodos(ctx)
 		if err != nil {
 			return ResultadoCliente{}, err
 		}

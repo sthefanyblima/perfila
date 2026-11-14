@@ -1,7 +1,11 @@
 {{define "conteudo"}}{{with .Dados}}
 {{template "ficha-cabecalho" (fichaComCSRF . $.CSRF)}}
 
-{{if eq .Aba "visao"}}
+{{if .Eliminado}}
+  {{template "ficha-eliminada" .}}
+{{else if eq .Aba "direitos"}}
+  {{template "ficha-direitos" (fichaComCSRF . $.CSRF)}}
+{{else if eq .Aba "visao"}}
   {{if .Bloqueio}}
     {{template "alerta" .Bloqueio}}
   {{else}}
@@ -192,6 +196,13 @@
     <p class="pf-muted pf-small">A data da revogação continua registrada depois de uma nova concessão, como prova do histórico.</p>
     </div>
   </section>
+  {{template "linha-consentimento" .}}
+{{end}}
+
+{{template "dialogos-consentimento" (fichaComCSRF . $.CSRF)}}
+{{end}}{{end}}
+
+{{define "linha-consentimento"}}
   <section class="pf-panel" aria-labelledby="titulo-linha-consentimento" data-teste="linha-consentimento">
     <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-linha-consentimento">Linha do tempo</h2><span class="pf-muted pf-small">Do mais recente para o mais antigo</span></div>
     <div class="pf-panel__body">
@@ -209,5 +220,62 @@
   </section>
 {{end}}
 
-{{template "dialogos-consentimento" (fichaComCSRF . $.CSRF)}}
+{{/* ---- Direitos do titular (v1.9, Q-48 a Q-53) ---- */}}
+
+{{define "ficha-eliminada"}}
+<div class="pf-alert pf-alert--critical" data-teste="aviso-dados-eliminados">
+  <span class="pf-alert__badge" aria-hidden="true">{{icone "barra"}}</span>
+  <div><p class="pf-alert__title">Dados eliminados</p><p class="pf-alert__text">Dados eliminados em {{dataHoraPtr .Cliente.DataEliminacao}}. O cadastro foi anonimizado; resta o histórico do consentimento, guardado como prova.</p></div>
+</div>
+{{template "linha-consentimento" .}}
+{{end}}
+
+{{define "ficha-direitos"}}{{with .D}}
+{{with .Falha}}{{template "alerta" .}}{{end}}
+<div class="pf-grid-2">
+  <section class="pf-panel" aria-labelledby="titulo-corrigir" data-teste="painel-corrigir">
+    <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-corrigir">Corrigir cadastro</h2></div>
+    <form class="pf-panel__body pf-form" method="post" action="/painel/clientes/{{.Cliente.ID}}/cadastro">
+      {{template "csrf" $.CSRF}}
+      <p class="pf-muted">Corrige nome e e-mail a pedido do titular. Não depende do consentimento.</p>
+      <div class="pf-field">
+        <label class="pf-field__label" for="nome">Nome completo</label>
+        <input class="pf-input" id="nome" name="nome" value="{{.Cadastro.Nome}}" required autocomplete="off"{{if .Cadastro.ErroNome}} aria-invalid="true" aria-describedby="nome-erro"{{end}}>
+        {{with .Cadastro.ErroNome}}<span class="pf-field__error" id="nome-erro" aria-live="assertive">{{icone "barra"}}{{.}}</span>{{end}}
+      </div>
+      <div class="pf-field">
+        <label class="pf-field__label" for="email">E-mail</label>
+        <input class="pf-input" id="email" name="email" type="email" value="{{.Cadastro.Email}}" required autocomplete="off"{{if .Cadastro.ErroEmail}} aria-invalid="true" aria-describedby="email-erro"{{end}}>
+        {{with .Cadastro.ErroEmail}}<span class="pf-field__error" id="email-erro" aria-live="assertive">{{icone "barra"}}{{.}}</span>{{end}}
+      </div>
+      <div class="pf-form__foot"><button type="submit" class="pf-btn pf-btn--primary" data-teste="acao-corrigir">Salvar correção</button></div>
+    </form>
+  </section>
+
+  <div class="pf-stack">
+    <section class="pf-panel" aria-labelledby="titulo-portabilidade" data-teste="painel-portabilidade">
+      <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-portabilidade">Acesso e portabilidade</h2></div>
+      <div class="pf-panel__body">
+        <p>Tudo o que o Perfila guarda deste titular: cadastro, consentimento e histórico, eventos, perfil, segmento e recomendações, num arquivo JSON. Vale com qualquer estado do consentimento.</p>
+        <div><a class="pf-btn" href="/painel/clientes/{{.Cliente.ID}}/dados" download hx-boost="false" data-teste="acao-baixar-dados">Baixar dados (JSON)</a></div>
+      </div>
+    </section>
+
+    <section class="pf-panel" aria-labelledby="titulo-eliminacao" data-teste="painel-eliminacao">
+      <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-eliminacao">Eliminação</h2></div>
+      <div class="pf-panel__body">
+        <p>Apaga eventos, perfil e recomendações e anonimiza o cadastro. O histórico do consentimento fica guardado como prova. Não pode ser desfeito.</p>
+        {{if .PodeEliminar}}
+        <div><a class="pf-btn pf-btn--danger" href="/painel/clientes/{{.Cliente.ID}}/eliminar" data-teste="acao-eliminar">Eliminar dados</a></div>
+        {{else}}
+        <div class="pf-alert pf-alert--warn" data-teste="aviso-revogar-antes">
+          <span class="pf-alert__badge" aria-hidden="true">{{icone "atencao"}}</span>
+          <div><p class="pf-alert__title">Consentimento concedido</p><p class="pf-alert__text">Revogue o consentimento antes de eliminar os dados.</p></div>
+          <a class="pf-btn pf-btn--sm pf-alert__acao" href="/painel/clientes/{{.Cliente.ID}}/consentimento">Ir para Consentimento</a>
+        </div>
+        {{end}}
+      </div>
+    </section>
+  </div>
+</div>
 {{end}}{{end}}

@@ -45,7 +45,7 @@ func main() {
 	}
 }
 
-const uso = "uso: omega-server [-config config.env] serve|expirar-recomendacoes|carregar-exemplos|hash-senha"
+const uso = "uso: omega-server [-config config.env] serve|expirar-recomendacoes|aplicar-retencao|carregar-exemplos|hash-senha"
 
 func executar(args []string, getenv func(string) string, saida io.Writer) error {
 	fs := flag.NewFlagSet("omega-server", flag.ContinueOnError)
@@ -86,6 +86,14 @@ func executar(args []string, getenv func(string) string, saida io.Writer) error 
 		}
 		app.log.Info("recomendacoes_expiradas", "quantidade", n)
 		return nil
+	case "aplicar-retencao": // RN-18, Q-51: só a quantidade vai para o log (C-09)
+		n, err := app.retencao.Executar(ctx)
+		if err != nil {
+			return err
+		}
+		app.log.Info("retencao_aplicada", "quantidade", n, "prazo_dias", app.retencao.PrazoDias())
+		app.log.Info("direito_atendido", "pedido", "retencao", "origem", "sistema", "quantidade", n)
+		return nil
 	}
 	return errors.New(uso)
 }
@@ -123,6 +131,7 @@ type aplicacao struct {
 	log      *slog.Logger
 	handler  http.Handler
 	expirar  *usecase.ExpirarRecomendacoesUseCase
+	retencao *usecase.AplicarRetencaoUseCase
 	exemplos exemplos
 	fechar   func()
 }
@@ -165,6 +174,8 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 	cadastrar := usecase.NovoCadastrarClienteUseCase(repos.clientes, clock)
 	consentimento := usecase.NovoGerenciarConsentimentoUseCase(repos.clientes, repos.consentimentos, clock)
 	expirar := usecase.NovoExpirarRecomendacoesUseCase(repos.recomendacoes, clock)
+	retencao := usecase.NovoAplicarRetencaoUseCase(repos.consentimentos, repos.eventos, repos.perfis, repos.recomendacoes,
+		clock, cfg.RetencaoDiasRevogado)
 	deps := api.Dependencias{
 		AuthToken:     cfg.AuthToken,
 		Precondicoes:  pre,
@@ -189,8 +200,14 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 			ListarSegmentos:    usecase.NovoListarSegmentosUseCase(repos.segmentos),
 			ListarCatalogo:     usecase.NovoListarCatalogoUseCase(repos.produtos),
 			Expirar:            expirar,
-			MetaEventos:        cfg.EngajamentoMetaEventos,
-			Clock:              clock, Log: log, Saude: repos.saude, Migracoes: repos.migracoes,
+			AtualizarCadastro:  usecase.NovoAtualizarCadastroUseCase(repos.clientes),
+			ExportarDados: usecase.NovoExportarDadosTitularUseCase(repos.clientes, consentimento, repos.eventos, repos.perfis,
+				repos.segmentos, repos.recomendacoes, repos.produtos, clock),
+			EliminarDados: usecase.NovoEliminarDadosTitularUseCase(repos.clientes, repos.consentimentos, repos.eventos,
+				repos.perfis, repos.recomendacoes, clock),
+			AplicarRetencao: retencao,
+			MetaEventos:     cfg.EngajamentoMetaEventos,
+			Clock:           clock, Log: log, Saude: repos.saude, Migracoes: repos.migracoes,
 		})
 		if err != nil {
 			repos.fechar()
@@ -205,6 +222,7 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 		log:      log,
 		handler:  mux,
 		expirar:  expirar,
+		retencao: retencao,
 		exemplos: exemplos{repos: repos, clock: clock, metaEventos: cfg.EngajamentoMetaEventos, validadeDias: cfg.RecomendacaoValidadeDias},
 		fechar:   repos.fechar,
 	}, nil

@@ -13,11 +13,16 @@ func mensagem(err error, contexto string) (titulo, texto string) {
 	switch errs.Codigo(err) {
 	case errs.ErrClienteNaoEncontrado.Codigo:
 		return "Cliente não encontrado", "Não encontramos esse cliente. Confira o ID ou busque pelo nome."
+	case errs.ErrClienteEliminado.Codigo:
+		return "Dados eliminados", "Os dados deste titular foram eliminados. Nada mais pode ser alterado."
 	case errs.ErrClienteInativo.Codigo:
 		return "Cadastro inativo", "Este cadastro está inativo. Eventos e processamento ficam bloqueados enquanto ele estiver assim."
 	case errs.ErrConsentimentoInvalido.Codigo:
 		return "Sem consentimento válido", "Registre o consentimento do titular para usar os dados de comportamento."
 	case errs.ErrTransicaoInvalida.Codigo:
+		if contexto == "eliminar" {
+			return "Consentimento concedido", "Revogue o consentimento antes de eliminar os dados."
+		}
 		if contexto == "revogar" {
 			return "Nada para revogar", "Não há consentimento concedido para revogar."
 		}
@@ -39,7 +44,7 @@ func statusDe(err error) int {
 	switch e.Codigo {
 	case errs.ErrClienteNaoEncontrado.Codigo:
 		return http.StatusNotFound
-	case errs.ErrClienteInativo.Codigo, errs.ErrTransicaoInvalida.Codigo, errs.ErrPerfilNaoEncontrado.Codigo:
+	case errs.ErrClienteInativo.Codigo, errs.ErrClienteEliminado.Codigo, errs.ErrTransicaoInvalida.Codigo, errs.ErrPerfilNaoEncontrado.Codigo:
 		return http.StatusConflict
 	case errs.ErrConsentimentoInvalido.Codigo:
 		return http.StatusForbidden
@@ -73,6 +78,18 @@ func aviso(codigo, n string) string {
 			return "1 recomendação expirada"
 		}
 		return n + " recomendações expiradas"
+	case "cadastro-corrigido":
+		return "Cadastro corrigido"
+	case "dados-eliminados":
+		return "Dados eliminados"
+	case "retencao":
+		switch n {
+		case "", "0":
+			return "Nenhum cliente com a retenção vencida"
+		case "1":
+			return "Retenção aplicada a 1 cliente"
+		}
+		return "Retenção aplicada a " + n + " clientes"
 	}
 	return ""
 }

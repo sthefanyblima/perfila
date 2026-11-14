@@ -374,6 +374,8 @@ body.pf {
 .pf-consent--CONCEDIDO .pf-consent__state { color: var(--ok); }
 .pf-consent--REVOGADO .pf-consent__seal { color: var(--on-danger); background: var(--danger-bg); border-color: var(--danger-bg); }
 .pf-consent--REVOGADO .pf-consent__state { color: var(--critical); }
+.pf-consent--ELIMINADO .pf-consent__seal { color: var(--on-danger); background: var(--danger-bg); border-color: var(--danger-bg); } /* v1.9, RN-17 */
+.pf-consent--ELIMINADO .pf-consent__state { color: var(--critical); }
 .pf-consent--NAO_CONCEDIDO .pf-consent__seal { color: var(--neutral); background: var(--surface-2); border-color: var(--line-strong); border-style: dashed; }
 .pf-consent__state { font: 600 16px/22px var(--font-sans); }
 .pf-consent__sub { font-size: 12px; line-height: 16px; color: var(--ink-muted); }
