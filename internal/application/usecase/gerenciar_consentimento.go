@@ -18,11 +18,14 @@ type GerenciarConsentimentoUseCase struct {
 	clientes       port.ClienteRepository
 	consentimentos port.ConsentimentoRepository
 	clock          port.Clock
+	propagar       *PropagarRevogacaoUseCase // v1.9, RN-17; nil = sem públicos
 }
 
-// NovoGerenciarConsentimentoUseCase injeta as dependências (C-08).
-func NovoGerenciarConsentimentoUseCase(clientes port.ClienteRepository, consentimentos port.ConsentimentoRepository, clock port.Clock) *GerenciarConsentimentoUseCase {
-	return &GerenciarConsentimentoUseCase{clientes: clientes, consentimentos: consentimentos, clock: clock}
+// NovoGerenciarConsentimentoUseCase injeta as dependências (C-08). propagar pode ser nil quando
+// não há públicos (testes e ferramentas que não exportam).
+func NovoGerenciarConsentimentoUseCase(clientes port.ClienteRepository, consentimentos port.ConsentimentoRepository,
+	clock port.Clock, propagar *PropagarRevogacaoUseCase) *GerenciarConsentimentoUseCase {
+	return &GerenciarConsentimentoUseCase{clientes: clientes, consentimentos: consentimentos, clock: clock, propagar: propagar}
 }
 
 // Conceder cria o registro da finalidade se não existir, aplica a transição e grava registro e
@@ -54,7 +57,15 @@ func (uc *GerenciarConsentimentoUseCase) Revogar(ctx context.Context, clienteID 
 	if err := c.Revogar(uc.clock.Agora()); err != nil {
 		return err
 	}
-	return uc.registrar(ctx, c, entity.MovimentoRevogacao)
+	if err := uc.registrar(ctx, c, entity.MovimentoRevogacao); err != nil {
+		return err
+	}
+	// RN-17, Q-50: tira o cliente dos públicos exportados. A falha já foi para o log pela própria
+	// propagação e não desfaz a revogação; a próxima exportação do segmento marca a remoção.
+	if uc.propagar != nil {
+		_, _ = uc.propagar.Executar(ctx, clienteID)
+	}
+	return nil
 }
 
 // Historico [ADIÇÃO] devolve os movimentos do cliente em ordem cronológica. Spec: UC-08, RN-10.

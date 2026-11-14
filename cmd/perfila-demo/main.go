@@ -73,7 +73,7 @@ func executar(w io.Writer) error {
 	// Composição dos casos de uso.
 	pre := usecase.NovasPrecondicoes(clientes, service.NovoValidadorLGPD(consentimentos))
 	cadastrar := usecase.NovoCadastrarClienteUseCase(clientes, clock)
-	consentimento := usecase.NovoGerenciarConsentimentoUseCase(clientes, consentimentos, clock)
+	consentimento := usecase.NovoGerenciarConsentimentoUseCase(clientes, consentimentos, clock, nil)
 	coletar := usecase.NovoColetarDadosUseCase(pre, eventos, clock)
 	gerarPerfil := usecase.NovoGerarPerfilUseCase(pre, coletar, service.NovoPerfilamentoService(clock, 10), perfis)
 	segmentar := usecase.NovoSegmentarClienteUseCase(pre, perfis, service.NovoSegmentacaoService(segmentos))

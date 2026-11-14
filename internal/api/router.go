@@ -1,7 +1,9 @@
 package api
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -10,6 +12,7 @@ import (
 	"perfila/internal/application/usecase"
 	"perfila/internal/domain/entity"
 	"perfila/internal/domain/port"
+	"perfila/internal/shared/errs"
 )
 
 // Dependencias reúne o que a API precisa; montada só na raiz de composição (C-08).
@@ -151,8 +154,24 @@ func (h handlers) revogarConsentimento(w http.ResponseWriter, r *http.Request) {
 		escreverErro(w, r, h.d.Log, err)
 		return
 	}
+	// v1.9 (Q-48): sem corpo revoga a segmentacao, como antes; com corpo, a finalidade pedida.
+	finalidade := entity.FinalidadeSegmentacao
+	corpo, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 1<<20))
+	if err != nil {
+		escreverErro(w, r, h.d.Log, fmt.Errorf("%w: corpo ilegível", errs.ErrDadosInvalidos))
+		return
+	}
+	if len(bytes.TrimSpace(corpo)) > 0 {
+		var req RevogarConsentimentoRequest
+		r.Body = io.NopCloser(bytes.NewReader(corpo))
+		if err := lerJSON(r, &req); err != nil {
+			escreverErro(w, r, h.d.Log, err)
+			return
+		}
+		finalidade = entity.Finalidade(req.Finalidade)
+	}
 	ctx := usecase.ComOrigem(r.Context(), entity.OrigemAPI, "") // RN-10
-	if err := h.d.Consentimento.Revogar(ctx, id, entity.FinalidadeSegmentacao); err != nil {
+	if err := h.d.Consentimento.Revogar(ctx, id, finalidade); err != nil {
 		escreverErro(w, r, h.d.Log, err)
 		return
 	}
@@ -170,10 +189,15 @@ func (h handlers) responderConsentimento(w http.ResponseWriter, r *http.Request)
 		escreverErro(w, r, h.d.Log, err)
 		return
 	}
-	c, err := h.d.Consentimento.Consultar(r.Context(), id, entity.FinalidadeSegmentacao)
+	todas, err := h.d.Consentimento.ConsultarFinalidades(r.Context(), id)
 	if err != nil {
 		escreverErro(w, r, h.d.Log, err)
 		return
 	}
-	escreverJSON(w, http.StatusOK, consentimentoDTO(c))
+	// O topo continua sendo a segmentacao (Q-48); `finalidades` traz as duas.
+	resp := consentimentoDTO(todas[0])
+	for _, c := range todas {
+		resp.Finalidades = append(resp.Finalidades, consentimentoDTO(c))
+	}
+	escreverJSON(w, http.StatusOK, resp)
 }

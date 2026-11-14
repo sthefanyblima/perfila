@@ -110,7 +110,7 @@ func (e exemplos) casos(c port.Clock) (cad *usecase.CadastrarClienteUseCase, con
 		usecase.NovoSegmentarClienteUseCase(pre, r.perfis, service.NovoSegmentacaoService(r.segmentos)),
 		usecase.NovoGerarRecomendacaoUseCase(pre, r.perfis, r.segmentos, service.NovoRecomendacaoService(r.produtos, c),
 			r.recomendacoes, c, e.validadeDias, nil))
-	return usecase.NovoCadastrarClienteUseCase(r.clientes, c), usecase.NovoGerenciarConsentimentoUseCase(r.clientes, r.consentimentos, c),
+	return usecase.NovoCadastrarClienteUseCase(r.clientes, c), usecase.NovoGerenciarConsentimentoUseCase(r.clientes, r.consentimentos, c, usecase.NovoPropagarRevogacaoUseCase(r.publicos, c, nil)),
 		col, proc, usecase.NovoExpirarRecomendacoesUseCase(r.recomendacoes, c)
 }
 

@@ -35,6 +35,12 @@ type Dependencias struct {
 	Expirar            *usecase.ExpirarRecomendacoesUseCase
 	MetaEventos        int // ENGAJAMENTO_META_EVENTOS, para explicar o score
 
+	// Públicos para campanha (v1.9, UC-06 parcial, RN-17, RN-18).
+	GerarPublico         *usecase.GerarPublicoUseCase
+	ExportarPublico      *usecase.ExportarPublicoUseCase
+	Relatorio            *usecase.RelatorioAgregadoSegmentosUseCase
+	PublicosArquivoHoras int // PUBLICOS_ARQUIVO_HORAS, para o texto da confirmação (Q-51)
+
 	Clock port.Clock
 	Log   *slog.Logger
 	// Saude confere o banco (nil = modo memória); Migracoes descreve o esquema aplicado.

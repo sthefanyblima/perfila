@@ -27,7 +27,7 @@ func TestConsentimentoPelaAPIRegistraOrigem(t *testing.T) {
 		t.Fatal(err)
 	}
 	h := api.NovoRouter(api.Dependencias{AuthToken: "teste",
-		Consentimento: usecase.NovoGerenciarConsentimentoUseCase(clientes, cons, clock)})
+		Consentimento: usecase.NovoGerenciarConsentimentoUseCase(clientes, cons, clock, nil)})
 	base := "/v1/clientes/" + c.ID.String() + "/consentimento"
 	for _, req := range []*http.Request{
 		httptest.NewRequest(http.MethodPut, base, strings.NewReader(`{"finalidade":"segmentacao","versaoTermo":"v1"}`)),
