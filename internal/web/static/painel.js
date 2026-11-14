@@ -99,12 +99,16 @@
   }
 
   document.addEventListener("DOMContentLoaded", function () { preparar(document); });
-  // Depois de uma troca do htmx: prepara o conteúdo novo e leva o foco ao título (leitor de tela).
+  // Depois de uma troca do htmx: prepara o conteúdo novo e leva o foco ao título (leitor de tela)
+  // ou ao foco inicial da confirmação.
   var caminho = location.pathname;
   document.addEventListener("htmx:afterSettle", function (ev) {
     preparar(ev.detail.elt || document);
     if (location.pathname === caminho) { return; }
     caminho = location.pathname;
+    // Uma página de confirmação pede o foco inicial (autofocus, por exemplo Cancelar); senão, o título.
+    var alvo = document.querySelector("#principal [autofocus]");
+    if (alvo) { alvo.focus({ preventScroll: true }); return; }
     var h1 = document.querySelector("#principal h1");
     if (h1) { h1.setAttribute("tabindex", "-1"); h1.focus({ preventScroll: true }); }
   });

@@ -1,6 +1,6 @@
 # Checklist LGPD e auditoria de logs (T-25)
 
-Perfila · Equipe Omega · 12/11/2026 · Spec v1.4 (com o painel web, seção 4b, e o histórico do consentimento, Q-34)
+Perfila · Equipe Omega · 14/11/2026 · Spec v1.9 (com o painel web, seção 4b, o histórico do consentimento, Q-34, e os direitos do titular e a retenção, Q-48 a Q-53)
 
 Interpretação técnica da equipe sobre a Lei 13.709/2018, **não é parecer jurídico** (CLAUDE.md, seção 4). Cada item aponta a evidência que o prova: um cenário BDD, um teste automático ou um arquivo de configuração. ✅ atendido no MVP · ⚠️ atendido com limitação · ⬜ fora do MVP (requisito futuro).
 
@@ -41,8 +41,8 @@ Interpretação técnica da equipe sobre a Lei 13.709/2018, **não é parecer ju
 |---|---|---|---|
 | L-17 | Confirmação e consulta do consentimento | `GET /v1/clientes/{id}/consentimento` | ✅ |
 | L-18 | Revogação | `POST /v1/clientes/{id}/consentimento/revogacao` | ✅ |
-| L-19 | Acesso, correção, portabilidade e eliminação dos dados | `Cliente.AtualizarDados` existe no domínio, mas não há rota; não há exportação nem eliminação | ⬜ |
-| L-20 | Retenção e eliminação após revogação | Dados já persistidos permanecem (RN-03); política fora do MVP (D-13) | ⬜ |
+| L-19 | Acesso, correção, portabilidade e eliminação dos dados | Desde a v1.9 (Q-48 a Q-50), na aba Direitos do titular do painel, com qualquer estado do consentimento: correção de nome e e-mail; exportação em JSON (`versaoFormato` "1") de cadastro, consentimento, histórico, eventos, perfil, segmento e recomendações; eliminação (RN-17) que apaga o comportamento, anonimiza o cadastro (`DataEliminacao`, migração 009) e mantém o consentimento e os movimentos como prova (art. 16, I). Com consentimento concedido, a eliminação pede a revogação antes; a confirmação é o nome digitado. Evidência: `direitos.feature` (`@Q-48`, `@Q-49`, `@RN-17`), contrato `DireitosDoTitular`, `TestClienteAnonimizar`, `TestExportacaoFormato`, `TestMigracaoEliminacaoExigeAnonimizado` | ⚠️ só pelo painel, por meio da pessoa operadora; rotas da API e o portal do titular ficam para a fase 2 (Q-53). Restrição da eliminação ao papel ADMINISTRADOR quando a v1.5 entrar na main |
+| L-20 | Retenção e eliminação após revogação | RN-18 (Q-51): o comportamento de quem está REVOGADO há `RETENCAO_DIAS_REVOGADO` dias ou mais (padrão 180) é apagado pelo subcomando `aplicar-retencao` e pelo botão da Operação; cadastro, consentimento e histórico ficam; quem concedeu de novo não é atingido. Evidência: `direitos.feature` (`@RN-18`, limites de 179, 180 e 181 dias), contrato `RevogadosAte`, `TestCarregarExemplos` (Olga atingida, Fábio não) | ⚠️ a retenção não roda sozinha: o administrador a agenda (cron do servidor) ou aciona pelo painel |
 
 ## 4b. Painel web do operador (Spec 3.7.1, v1.3)
 
@@ -68,6 +68,8 @@ Todos os eventos de log do sistema, conferidos no código em 11/11/2026 (`grep` 
 | `servidor_no_ar`, `encerrando`, `modo_memoria` | `cmd/omega-server` | porta, aviso fixo | Não |
 | `postgres_conectado` | `cmd/omega-server` | versões de migração aplicadas | Não. A URL do banco não é registrada |
 | `recomendacoes_expiradas` | subcomando `expirar-recomendacoes` | quantidade | Não |
+| `retencao_aplicada` (v1.9) | subcomando `aplicar-retencao` | quantidade, prazo em dias | Não |
+| `direito_atendido` (v1.9) | painel e subcomando `aplicar-retencao` | operador, pedido (`correcao`, `exportacao`, `eliminacao`, `retencao`), `clienteId` ou quantidade | Não. Auditoria dos pedidos até a v1.5 (`RegistroAuditoria`) entrar na main (Q-53); cenário "Cada pedido atendido fica no log, sem nome nem e-mail" |
 | `painel_http` | `web.registro` | método, caminho (só UUIDs), status | Não. Sem query string (termo de busca) |
 | `painel_acao` | handlers do painel | operador, ação, `clienteId` | Não. O operador é o login da equipe, não o titular |
 | `painel_erro_interno`, `painel_template` | painel (só falhas 500) | caminho, mensagem do erro | Não |
@@ -81,7 +83,7 @@ Todos os eventos de log do sistema, conferidos no código em 11/11/2026 (`grep` 
 
 ## 6. Requisitos futuros (pós-MVP)
 
-1. Rotas de acesso, correção, portabilidade e eliminação (L-19), e uma política de retenção com expurgo após revogação (L-20, D-13).
+1. Direitos do titular pela API e pelo portal do titular, sem depender da pessoa operadora (L-19; a v1.9 os atende pelo painel). Agendar a retenção (L-20) no servidor.
 2. Filtrar o uso dos dados pela finalidade consentida (L-04). O histórico de versões do termo (L-06) entrou na v1.4; falta expô-lo ao titular (portal, fase 2).
 3. Autenticação por usuário (JWT/OIDC) com perfis Cliente, Administrador e Analista (L-12).
 4. Certificado emitido por uma autoridade, cifra do volume do banco e TLS interno (L-10, L-16).
