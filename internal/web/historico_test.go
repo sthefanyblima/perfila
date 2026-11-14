@@ -20,7 +20,7 @@ func TestDetalheMovimento(t *testing.T) {
 		{entity.MovimentoConsentimento{Origem: entity.OrigemMigracao}, "termo não registrado · reconstruído das datas"},
 	}
 	for _, c := range casos {
-		if got := detalheMovimento(c.m); got != c.quer {
+		if got := detalheMovimento(c.m, textoOrigem); got != c.quer {
 			t.Errorf("detalhe %q; esperado %q", got, c.quer)
 		}
 	}

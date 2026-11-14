@@ -6,6 +6,7 @@
   <div class="pf-nav__group">
     <span class="pf-nav__heading">Clientes</span>
     <a class="pf-nav__link" href="/painel/clientes"{{if eq .Nav "clientes"}} aria-current="page"{{end}}>Clientes</a>
+    <a class="pf-nav__link" href="/painel/pedidos"{{if eq .Nav "pedidos"}} aria-current="page"{{end}}>Pedidos do titular</a>
   </div>
   <div class="pf-nav__group">
     <span class="pf-nav__heading">Configuração</span>
@@ -15,6 +16,7 @@
   <div class="pf-nav__group">
     <span class="pf-nav__heading">Operação</span>
     <a class="pf-nav__link" href="/painel/operacao"{{if eq .Nav "operacao"}} aria-current="page"{{end}}>Saúde e expiração</a>
+    {{if .Portal}}<a class="pf-nav__link" href="/painel/operacao/caixa-saida"{{if eq .Nav "caixa"}} aria-current="page"{{end}}>Caixa de saída (simulada)</a>{{end}}
   </div>
   <div class="pf-nav__foot">
     <span class="pf-nav__op"><span class="pf-nav__avatar" aria-hidden="true">{{slice .Operador 0 1}}</span>{{.Operador}}</span>

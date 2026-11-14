@@ -86,7 +86,13 @@ func tokenAleatorio() string {
 }
 
 func gravarCookie(w http.ResponseWriter, nome, valor string, expira time.Time) {
-	http.SetCookie(w, &http.Cookie{Name: nome, Value: valor, Path: "/painel", Expires: expira,
+	gravarCookieEm(w, "/painel", nome, valor, expira)
+}
+
+// gravarCookieEm grava o cookie só para o caminho informado: o do painel nunca vai ao portal e
+// vice-versa (Q-55).
+func gravarCookieEm(w http.ResponseWriter, caminho, nome, valor string, expira time.Time) {
+	http.SetCookie(w, &http.Cookie{Name: nome, Value: valor, Path: caminho, Expires: expira,
 		HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode})
 }
 
@@ -158,20 +164,27 @@ func destinoSeguro(d string) bool {
 	return strings.HasPrefix(d, "/painel/") && !strings.HasPrefix(d, "//") && !strings.Contains(d, `\`)
 }
 
-// limitador conta tentativas de entrada erradas por IP numa janela de 5 minutos, em memória e
-// por réplica (Q-22). O IP fica só em memória: nunca vai para o log (C-09).
+// limitador conta tentativas por IP numa janela, em memória e por réplica: as entradas erradas
+// no painel (5 em 5 minutos, Q-22) e os pedidos de link no portal (10 em 15 minutos, Q-56). O IP
+// fica só em memória: nunca vai para o log (C-09).
 type limitador struct {
 	mu     sync.Mutex
 	clock  port.Clock
+	maximo int
+	janela time.Duration
 	falhas map[string][]time.Time
 }
 
 func novoLimitador(c port.Clock) *limitador {
-	return &limitador{clock: c, falhas: map[string][]time.Time{}}
+	return novoLimitadorCom(c, maxTentativas, janelaBloqueio)
+}
+
+func novoLimitadorCom(c port.Clock, maximo int, janela time.Duration) *limitador {
+	return &limitador{clock: c, maximo: maximo, janela: janela, falhas: map[string][]time.Time{}}
 }
 
 func (l *limitador) recentes(ip string) []time.Time {
-	limite := l.clock.Agora().Add(-janelaBloqueio)
+	limite := l.clock.Agora().Add(-l.janela)
 	out := l.falhas[ip][:0]
 	for _, t := range l.falhas[ip] {
 		if t.After(limite) {
@@ -189,7 +202,7 @@ func (l *limitador) recentes(ip string) []time.Time {
 func (l *limitador) bloqueado(ip string) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	return len(l.recentes(ip)) >= maxTentativas
+	return len(l.recentes(ip)) >= l.maximo
 }
 
 func (l *limitador) falhou(ip string) {

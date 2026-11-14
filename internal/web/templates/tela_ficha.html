@@ -232,6 +232,12 @@
 
 {{define "ficha-direitos"}}{{with .D}}
 {{with .Falha}}{{template "alerta" .}}{{end}}
+{{with .PedidoAberto}}
+<div class="pf-alert pf-alert--warn" data-teste="aviso-pedido-portal">
+  <span class="pf-alert__badge" aria-hidden="true">{{icone "atencao"}}</span>
+  <div><p class="pf-alert__title">Pedido do titular</p><p class="pf-alert__text">O titular pediu a eliminação pelo portal em {{dataHora .DataPedido}}.</p></div>
+</div>
+{{end}}
 <div class="pf-grid-2">
   <section class="pf-panel" aria-labelledby="titulo-corrigir" data-teste="painel-corrigir">
     <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-corrigir">Corrigir cadastro</h2></div>

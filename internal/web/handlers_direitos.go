@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 
 	"perfila/internal/application/usecase"
+	"perfila/internal/domain/entity"
 	"perfila/internal/shared/errs"
 )
 
@@ -45,8 +46,22 @@ func (p *painel) direito(r *http.Request, pedido string, attrs ...slog.Attr) {
 // GET /painel/clientes/{id}/direitos — vale com qualquer estado do consentimento.
 func (p *painel) fichaDireitos(w http.ResponseWriter, r *http.Request) {
 	if d, ok := p.carregarFicha(w, r, "direitos"); ok {
+		d.PedidoAberto = p.pedidoAberto(r, d)
 		p.renderFicha(w, r, http.StatusOK, d)
 	}
+}
+
+// pedidoAberto devolve o pedido de eliminação feito no portal que ainda espera a operação (Q-58).
+func (p *painel) pedidoAberto(r *http.Request, d dadosFicha) *entity.PedidoEliminacao {
+	if p.d.MeusDados == nil || d.Eliminado {
+		return nil
+	}
+	m, err := p.d.MeusDados.Executar(r.Context(), d.Cliente.ID)
+	if err != nil {
+		p.logarFalha(r, err)
+		return nil
+	}
+	return m.PedidoAberto
 }
 
 // POST /painel/clientes/{id}/cadastro — AtualizarCadastro; sucesso volta à aba (PRG).
@@ -94,18 +109,27 @@ func (p *painel) baixarDados(w http.ResponseWriter, r *http.Request) {
 		p.falha(w, r, err, "")
 		return
 	}
-	var buf bytes.Buffer
-	enc := json.NewEncoder(&buf)
-	enc.SetIndent("", "  ")
-	if err := enc.Encode(exportacao(dados)); err != nil {
+	if err := escreverExportacao(w, dados); err != nil {
 		p.falha(w, r, err, "")
 		return
 	}
 	p.direito(r, "exportacao", slog.String("clienteId", id.String()))
+}
+
+// escreverExportacao serializa antes de escrever (falha vira 500, nunca arquivo pela metade) e
+// entrega o anexo perfila-dados-{id}.json sem cache. Usada pelo painel e pelo portal (Q-49).
+func escreverExportacao(w http.ResponseWriter, dados usecase.DadosTitular) error {
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(exportacao(dados)); err != nil {
+		return err
+	}
 	h := w.Header()
 	h.Set("Content-Type", "application/json; charset=utf-8")
-	h.Set("Content-Disposition", fmt.Sprintf(`attachment; filename="perfila-dados-%s.json"`, id))
+	h.Set("Content-Disposition", fmt.Sprintf(`attachment; filename="perfila-dados-%s.json"`, dados.Cliente.ID))
 	_, _ = w.Write(buf.Bytes())
+	return nil
 }
 
 // GET /painel/clientes/{id}/eliminar — confirmação forte em página própria (RN-17).

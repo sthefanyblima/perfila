@@ -117,6 +117,7 @@ func (m *Mundo) painelNoAr(usuario, senha string) error {
 		ListarClientes: c.listarClientes, ConsultarCliente: c.consultarCliente, ConsultarResultado: c.consultarResultado,
 		ListarSegmentos: c.listarSegmentos, ListarCatalogo: c.listarCatalogo, Expirar: c.expirar,
 		AtualizarCadastro: c.atualizarCadastro, ExportarDados: c.exportar, EliminarDados: c.eliminar, AplicarRetencao: c.retencao,
+		MeusDados: c.meusDados, Pedidos: c.listarPedidos, CaixaSaida: c.listarCaixa,
 		MetaEventos: m.metaEventos, Clock: m.clock, Log: slog.New(slog.NewTextHandler(&m.web.log, nil)),
 	})
 	return err
