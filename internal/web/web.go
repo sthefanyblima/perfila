@@ -20,7 +20,6 @@ type Dependencias struct {
 	Usuario     string // PAINEL_USUARIO
 	SenhaHash   []byte // bcrypt de PAINEL_SENHA_HASH
 	ChaveSessao []byte // PAINEL_CHAVE_SESSAO (32 bytes)
-	Finalidade  string // PAINEL_FINALIDADE (Q-25)
 	VersaoTermo string // PAINEL_VERSAO_TERMO (Q-25)
 
 	Cadastrar          *usecase.CadastrarClienteUseCase
@@ -75,7 +74,7 @@ func NovoRouter(d Dependencias) (http.Handler, error) {
 		http.Redirect(w, r, "/painel/clientes", http.StatusSeeOther)
 	}))
 	for _, rotas := range []func(*http.ServeMux, func(http.HandlerFunc) http.Handler){
-		p.rotasClientes, p.rotasFicha, p.rotasConfiguracao,
+		p.rotasClientes, p.rotasFicha, p.rotasConfiguracao, p.rotasPublicos,
 	} {
 		rotas(mux, sessao)
 	}

@@ -1,5 +1,5 @@
 # language: pt
-@UC-06 @RN-17 @Q-48 @Q-53 @web @wip
+@UC-06 @RN-17 @Q-48 @Q-53 @web
 Funcionalidade: Públicos e consentimento por finalidade no painel
   A pessoa operadora concede e revoga cada finalidade na ficha, gera o público de um
   segmento com confirmação, baixa o arquivo e vê as remoções pendentes (Spec 3.7.1, v1.9)

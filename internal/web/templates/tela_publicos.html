@@ -1,0 +1,107 @@
+{{define "conteudo"}}{{with .Dados}}
+<header class="pf-header">
+  <ol class="pf-crumbs"><li>Campanhas</li><li aria-current="page">Públicos</li></ol>
+  <div class="pf-header__row">
+    <h1 class="pf-header__title">Públicos</h1>
+    <a class="pf-btn" href="/painel/publicos/relatorio">Relatório agregado</a>
+  </div>
+</header>
+{{template "alerta" (alertaInfo "Quem entra no público" "Entra no público quem está no segmento, está ativo e concedeu Segmentação e Publicidade com terceiros. O arquivo leva só o e-mail em hash (SHA-256), que ainda é dado pessoal.")}}
+
+<form class="pf-filters" method="get" action="/painel/publicos">
+  <div class="pf-field">
+    <label class="pf-field__label" for="segmento">Segmento</label>
+    <select class="pf-input" id="segmento" name="segmento">
+      {{range .Segmentos}}<option value="{{.ID}}"{{if $.Dados.Escolhido}}{{if eq $.Dados.Escolhido.ID .ID}} selected{{end}}{{end}}>{{.Nome}}</option>{{end}}
+    </select>
+  </div>
+  <button type="submit" class="pf-btn">Ver público</button>
+</form>
+
+{{if .Escolhido}}{{$seg := .Escolhido}}
+{{if .Confirmar}}
+<section class="pf-confirm pf-panel" data-teste="confirmar-{{.Confirmar}}">
+  <form method="post" action="/painel/publicos/{{.Confirmar}}">
+    {{template "csrf" $.CSRF}}
+    <input type="hidden" name="segmento" value="{{$seg.ID}}">
+    <div class="pf-dialog__body">
+      {{if eq .Confirmar "remocoes"}}
+      <h2 class="pf-dialog__title" id="titulo-confirmar">Gerar arquivo de remoção</h2>
+      {{with .Erro}}{{template "alerta" .}}{{end}}
+      <p>Vai ser gerado um arquivo com {{.Quantidade}} {{if eq .Quantidade 1}}cliente que precisa{{else}}clientes que precisam{{end}} sair do público {{$seg.Nome}} na plataforma de anúncios. Suba o arquivo como remoção de público.</p>
+      {{else}}
+      <h2 class="pf-dialog__title" id="titulo-confirmar">Gerar arquivo do público</h2>
+      {{with .Erro}}{{template "alerta" .}}{{end}}
+      <p>Vai ser gerado um arquivo com {{.Quantidade}} {{if eq .Quantidade 1}}cliente{{else}}clientes{{end}} do segmento {{$seg.Nome}}, para subir na plataforma de anúncios. Ele leva só o e-mail em hash (SHA-256), que continua sendo dado pessoal, e fica disponível por {{.Horas}} horas. A exportação fica registrada com o seu login.</p>
+      {{end}}
+    </div>
+    <div class="pf-dialog__foot">
+      <a class="pf-btn" href="/painel/publicos?segmento={{$seg.ID}}" data-foco-inicial>Cancelar</a>
+      <button type="submit" class="pf-btn pf-btn--primary">{{if eq .Confirmar "remocoes"}}Gerar arquivo de remoção{{else}}Gerar arquivo{{end}}</button>
+    </div>
+  </form>
+</section>
+{{end}}
+
+{{with .Gerada}}
+<div class="pf-alert pf-alert--ok" data-teste="arquivo-gerado">
+  <div><strong>Arquivo gerado com {{.Quantidade}} {{if eq .Quantidade 1}}cliente{{else}}clientes{{end}}.</strong> Disponível para baixar até {{dataHora .ArquivoExpiraEm}}.</div>
+  {{if .Disponivel}}<a class="pf-btn pf-btn--primary" href="/painel/publicos/exportacoes/{{.ID}}/arquivo" hx-boost="false" data-teste="acao-baixar">Baixar arquivo</a>{{end}}
+</div>
+{{end}}
+
+<div class="pf-grid">
+  <section class="pf-panel" aria-labelledby="titulo-publico">
+    <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-publico">Público do segmento {{$seg.Nome}}</h2></div>
+    <div class="pf-panel__body">
+      <dl class="pf-kv">
+        <dt>Entram</dt><dd class="pf-num" data-teste="publico-entram" data-n="{{len .Publico.Membros}}">{{len .Publico.Membros}}</dd>
+        <dt>Ficam de fora</dt><dd class="pf-num" data-teste="publico-fora" data-n="{{.Publico.Fora}}">{{.Publico.Fora}} <span class="pf-muted pf-small">sem a finalidade, inativos ou sem consentimento</span></dd>
+      </dl>
+      {{if .Publico.Membros}}
+      <a class="pf-btn pf-btn--primary" href="/painel/publicos/exportar?segmento={{$seg.ID}}" data-teste="acao-gerar">Gerar arquivo</a>
+      {{else}}
+      <button type="button" class="pf-btn pf-btn--primary" disabled aria-describedby="motivo-gerar">Gerar arquivo</button>
+      <span class="pf-btn-motivo" id="motivo-gerar">Nenhum cliente entra neste público.</span>
+      {{end}}
+    </div>
+  </section>
+  <section class="pf-panel" aria-labelledby="titulo-remocoes">
+    <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-remocoes">Remoções pendentes</h2></div>
+    <div class="pf-panel__body">
+      <p><span class="pf-num" data-teste="publico-pendentes" data-n="{{.Publico.RemocoesPendentes}}">{{.Publico.RemocoesPendentes}}</span> {{if eq .Publico.RemocoesPendentes 1}}remoção pendente{{else}}remoções pendentes{{end}}: clientes que saíram (revogaram ou deixaram de se qualificar) e ainda estão no público da plataforma.</p>
+      {{if .Publico.RemocoesPendentes}}
+      <a class="pf-btn" href="/painel/publicos/remocoes?segmento={{$seg.ID}}" data-teste="acao-gerar-remocao">Gerar arquivo de remoção</a>
+      {{end}}
+    </div>
+  </section>
+</div>
+
+<section class="pf-panel" aria-labelledby="titulo-historico">
+  <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-historico">Histórico</h2></div>
+  {{if .Historico}}
+  <div class="pf-tablewrap">
+    <table class="pf-table" data-teste="historico-exportacoes">
+      <thead><tr><th scope="col">Data</th><th scope="col">Tipo</th><th scope="col">Operador</th><th scope="col" class="pf-r">Clientes</th><th scope="col">Hash do arquivo</th><th scope="col">Arquivo</th></tr></thead>
+      <tbody>
+      {{range .Historico}}
+        <tr data-teste="linha-exportacao">
+          <td class="pf-num">{{dataHora .Data}}</td>
+          <td><span class="pf-tag pf-tag--{{if eq (estado .Tipo) "REMOCAO"}}warn{{else}}neutral{{end}}">{{rotulo (estado .Tipo)}}</span></td>
+          <td>{{.Operador}}</td>
+          <td class="pf-r pf-num">{{.Quantidade}}</td>
+          <td><code class="pf-uuid" title="{{.HashArquivo}}">{{slice .HashArquivo 0 12}}</code></td>
+          <td>{{if .Disponivel}}<a href="/painel/publicos/exportacoes/{{.ID}}/arquivo" hx-boost="false">Baixar</a>{{else}}<span class="pf-muted">Expirado</span>{{end}}</td>
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+  <div class="pf-panel__body"><p class="pf-muted">Nenhum arquivo gerado para este segmento.</p></div>
+  {{end}}
+</section>
+{{else if not .Segmentos}}
+<div class="pf-panel"><div class="pf-empty"><h2 class="pf-empty__title">Nenhum segmento ativo</h2><p class="pf-empty__text">Sem segmentos não há público para gerar.</p></div></div>
+{{end}}
+{{end}}{{end}}

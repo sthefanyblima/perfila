@@ -29,7 +29,6 @@ import (
 
 	"perfila/internal/api"
 	"perfila/internal/application/usecase"
-	"perfila/internal/domain/entity"
 	"perfila/internal/domain/port"
 	"perfila/internal/domain/service"
 	"perfila/internal/infra/config"
@@ -190,7 +189,7 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 	if cfg.PainelLigado() {
 		painel, err := web.NovoRouter(web.Dependencias{
 			Usuario: cfg.PainelUsuario, SenhaHash: []byte(cfg.PainelSenhaHash), ChaveSessao: cfg.PainelChaveSessao,
-			Finalidade: string(entity.FinalidadeSegmentacao), VersaoTermo: cfg.PainelVersaoTermo,
+			VersaoTermo:  cfg.PainelVersaoTermo,
 			GerarPublico: gerarPublico, ExportarPublico: exportarPublico, Relatorio: relatorio,
 			PublicosArquivoHoras: cfg.PublicosArquivoHoras,
 			Cadastrar:            cadastrar, Consentimento: consentimento, Coletar: coletar, Processar: processar,

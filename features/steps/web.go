@@ -30,6 +30,7 @@ type estadoWeb struct {
 	pagina   string
 	log      bytes.Buffer
 	cadastro string // caminho da ficha do último cliente cadastrado
+	download string // link do último arquivo de público gerado pelo painel (v1.9)
 }
 
 var (
@@ -65,7 +66,7 @@ func registrarPassosWeb(sc *godog.ScenarioContext, m *Mundo) {
 	sc.Step(`^a página pede a confirmação "([^"]*)"$`, func(a string) error {
 		return m.paginaTemMarcador(`data-teste="confirmar-`+a+`"`, true)
 	})
-	sc.Step(`^a página de destino (não )?oferece "([^"]*)"$`, func(nao, a string) error {
+	sc.Step(`^a página (?:de destino )?(não )?oferece "([^"]*)"$`, func(nao, a string) error {
 		return m.paginaTemMarcador(`data-teste="acao-`+a+`"`, nao == "")
 	})
 	sc.Step(`^a página não mostra os painéis "([^"]*)", "([^"]*)", "([^"]*)" e "([^"]*)"$`, func(a, b, c, d string) error {
@@ -112,10 +113,11 @@ func (m *Mundo) painelNoAr(usuario, senha string) error {
 	m.segmentos.Adicionar(entity.Segmento{ID: id("seg:padrao"), Nome: "padrao", Prioridade: 99, Ativo: true})
 	c := m.uc()
 	m.web.handler, err = web.NovoRouter(web.Dependencias{
-		Usuario: usuario, SenhaHash: hash, ChaveSessao: chave, Finalidade: "segmentacao", VersaoTermo: "v1",
+		Usuario: usuario, SenhaHash: hash, ChaveSessao: chave, VersaoTermo: "v1",
 		Cadastrar: c.cadastrar, Consentimento: c.consentimento, Coletar: c.coletar, Processar: c.processar,
 		ListarClientes: c.listarClientes, ConsultarCliente: c.consultarCliente, ConsultarResultado: c.consultarResultado,
 		ListarSegmentos: c.listarSegmentos, ListarCatalogo: c.listarCatalogo, Expirar: c.expirar,
+		GerarPublico: c.gerarPublico, ExportarPublico: c.exportarPublico, Relatorio: c.relatorio, PublicosArquivoHoras: horasArquivo,
 		MetaEventos: m.metaEventos, Clock: m.clock, Log: slog.New(slog.NewTextHandler(&m.web.log, nil)),
 	})
 	return err

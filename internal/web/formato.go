@@ -127,6 +127,10 @@ func rotulo(v string) string {
 		return "Navegação"
 	case string(entity.TipoInteracao):
 		return "Interação"
+	case string(entity.ExportacaoInclusao):
+		return "Inclusão"
+	case string(entity.ExportacaoRemocao):
+		return "Remoção"
 	}
 	return v
 }
