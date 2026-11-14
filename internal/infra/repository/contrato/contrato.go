@@ -1,4 +1,4 @@
-// Package contrato define a suíte de contrato dos sete ports de repositório: o comportamento
+// Package contrato define a suíte de contrato dos ports de repositório (sete e, desde a v1.10, os três do portal): o comportamento
 // observável que toda implementação (fakes em memória e PostgreSQL) precisa ter para que os
 // casos de uso funcionem igual nos dois backends. Usado apenas por testes.
 //
@@ -30,6 +30,10 @@ type Repositorios struct {
 	Recomendacoes  port.RecomendacaoRepository
 	Consentimentos port.ConsentimentoRepository
 	Produtos       port.ProdutoRepository
+	// portal do titular (v1.10)
+	Tokens     port.TokenAcessoRepository
+	Pedidos    port.PedidoEliminacaoRepository
+	CaixaSaida port.CaixaSaidaSimulada
 
 	AdicionarSegmento func(t *testing.T, s entity.Segmento)
 	AdicionarProduto  func(t *testing.T, p entity.Produto)
@@ -55,6 +59,12 @@ func Executar(t *testing.T, nova Fabrica) {
 		{"Consentimento", testarConsentimento},
 		{"MovimentoConsentimento", testarMovimentos},
 		{"Produto", testarProduto},
+		{"DireitosDoTitular", testarDireitos},
+		{"RevogadosAte", testarRevogadosAte},
+		{"BuscarPorEmail", testarBuscarPorEmail},
+		{"TokenAcesso", testarTokens},
+		{"PedidoEliminacao", testarPedidos},
+		{"CaixaSaidaSimulada", testarCaixaSaida},
 	}
 	for _, c := range casos {
 		t.Run(c.nome, func(t *testing.T) { c.fn(t, nova(t)) })
@@ -391,4 +401,98 @@ func testarProduto(t *testing.T, r Repositorios) {
 		nomes = append(nomes, p.Categoria+"/"+p.Nome)
 	}
 	igual(t, "catálogo completo", nomes, []string{"games/Jogo X", "livros/Livro A", "livros/Livro B", "livros/Livro C"})
+}
+
+// Spec: RN-17, Q-50, Q-52 — cadastro eliminado lido como gravado; remoções por cliente contam o que
+// apagaram, não tocam outros clientes e não apagam a prova do consentimento.
+func testarDireitos(t *testing.T, r Repositorios) {
+	ctx := context.Background()
+	c, outro := cliente(t, r), cliente(t, r)
+	prod := entity.Produto{ID: uuid.New(), Nome: "Livro A", Categoria: "livros", Preco: 80, Ativo: true}
+	r.AdicionarProduto(t, prod)
+	for _, id := range []uuid.UUID{c.ID, outro.ID} {
+		for i := 0; i < 2; i++ {
+			ok(t, r.Eventos.Salvar(ctx, entity.EventoComportamental{ID: uuid.New(), ClienteID: id, Tipo: entity.TipoCompra,
+				Origem: "web", Timestamp: agora.Add(-time.Duration(i) * time.Hour), Valor: 10, Categoria: "livros"}))
+		}
+		_, err := r.Perfis.Salvar(ctx, entity.PerfilCliente{ID: uuid.New(), ClienteID: id, FrequenciaCompras: 2, TicketMedio: 10})
+		ok(t, err)
+		ok(t, r.Recomendacoes.Salvar(ctx, entity.RecomendacaoProduto{ID: uuid.New(), ClienteID: id, ProdutoID: prod.ID,
+			Motivo: "segmento:padrao;categoria:livros", Status: entity.StatusAtiva, DataGeracao: agora}))
+	}
+	cons := entity.NovoConsentimento(uuid.New(), c.ID, agora)
+	ok(t, cons.Conceder("segmentacao", "v1", agora))
+	mov, err := entity.NovoMovimento(uuid.New(), cons, entity.MovimentoConcessao, entity.OrigemSistema, "")
+	ok(t, err)
+	ok(t, r.Consentimentos.Registrar(ctx, cons, mov))
+
+	for rodada, quer := range [][3]int{{2, 1, 1}, {0, 0, 0}} { // a segunda rodada não acha nada
+		ev, err := r.Eventos.RemoverPorCliente(ctx, c.ID)
+		ok(t, err)
+		pf, err := r.Perfis.RemoverPorCliente(ctx, c.ID)
+		ok(t, err)
+		rec, err := r.Recomendacoes.RemoverPorCliente(ctx, c.ID)
+		ok(t, err)
+		igual(t, []string{"removidos na primeira rodada", "removidos na segunda rodada"}[rodada], [3]int{ev, pf, rec}, quer)
+	}
+	eventos, err := r.Eventos.BuscarPorCliente(ctx, c.ID)
+	ok(t, err)
+	igual(t, "eventos do eliminado", len(eventos), 0)
+	_, err = r.Perfis.BuscarPorCliente(ctx, c.ID)
+	erroEsperado(t, err, errs.ErrPerfilNaoEncontrado)
+	recs, err := r.Recomendacoes.ListarPorCliente(ctx, c.ID)
+	ok(t, err)
+	igual(t, "recomendações do eliminado", len(recs), 0)
+
+	eventos, err = r.Eventos.BuscarPorCliente(ctx, outro.ID)
+	ok(t, err)
+	igual(t, "eventos do outro cliente", len(eventos), 2)
+	_, err = r.Perfis.BuscarPorCliente(ctx, outro.ID)
+	ok(t, err)
+	recs, err = r.Recomendacoes.ListarPorCliente(ctx, outro.ID)
+	ok(t, err)
+	igual(t, "recomendações do outro cliente", len(recs), 1)
+
+	movs, err := r.Consentimentos.ListarMovimentos(ctx, c.ID)
+	ok(t, err)
+	igual(t, "prova do consentimento preservada", len(movs), 1)
+
+	ok(t, c.Anonimizar(agora))
+	ok(t, r.Clientes.Salvar(ctx, c))
+	obtido, err := r.Clientes.BuscarPorID(ctx, c.ID)
+	ok(t, err)
+	igual(t, "cadastro eliminado", obtido, c)
+	lista, _, err := r.Clientes.Listar(ctx, port.FiltroClientes{Busca: c.ID.String()})
+	ok(t, err)
+	igual(t, "listagem do eliminado", lista, []entity.Cliente{c})
+	lista, _, err = r.Clientes.Listar(ctx, port.FiltroClientes{Busca: "Sintético"})
+	ok(t, err)
+	igual(t, "nome antigo não encontra o eliminado", lista, []entity.Cliente{outro})
+}
+
+// Spec: RN-18, Q-51 — só REVOGADO com DataRevogacao <= limite, da revogação mais antiga primeiro.
+func testarRevogadosAte(t *testing.T, r Repositorios) {
+	ctx := context.Background()
+	limite := agora.AddDate(0, 0, -180)
+	gravar := func(revogacoes []time.Time, concederDepois bool) uuid.UUID {
+		c := cliente(t, r)
+		cons := entity.NovoConsentimento(uuid.New(), c.ID, agora.AddDate(-1, 0, 0))
+		for _, quando := range revogacoes {
+			ok(t, cons.Conceder("segmentacao", "v1", quando.Add(-time.Hour)))
+			ok(t, cons.Revogar(quando))
+		}
+		if concederDepois {
+			ok(t, cons.Conceder("segmentacao", "v2", limite.Add(time.Hour)))
+		}
+		ok(t, r.Consentimentos.Salvar(ctx, cons))
+		return c.ID
+	}
+	maisAntigo := gravar([]time.Time{limite.AddDate(0, 0, -30)}, false)
+	noLimite := gravar([]time.Time{limite}, false)
+	gravar([]time.Time{limite.Add(time.Second)}, false)  // dentro do prazo
+	gravar([]time.Time{limite.AddDate(0, 0, -60)}, true) // concedeu de novo
+	gravar(nil, false)                                   // nunca concedeu
+	ids, err := r.Consentimentos.ListarRevogadosAte(ctx, limite)
+	ok(t, err)
+	igual(t, "revogados vencidos", ids, []uuid.UUID{maisAntigo, noLimite})
 }

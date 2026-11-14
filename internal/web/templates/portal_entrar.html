@@ -1,0 +1,20 @@
+{{define "conteudo"}}{{with .Dados}}
+<section class="pf-panel pf-portal__cartao" aria-labelledby="titulo-entrar">
+  <div class="pf-panel__body pf-form">
+    <h1 id="titulo-entrar" class="pf-header__title">Acesse seus dados</h1>
+    <p>Informe o e-mail do seu cadastro. Enviamos um link que vale por 30 minutos e só pode ser usado uma vez.</p>
+    {{if .Enviado}}<div data-teste="aviso-link-enviado">{{template "alerta" (alertaInfo "Pedido recebido" "Se o e-mail estiver cadastrado, enviamos um link de acesso. Ele vale por 30 minutos e só pode ser usado uma vez.")}}</div>{{end}}
+    {{if .Expirou}}{{template "alerta" (alertaInfo "Sessão encerrada" "Sua sessão terminou. Peça um novo link para continuar.")}}{{end}}
+    {{if .Erro}}<div class="pf-alert pf-alert--critical" role="alert" data-teste="erro-entrar"><span class="pf-alert__badge" aria-hidden="true">{{icone "barra"}}</span><div><p class="pf-alert__text">{{.Erro}}</p></div></div>{{end}}
+    <form method="post" action="/titular/entrar" hx-boost="false" class="pf-form" data-teste="form-pedir-link">
+      <input type="hidden" name="_csrf" value="{{.Token}}">
+      <div class="pf-field">
+        <label class="pf-field__label" for="email">E-mail</label>
+        <input class="pf-input" id="email" name="email" type="email" value="{{.Email}}" autocomplete="email" required autofocus{{if .ErroEmail}} aria-invalid="true" aria-describedby="email-erro"{{end}}>
+        {{with .ErroEmail}}<span class="pf-field__error" id="email-erro" aria-live="assertive">{{icone "barra"}}{{.}}</span>{{end}}
+      </div>
+      <button type="submit" class="pf-btn pf-btn--primary">Enviar link de acesso</button>
+    </form>
+  </div>
+</section>
+{{end}}{{end}}

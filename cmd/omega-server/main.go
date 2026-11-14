@@ -32,6 +32,7 @@ import (
 	"perfila/internal/domain/port"
 	"perfila/internal/domain/service"
 	"perfila/internal/infra/config"
+	"perfila/internal/infra/external"
 	"perfila/internal/infra/memoria"
 	"perfila/internal/infra/relogio"
 	"perfila/internal/infra/repository/pg"
@@ -45,7 +46,7 @@ func main() {
 	}
 }
 
-const uso = "uso: omega-server [-config config.env] serve|expirar-recomendacoes|carregar-exemplos|hash-senha"
+const uso = "uso: omega-server [-config config.env] serve|expirar-recomendacoes|aplicar-retencao|carregar-exemplos|hash-senha"
 
 func executar(args []string, getenv func(string) string, saida io.Writer) error {
 	fs := flag.NewFlagSet("omega-server", flag.ContinueOnError)
@@ -86,6 +87,14 @@ func executar(args []string, getenv func(string) string, saida io.Writer) error 
 		}
 		app.log.Info("recomendacoes_expiradas", "quantidade", n)
 		return nil
+	case "aplicar-retencao": // RN-18, Q-51: só a quantidade vai para o log (C-09)
+		n, err := app.retencao.Executar(ctx)
+		if err != nil {
+			return err
+		}
+		app.log.Info("retencao_aplicada", "quantidade", n, "prazo_dias", app.retencao.PrazoDias())
+		app.log.Info("direito_atendido", "pedido", "retencao", "origem", "sistema", "quantidade", n)
+		return nil
 	}
 	return errors.New(uso)
 }
@@ -123,6 +132,7 @@ type aplicacao struct {
 	log      *slog.Logger
 	handler  http.Handler
 	expirar  *usecase.ExpirarRecomendacoesUseCase
+	retencao *usecase.AplicarRetencaoUseCase
 	exemplos exemplos
 	fechar   func()
 }
@@ -136,6 +146,9 @@ type repositorios struct {
 	recomendacoes  port.RecomendacaoRepository
 	consentimentos port.ConsentimentoRepository
 	produtos       port.ProdutoRepository
+	tokens         port.TokenAcessoRepository      // portal do titular (v1.10)
+	pedidos        port.PedidoEliminacaoRepository // portal do titular (v1.10)
+	caixaSaida     port.CaixaSaidaSimulada         // NotificadorSimulado (Q-57)
 	saude          func(ctx context.Context) error // nil no modo memória (Q-19)
 	migracoes      string                          // versão do esquema, para a tela de Operação
 	fechar         func()
@@ -165,6 +178,8 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 	cadastrar := usecase.NovoCadastrarClienteUseCase(repos.clientes, clock)
 	consentimento := usecase.NovoGerenciarConsentimentoUseCase(repos.clientes, repos.consentimentos, clock)
 	expirar := usecase.NovoExpirarRecomendacoesUseCase(repos.recomendacoes, clock)
+	retencao := usecase.NovoAplicarRetencaoUseCase(repos.consentimentos, repos.eventos, repos.perfis, repos.recomendacoes,
+		clock, cfg.RetencaoDiasRevogado)
 	deps := api.Dependencias{
 		AuthToken:     cfg.AuthToken,
 		Precondicoes:  pre,
@@ -178,6 +193,32 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 	}
 	mux := http.NewServeMux()
 	mux.Handle("/", api.NovoRouter(deps))
+	exportar := usecase.NovoExportarDadosTitularUseCase(repos.clientes, consentimento, repos.eventos, repos.perfis,
+		repos.segmentos, repos.recomendacoes, repos.produtos, clock)
+	meusDados := usecase.NovoConsultarMeusDadosUseCase(repos.clientes, consentimento, repos.pedidos)
+	var caixaSaida *usecase.ListarCaixaSaidaUseCase
+	if cfg.PortalLigado() { // portal do titular (v1.10, Q-55 a Q-60)
+		portal, err := web.NovoPortal(web.DependenciasPortal{
+			ChaveSessao: cfg.PortalChaveSessao, Finalidade: cfg.PainelFinalidade, VersaoTermo: cfg.PainelVersaoTermo,
+			Solicitar: usecase.NovoSolicitarAcessoTitularUseCase(repos.clientes, repos.tokens,
+				external.NovoNotificadorSimulado(repos.caixaSaida, clock), clock, cfg.PortalURLBase),
+			Autenticar:    usecase.NovoAutenticarTitularUseCase(repos.clientes, repos.tokens, clock),
+			MeusDados:     meusDados,
+			Consentimento: consentimento,
+			ExportarDados: exportar,
+			Eliminacao:    usecase.NovoPedirEliminacaoUseCase(repos.clientes, consentimento, repos.pedidos, clock),
+			Clock:         clock, Log: log,
+		})
+		if err != nil {
+			repos.fechar()
+			return aplicacao{}, err
+		}
+		mux.Handle("/titular/", portal)
+		mux.Handle("/titular", http.RedirectHandler("/titular/entrar", http.StatusSeeOther))
+		caixaSaida = usecase.NovoListarCaixaSaidaUseCase(repos.caixaSaida, clock)
+	} else {
+		log.Warn("portal_desligado", "detalhe", "defina PORTAL_URL_BASE e PORTAL_CHAVE_SESSAO para ligar o portal do titular (Q-60)")
+	}
 	if cfg.PainelLigado() {
 		painel, err := web.NovoRouter(web.Dependencias{
 			Usuario: cfg.PainelUsuario, SenhaHash: []byte(cfg.PainelSenhaHash), ChaveSessao: cfg.PainelChaveSessao,
@@ -189,8 +230,16 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 			ListarSegmentos:    usecase.NovoListarSegmentosUseCase(repos.segmentos),
 			ListarCatalogo:     usecase.NovoListarCatalogoUseCase(repos.produtos),
 			Expirar:            expirar,
-			MetaEventos:        cfg.EngajamentoMetaEventos,
-			Clock:              clock, Log: log, Saude: repos.saude, Migracoes: repos.migracoes,
+			AtualizarCadastro:  usecase.NovoAtualizarCadastroUseCase(repos.clientes),
+			ExportarDados:      exportar,
+			EliminarDados: usecase.NovoEliminarDadosTitularUseCase(repos.clientes, repos.consentimentos, repos.eventos,
+				repos.perfis, repos.recomendacoes, repos.tokens, repos.pedidos, clock),
+			AplicarRetencao: retencao,
+			MeusDados:       meusDados,
+			Pedidos:         usecase.NovoListarPedidosEliminacaoUseCase(repos.pedidos, repos.clientes, consentimento),
+			CaixaSaida:      caixaSaida,
+			MetaEventos:     cfg.EngajamentoMetaEventos,
+			Clock:           clock, Log: log, Saude: repos.saude, Migracoes: repos.migracoes,
 		})
 		if err != nil {
 			repos.fechar()
@@ -205,6 +254,7 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 		log:      log,
 		handler:  mux,
 		expirar:  expirar,
+		retencao: retencao,
 		exemplos: exemplos{repos: repos, clock: clock, metaEventos: cfg.EngajamentoMetaEventos, validadeDias: cfg.RecomendacaoValidadeDias},
 		fechar:   repos.fechar,
 	}, nil
@@ -223,6 +273,9 @@ func repositoriosEmMemoria() repositorios {
 		recomendacoes:  memoria.NovoRecomendacaoRepository(),
 		consentimentos: memoria.NovoConsentimentoRepository(),
 		produtos:       produtos,
+		tokens:         memoria.NovoTokenAcessoRepository(),
+		pedidos:        memoria.NovoPedidoEliminacaoRepository(),
+		caixaSaida:     memoria.NovaCaixaSaidaSimulada(),
 		fechar:         func() {},
 	}
 }
@@ -248,6 +301,9 @@ func repositoriosPostgres(ctx context.Context, url string, log *slog.Logger) (re
 		recomendacoes:  pg.NovoPgRecomendacaoRepository(db),
 		consentimentos: pg.NovoPgConsentimentoRepository(db),
 		produtos:       pg.NovoPgProdutoRepository(db),
+		tokens:         pg.NovoPgTokenAcessoRepository(db),
+		pedidos:        pg.NovoPgPedidoEliminacaoRepository(db),
+		caixaSaida:     pg.NovaPgCaixaSaidaSimulada(db),
 		saude:          db.PingContext,
 		migracoes:      pg.UltimaMigracao(),
 		fechar:         func() { db.Close() },

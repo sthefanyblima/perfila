@@ -374,6 +374,8 @@ body.pf {
 .pf-consent--CONCEDIDO .pf-consent__state { color: var(--ok); }
 .pf-consent--REVOGADO .pf-consent__seal { color: var(--on-danger); background: var(--danger-bg); border-color: var(--danger-bg); }
 .pf-consent--REVOGADO .pf-consent__state { color: var(--critical); }
+.pf-consent--ELIMINADO .pf-consent__seal { color: var(--on-danger); background: var(--danger-bg); border-color: var(--danger-bg); } /* v1.9, RN-17 */
+.pf-consent--ELIMINADO .pf-consent__state { color: var(--critical); }
 .pf-consent--NAO_CONCEDIDO .pf-consent__seal { color: var(--neutral); background: var(--surface-2); border-color: var(--line-strong); border-style: dashed; }
 .pf-consent__state { font: 600 16px/22px var(--font-sans); }
 .pf-consent__sub { font-size: 12px; line-height: 16px; color: var(--ink-muted); }
@@ -423,3 +425,17 @@ body.pf {
   .pf-toast { min-width: 0; width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { .pf *, .pf *::before { transition: none !important; animation: none !important; } }
+
+/* ---- Portal do titular (v1.10, Q-55): coluna única, marca em destaque, sem barra lateral ---- */
+.pf-portal__app { min-height: 100vh; display: grid; grid-template-rows: auto 1fr auto; background: var(--surface-0); }
+.pf-portal__topo { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-4); padding: var(--space-4) var(--space-6); background: var(--surface-1); border-bottom: 4px solid var(--brand); }
+.pf-portal__marca { font: 600 24px/28px var(--font-display); color: var(--brand); text-decoration: none; }
+.pf-portal__sub { color: var(--ink-muted); }
+.pf-portal__sair { margin-left: auto; }
+.pf-portal__main { width: min(var(--size-measure), 100%); margin: 0 auto; padding: var(--space-8) var(--space-4); display: grid; gap: var(--space-6); align-content: start; }
+.pf-portal__cartao { width: 100%; }
+.pf-portal__rodape { padding: var(--space-4) var(--space-6); font-size: 12px; color: var(--ink-muted); text-align: center; border-top: 1px solid var(--line); }
+
+/* Caixa de saída simulada (v1.10, Q-57) */
+.pf-mensagens { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-4); max-width: var(--size-measure); }
+.pf-mensagem__corpo { overflow-wrap: anywhere; font-family: var(--font-mono); font-size: 13px; }

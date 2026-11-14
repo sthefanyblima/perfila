@@ -67,8 +67,28 @@ type dadosFicha struct {
 	MaisEventos   bool
 	Evento        formEvento
 	Concessao     formConsentimento
-	Confirmar     string // "conceder" ou "revogar" na página de confirmação
+	Confirmar     string // "conceder", "revogar" ou "eliminar" na página de confirmação
 	ErroConfirmar *alerta
+
+	// Direitos do titular (v1.9, Q-48 a Q-50).
+	Eliminado  bool // cadastro anonimizado: só a prova do consentimento é mostrada (RN-17)
+	Cadastro   formCadastro
+	Eliminacao formEliminacao
+
+	PedidoAberto *entity.PedidoEliminacao // pedido feito no portal, à espera da operação (v1.10, Q-58)
+}
+
+// EstadoSelo é o estado do selo do cabeçalho: o do consentimento ou, eliminado, ELIMINADO.
+func (d dadosFicha) EstadoSelo() string {
+	if d.Eliminado {
+		return estadoEliminado
+	}
+	return string(d.Consentimento.Status)
+}
+
+// PodeEliminar: a eliminação pede a revogação antes, com consentimento concedido (RN-17, Q-27).
+func (d dadosFicha) PodeEliminar() bool {
+	return !d.Eliminado && d.Consentimento.Status != entity.StatusConcedido
 }
 
 func (d dadosFicha) PodeConceder() bool { return d.Consentimento.Status != entity.StatusConcedido }
@@ -92,6 +112,12 @@ func (d dadosFicha) PelasDatas() bool {
 // LinhaConsentimento mostra o cadastro e o que aconteceu com o consentimento, do mais recente para
 // o mais antigo: pelo histórico de movimentos (RN-10) ou, sem movimentos, pelas datas (Q-01).
 func (d dadosFicha) LinhaConsentimento() []marco {
+	return linhaConsentimento(d, textoOrigem)
+}
+
+// linhaConsentimento monta a linha com o texto de origem do leitor: o painel (textoOrigem) ou o
+// titular, no portal (textoOrigemTitular). Spec: 3.7.1, 3.7.2.
+func linhaConsentimento(d dadosFicha, origem func(entity.MovimentoConsentimento) string) []marco {
 	ms := []marco{{Data: d.Cliente.DataCadastro, Titulo: "Cadastro", Detalhe: "Nome e e-mail registrados, sem autorização de uso.", Icone: "vazado"}}
 	if len(d.Movimentos) == 0 {
 		ms = append(ms, d.marcosPelasDatas()...)
@@ -99,7 +125,7 @@ func (d dadosFicha) LinhaConsentimento() []marco {
 		return ms
 	}
 	for i, m := range d.Movimentos {
-		mc := marco{Data: m.Data, Titulo: "Consentimento revogado", Icone: "barra", Detalhe: detalheMovimento(m)}
+		mc := marco{Data: m.Data, Titulo: "Consentimento revogado", Icone: "barra", Detalhe: detalheMovimento(m, origem)}
 		if m.Tipo == entity.MovimentoConcessao {
 			mc.Titulo, mc.Icone = "Consentimento concedido", "ok"
 			if i > 0 {
@@ -117,7 +143,7 @@ func (d dadosFicha) LinhaConsentimento() []marco {
 }
 
 // detalheMovimento: finalidade, termo e origem, em frases curtas (docs/design/03-textos.md).
-func detalheMovimento(m entity.MovimentoConsentimento) string {
+func detalheMovimento(m entity.MovimentoConsentimento, origem func(entity.MovimentoConsentimento) string) string {
 	var partes []string
 	if m.Finalidade != "" {
 		partes = append(partes, "Finalidade "+m.Finalidade)
@@ -127,7 +153,7 @@ func detalheMovimento(m entity.MovimentoConsentimento) string {
 	} else {
 		partes = append(partes, "termo não registrado")
 	}
-	return strings.Join(append(partes, textoOrigem(m)), " · ")
+	return strings.Join(append(partes, origem(m)), " · ")
 }
 
 func textoOrigem(m entity.MovimentoConsentimento) string {
@@ -186,7 +212,12 @@ func (p *painel) carregarFicha(w http.ResponseWriter, r *http.Request, aba strin
 		return dadosFicha{}, false
 	}
 	d := dadosFicha{Aba: aba, Cliente: ficha.Cliente, Consentimento: ficha.Consentimento, Movimentos: ficha.Historico, MetaEventos: p.d.MetaEventos,
-		Concessao: formConsentimento{Finalidade: p.d.Finalidade, VersaoTermo: p.d.VersaoTermo}}
+		Concessao: formConsentimento{Finalidade: p.d.Finalidade, VersaoTermo: p.d.VersaoTermo},
+		Cadastro:  formCadastro{Nome: ficha.Cliente.Nome, Email: ficha.Cliente.Email}}
+	if ficha.Cliente.EstaEliminado() { // RN-17: nada de comportamento resta; só a prova do consentimento
+		d.Eliminado = true
+		return d, true
+	}
 	d.Valido = ficha.Consentimento.EstaValido()
 	if !d.Valido {
 		d.Bloqueio = p.alertaBloqueio(d)

@@ -8,7 +8,7 @@ O Perfila transforma eventos de comportamento (navegação, compra, interação)
 
 Desenvolvido com **Spec-Driven Development** (a especificação é a fonte da verdade e o agente de IA implementa) e **Behavior-Driven Development** (cenários Gherkin executáveis provam o comportamento).
 
-## Estado (12/11/2026): MVP concluído + painel web
+## Estado (14/11/2026): MVP concluído + painel web + direitos do titular
 
 | Marco | Período | Estado |
 |---|---|---|
@@ -19,10 +19,12 @@ Desenvolvido com **Spec-Driven Development** (a especificação é a fonte da ve
 | **Generic** (PostgreSQL, Docker/Nginx, LGPD), 25% | 16–19/11 | ✅ contrato nos dois backends · 3 cenários de implantação · checklist LGPD |
 | **Painel web do operador** (Spec v1.3, T-31 a T-38) | 12/11 | ✅ 26 cenários `@web` · 21 de aplicação novos · 1 de implantação |
 | **Histórico do consentimento** (Spec v1.4, T-42 a T-46, Q-34) | 12/11 | ✅ 8 cenários de aplicação · 4 `@web` · contrato e migração 006 nos dois backends |
+| **Direitos do titular e retenção** (Spec v1.9, T-69 a T-73, Q-48 a Q-53) | 13–14/11 | ✅ 36 cenários de aplicação · 10 `@web` · contrato e migração 009 nos dois backends |
+| **Portal do titular** (Spec v1.10, T-75 a T-79, Q-55 a Q-60) | 14/11 | ✅ 51 cenários (29 de aplicação e domínio, 21 `@web`) · 1 de implantação · contrato e migração 010 nos dois backends |
 | Fechamento do escopo | 19/11 | daqui em diante, só correções |
 | Ensaio · evento final | 23/11 · 24/11 | roteiro em `docs/ROTEIRO_DEMONSTRACAO.md` |
 
-**174 cenários BDD** (170 no `make verify` + 4 de implantação), teste de arquitetura e suíte de contrato dos repositórios em memória e em PostgreSQL.
+**272 cenários BDD** (267 no `make verify` + 5 de implantação), teste de arquitetura e suíte de contrato dos repositórios em memória e em PostgreSQL.
 
 ## Arquitetura
 
@@ -55,9 +57,10 @@ make build    # binário estático bin/omega-server
 ```bash
 make implantar         # gera segredos (1ª vez) e sobe nginx + app1 + app2 + db
 make demo-implantacao  # roteiro da API pelo Nginx em HTTPS, gravando no PostgreSQL
-make bdd-implantacao   # 4 cenários @implantacao (inclui parar uma réplica e o painel pelo Nginx)
+make bdd-implantacao   # 5 cenários @implantacao (inclui parar uma réplica, o painel e o portal do titular pelo Nginx)
 make expirar           # administrador: expira recomendações vencidas
-make exemplos          # carrega os 14 clientes de exemplo (só com o banco sem clientes)
+make retencao          # administrador: apaga o comportamento de quem revogou há 180 dias ou mais (RN-18)
+make exemplos          # carrega os 15 clientes de exemplo (só com o banco sem clientes)
 make derrubar          # derruba (os dados ficam no volume omega_db)
 ```
 
@@ -79,7 +82,9 @@ make derrubar          # derruba (os dados ficam no volume omega_db)
 | `LOG_LEVEL` | info | debug, info, warn ou error |
 | `PAINEL_USUARIO` | operador | login do operador do painel |
 | `PAINEL_SENHA_HASH`, `PAINEL_CHAVE_SESSAO` | vazias = painel desligado | hash bcrypt (`omega-server hash-senha`) e chave HMAC de 64 dígitos hexadecimais (Q-22, Q-29) |
-| `PAINEL_FINALIDADE`, `PAINEL_VERSAO_TERMO` | segmentacao, v1 | sugeridos ao conceder o consentimento (Q-25) |
+| `PAINEL_FINALIDADE`, `PAINEL_VERSAO_TERMO` | segmentacao, v1 | sugeridos ao conceder o consentimento (Q-25); no portal, são o termo vigente que o titular aceita |
+| `RETENCAO_DIAS_REVOGADO` | 180 | prazo da retenção após a revogação, em dias (RN-18, Q-51) |
+| `PORTAL_URL_BASE`, `PORTAL_CHAVE_SESSAO` | vazias = portal desligado | endereço público usado no link de acesso (o do Nginx) e chave HMAC da sessão do titular, diferente da do painel (Q-60) |
 
 O ambiente prevalece sobre o arquivo. Exemplo em `deploy/config.env.example`.
 
@@ -95,7 +100,7 @@ O ambiente prevalece sobre o arquivo. Exemplo em `deploy/config.env.example`.
 | `POST /v1/clientes/{id}/processamento` | UC-01 → UC-02 → UC-03 → UC-04 (RN-09) | token + consentimento |
 | `GET /saude` | saúde, para o balanceador | — |
 
-Erros: JSON `{codigo, mensagem}` com códigos estáveis (Spec 3.5): 401 sem token, 403 `consentimento_invalido`, 404 `cliente_nao_encontrado`, 409 `cliente_inativo` / `transicao_invalida` / `perfil_nao_encontrado`, 422 `dados_invalidos`.
+Erros: JSON `{codigo, mensagem}` com códigos estáveis (Spec 3.5): 401 sem token, 403 `consentimento_invalido`, 404 `cliente_nao_encontrado`, 409 `cliente_inativo` / `cliente_eliminado` / `transicao_invalida` / `perfil_nao_encontrado`, 422 `dados_invalidos`.
 
 ## Painel do operador (Spec 3.7.1)
 
@@ -107,16 +112,31 @@ Interface web em `/painel`, servida pelo próprio `omega-server`, seguindo o des
 | Cadastrar cliente | UC-09; abre a ficha já com o selo "Não concedido" |
 | Ficha | selo de consentimento sempre visível; Visão geral (etapas do processamento, perfil, segmento com os critérios atendidos, recomendação), Eventos e Consentimento. Sem consentimento, nenhum dado de comportamento é lido |
 | Consentimento | registro atual e linha do tempo com cada concessão e revogação: finalidade, versão do termo e origem (API, painel com o operador, portal). Só inclusão; cliente sem movimentos mostra a linha pelas datas (Q-34) |
+| Direitos do titular | aba da ficha, com qualquer estado do consentimento: corrigir nome e e-mail, baixar tudo o que o sistema guarda do titular em JSON e eliminar os dados (pede a revogação antes, se concedido, e o nome digitado). A eliminação apaga eventos, perfil e recomendações, anonimiza o cadastro e guarda o histórico do consentimento como prova (RN-17) |
 | Segmentos e Catálogo | somente leitura |
-| Operação | saúde do banco e expiração de recomendações vencidas |
+| Operação | saúde do banco, expiração de recomendações vencidas e retenção após a revogação (RN-18) |
 
-Demonstração (Q-30, Q-32): 7 segmentos (vip, premium, fiel, engajado, explorador, ocasional, padrao), catálogo de 7 categorias e 14 clientes com história ao longo de meses: Ana (premium, com recomendações expiradas), Bruno (engajado), Carla e Davi (ocasional; Davi sem produto elegível), Elisa (nunca concedeu), Fábio (revogou), Gabi (inativa, histórico só leitura), Heitor (vip), Isabela (fiel), João (explorador), Karina (concedeu v1 pela API, revogou e concedeu v2 pelo painel: histórico completo), Lucas (ainda não processado), Marina (só recomendação expirada) e Nina (padrão). No `make serve` eles entram sozinhos; na implantação, com `make exemplos`.
+Demonstração (Q-30, Q-32): 7 segmentos (vip, premium, fiel, engajado, explorador, ocasional, padrao), catálogo de 7 categorias e 15 clientes com história ao longo de meses: Ana (premium, com recomendações expiradas), Bruno (engajado), Carla e Davi (ocasional; Davi sem produto elegível), Elisa (nunca concedeu), Fábio (revogou pelo portal do titular e pediu a eliminação), Gabi (inativa, histórico só leitura), Heitor (vip), Isabela (fiel), João (explorador), Karina (concedeu v1 pela API, revogou e concedeu v2 pelo painel: histórico completo), Lucas (ainda não processado), Marina (só recomendação expirada), Nina (padrão) e Olga (revogou há mais de 180 dias: a retenção apaga o comportamento dela). No `make serve` eles entram sozinhos; na implantação, com `make exemplos`.
 
 Sessão assinada sem estado (funciona com as duas réplicas), CSRF em todo envio, 5 tentativas de entrada por IP em 5 minutos, CSP `'self'`. Funciona sem JavaScript (formulários com redirecionamento e páginas de confirmação); com JavaScript, troca só a área do painel e usa diálogos nativos.
 
+## Portal do titular (Spec 3.7.2)
+
+Em `/titular`, no mesmo `omega-server`, para o próprio cliente, sem depender da operação (Q-55). Mesmo design system, com a marca em destaque e linguagem sem jargão.
+
+| Tela | O que faz |
+|---|---|
+| Entrar | o titular informa o e-mail; a resposta é **sempre a mesma**, com ou sem cadastro, para não revelar quem é cliente |
+| Link de acesso | uso único, 30 minutos, só o hash guardado; abrir o link mostra "Entrar no portal" e só o envio consome (Q-56) |
+| Meus dados | cadastro, estado e histórico da autorização; retirar (efeito imediato, movimento com origem `portal`) ou autorizar de novo com o termo vigente; baixar os próprios dados (JSON); pedir a eliminação |
+
+Sessão própria (cookie `perfila_titular`, caminho `/titular`, 30 minutos), sem acesso a nada do painel. Limites: 3 links por cadastro por hora (no banco) e 10 pedidos por IP em 15 minutos. O envio de e-mail fica atrás do port `Notificador`; no MVP, a **caixa de saída simulada** guarda a mensagem com o destinatário mascarado por 24 horas e aparece só no painel, em **Operação › Caixa de saída (simulada)** (Q-57). O pedido de eliminação aparece em **Clientes › Pedidos do titular** e é atendido na aba Direitos do titular da ficha, que o marca como atendido (Q-58).
+
+Experimente com `make serve`: abra `http://localhost:8080/titular`, peça o link com `c-006@exemplo.test` (Fábio, que revogou pelo portal e tem um pedido aberto) e copie o link da caixa de saída do painel.
+
 ## LGPD
 
-Nenhum caso de uso que processa dado pessoal roda sem consentimento válido (C-03), e a revogação tem efeito imediato (RN-03). Os logs da aplicação e do Nginx não trazem nome, e-mail nem IP (C-09), e os testes usam só dados sintéticos. O checklist completo, com a evidência de cada item e o que ficou para depois do MVP, está em [`docs/CHECKLIST_LGPD.md`](docs/CHECKLIST_LGPD.md). Os requisitos são interpretação técnica da equipe, não parecer jurídico.
+Nenhum caso de uso que processa dado pessoal roda sem consentimento válido (C-03), e a revogação tem efeito imediato (RN-03). O titular pode pedir a correção, uma cópia em JSON ou a eliminação dos dados; quem revogou há mais de 180 dias tem o comportamento apagado pela retenção, e a prova do consentimento fica sempre guardada (Spec v1.9). Cada pedido atendido gera o log `direito_atendido`, só com IDs. Os logs da aplicação e do Nginx não trazem nome, e-mail nem IP (C-09), e os testes usam só dados sintéticos. O checklist completo, com a evidência de cada item e o que ficou para depois do MVP, está em [`docs/CHECKLIST_LGPD.md`](docs/CHECKLIST_LGPD.md). Os requisitos são interpretação técnica da equipe, não parecer jurídico.
 
 ## Mapa do repositório
 
@@ -129,7 +149,7 @@ docs/design/                design system Perfila Console (princípios, telas, t
 docs/                       checklist LGPD · roteiro de demonstração · relatório parcial · auditoria
 docs/pdf/                   os documentos em PDF para entrega (Spec, Plano, Tarefas e BDD v1.2, decisões, checklist, roteiro)
 features/                   cenários Gherkin + passos godog
-cmd/omega-server            binário do UML8 (serve, expirar-recomendacoes, hash-senha, carregar-exemplos) — raiz de composição
+cmd/omega-server            binário do UML8 (serve, expirar-recomendacoes, aplicar-retencao, hash-senha, carregar-exemplos) — raiz de composição
 cmd/perfila-demo            demonstração do core em memória
 internal/domain/            entity · port · service
 internal/application/       usecase

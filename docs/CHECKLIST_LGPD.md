@@ -1,6 +1,6 @@
 # Checklist LGPD e auditoria de logs (T-25)
 
-Perfila · Equipe Omega · 12/11/2026 · Spec v1.4 (com o painel web, seção 4b, e o histórico do consentimento, Q-34)
+Perfila · Equipe Omega · 14/11/2026 · Spec v1.10 (com o painel web, seção 4b, o histórico do consentimento, Q-34, os direitos do titular e a retenção, Q-48 a Q-53, e o portal do titular, seção 4a)
 
 Interpretação técnica da equipe sobre a Lei 13.709/2018, **não é parecer jurídico** (CLAUDE.md, seção 4). Cada item aponta a evidência que o prova: um cenário BDD, um teste automático ou um arquivo de configuração. ✅ atendido no MVP · ⚠️ atendido com limitação · ⬜ fora do MVP (requisito futuro).
 
@@ -39,10 +39,19 @@ Interpretação técnica da equipe sobre a Lei 13.709/2018, **não é parecer ju
 
 | # | Direito | Situação | |
 |---|---|---|---|
-| L-17 | Confirmação e consulta do consentimento | `GET /v1/clientes/{id}/consentimento` | ✅ |
-| L-18 | Revogação | `POST /v1/clientes/{id}/consentimento/revogacao` | ✅ |
-| L-19 | Acesso, correção, portabilidade e eliminação dos dados | `Cliente.AtualizarDados` existe no domínio, mas não há rota; não há exportação nem eliminação | ⬜ |
-| L-20 | Retenção e eliminação após revogação | Dados já persistidos permanecem (RN-03); política fora do MVP (D-13) | ⬜ |
+| L-17 | Confirmação e consulta do consentimento | `GET /v1/clientes/{id}/consentimento`; desde a v1.10, o próprio titular vê o estado e o histórico em **Meus dados**, no portal (Q-55) | ✅ |
+| L-18 | Revogação | `POST /v1/clientes/{id}/consentimento/revogacao`; desde a v1.10, o próprio titular retira a autorização no portal, com efeito imediato e movimento com origem `portal` (`portal.feature`, "Retirar a autorização pelo portal tem efeito imediato e entra no histórico") | ✅ |
+| L-19 | Acesso, correção, portabilidade e eliminação dos dados | Desde a v1.9 (Q-48 a Q-50), na aba Direitos do titular do painel, com qualquer estado do consentimento: correção de nome e e-mail; exportação em JSON (`versaoFormato` "1") de cadastro, consentimento, histórico, eventos, perfil, segmento e recomendações; eliminação (RN-17) que apaga o comportamento, anonimiza o cadastro (`DataEliminacao`, migração 009) e mantém o consentimento e os movimentos como prova (art. 16, I). Com consentimento concedido, a eliminação pede a revogação antes; a confirmação é o nome digitado. Evidência: `direitos.feature` (`@Q-48`, `@Q-49`, `@RN-17`), contrato `DireitosDoTitular`, `TestClienteAnonimizar`, `TestExportacaoFormato`, `TestMigracaoEliminacaoExigeAnonimizado` | ⚠️ só pelo painel, por meio da pessoa operadora; rotas da API e o portal do titular ficam para a fase 2 (Q-53). Restrição da eliminação ao papel ADMINISTRADOR quando a v1.5 entrar na main |
+| L-20 | Retenção e eliminação após revogação | RN-18 (Q-51): o comportamento de quem está REVOGADO há `RETENCAO_DIAS_REVOGADO` dias ou mais (padrão 180) é apagado pelo subcomando `aplicar-retencao` e pelo botão da Operação; cadastro, consentimento e histórico ficam; quem concedeu de novo não é atingido. Evidência: `direitos.feature` (`@RN-18`, limites de 179, 180 e 181 dias), contrato `RevogadosAte`, `TestCarregarExemplos` (Olga atingida, Fábio não) | ⚠️ a retenção não roda sozinha: o administrador a agenda (cron do servidor) ou aciona pelo painel |
+
+### 4a. Portal do titular (Spec 3.7.2, v1.10)
+
+| # | Requisito | Como o Perfila atende | Evidência | |
+|---|---|---|---|---|
+| L-37 | O titular exerce os direitos sem intermediário | Portal `/titular`: ver cadastro, estado e histórico da autorização; retirar e autorizar de novo com o termo vigente; baixar os próprios dados (o mesmo JSON da portabilidade); pedir a eliminação, que a operação atende no painel com a confirmação forte da RN-17 (Q-55, Q-58, RN-20) | `portal.feature` (`@web` e `@aplicacao`); pedido no painel em "Pedidos do titular" | ✅ |
+| L-38 | Identificar o titular sem revelar quem é cliente | Link de uso único por e-mail, 30 minutos, só o SHA-256 guardado, consumido por POST (abrir o link não o gasta); a resposta ao pedido é sempre a mesma; 3 links por cadastro por hora (no banco) e 10 pedidos por IP em 15 minutos; endereço do link vindo da configuração, nunca do `Host` (Q-56, RN-19) | `portal.feature` (resposta igual, limites 59/60/61 minutos, uso único, validade 29/30/31 minutos, link adulterado); contrato `TokenAcesso` nos dois backends | ⚠️ o pedido com e-mail cadastrado grava o token e leva um pouco mais de tempo; o limite por IP é por réplica |
+| L-39 | Sessão do titular separada da operação | Cookie `perfila_titular` com caminho, chave (`PORTAL_CHAVE_SESSAO`) e validade (30 minutos) próprios; nenhuma rota recebe ID de cliente; cliente eliminado perde a sessão na requisição seguinte (Q-55) | `portal.feature` ("A sessão do portal não abre o painel", "A sessão do painel não abre o portal", "Pelo link, o titular vê só os próprios dados", sessão de 30 minutos); `TestCarregarPortal` (chave diferente da do painel) | ✅ |
+| L-40 | O link de acesso não vaza | Nunca vai para o log (o portal não registra a query string); a caixa de saída simulada guarda o destinatário mascarado, apaga mensagens de mais de 24 horas e só aparece no painel (Q-57) | "Os logs do portal não contêm nome, e-mail nem o link"; "A caixa de saída simulada mostra o destinatário mascarado"; `TestNotificadorSimulado` | ⚠️ não há envio real de e-mail no MVP; a caixa simulada é vista pela pessoa operadora única até os papéis da v1.5 a restringirem a ADMINISTRADOR |
 
 ## 4b. Painel web do operador (Spec 3.7.1, v1.3)
 
@@ -68,9 +77,15 @@ Todos os eventos de log do sistema, conferidos no código em 11/11/2026 (`grep` 
 | `servidor_no_ar`, `encerrando`, `modo_memoria` | `cmd/omega-server` | porta, aviso fixo | Não |
 | `postgres_conectado` | `cmd/omega-server` | versões de migração aplicadas | Não. A URL do banco não é registrada |
 | `recomendacoes_expiradas` | subcomando `expirar-recomendacoes` | quantidade | Não |
+| `retencao_aplicada` (v1.9) | subcomando `aplicar-retencao` | quantidade, prazo em dias | Não |
+| `direito_atendido` (v1.9) | painel e subcomando `aplicar-retencao` | operador, pedido (`correcao`, `exportacao`, `eliminacao`, `retencao`), `clienteId` ou quantidade | Não. Auditoria dos pedidos até a v1.5 (`RegistroAuditoria`) entrar na main (Q-53); cenário "Cada pedido atendido fica no log, sem nome nem e-mail" |
 | `painel_http` | `web.registro` | método, caminho (só UUIDs), status | Não. Sem query string (termo de busca) |
 | `painel_acao` | handlers do painel | operador, ação, `clienteId` | Não. O operador é o login da equipe, não o titular |
-| `painel_erro_interno`, `painel_template` | painel (só falhas 500) | caminho, mensagem do erro | Não |
+| `painel_erro_interno`, `web_template` | painel e portal (só falhas 500) | caminho, mensagem do erro | Não |
+| `portal_http` | `web.portal.registro` (v1.10) | método, caminho, status | Não. Sem query string: o token do link nunca é registrado |
+| `portal_acao` | handlers do portal (v1.10) | ação e `clienteId` da sessão; `link_pedido` sem nenhum dos dois | Não. Nunca nome, e-mail, token nem link |
+| `portal_erro_interno` | portal (só falhas 500) | caminho, mensagem do erro | Não |
+| `portal_desligado` | `cmd/omega-server` | aviso fixo | Não |
 | `painel_desligado` | `cmd/omega-server` | aviso fixo | Não |
 | acesso do Nginx | `deploy/nginx/nginx.conf` (`log_format omega`) | horário, método, caminho sem query string, status, tempo, réplica, id da requisição | Não. **Sem IP do cliente** (IP é dado pessoal, Q-14) |
 | PostgreSQL | configuração padrão da imagem | erros, sem texto de parâmetros | Não |
@@ -81,8 +96,9 @@ Todos os eventos de log do sistema, conferidos no código em 11/11/2026 (`grep` 
 
 ## 6. Requisitos futuros (pós-MVP)
 
-1. Rotas de acesso, correção, portabilidade e eliminação (L-19), e uma política de retenção com expurgo após revogação (L-20, D-13).
-2. Filtrar o uso dos dados pela finalidade consentida (L-04). O histórico de versões do termo (L-06) entrou na v1.4; falta expô-lo ao titular (portal, fase 2).
+1. Direitos do titular pela API (o portal da v1.10 já atende acesso, portabilidade, revogação e o pedido de eliminação; a correção pelo titular continua só no painel). Agendar a retenção (L-20) no servidor.
+2. Filtrar o uso dos dados pela finalidade consentida (L-04). O histórico de versões do termo (L-06) entrou na v1.4 e, desde a v1.10, o titular o vê no portal.
 3. Autenticação por usuário (JWT/OIDC) com perfis Cliente, Administrador e Analista (L-12).
 4. Certificado emitido por uma autoridade, cifra do volume do banco e TLS interno (L-10, L-16).
 5. Prazo de retenção dos logs definido junto com a política de dados.
+6. Envio real do link de acesso (SMTP ou serviço de e-mail) como outra implementação do port `Notificador`, e a caixa de saída simulada restrita a ADMINISTRADOR quando os papéis da v1.5 entrarem (L-40).

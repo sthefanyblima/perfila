@@ -3,7 +3,7 @@
 > **Fonte:** Módulo 3 · imagem original: [`img/UML2_classes.jpg`](img/UML2_classes.jpg)
 > **Imagem corrigida (v1, gerada do Mermaid abaixo):** [`img/v1/UML2_classes_dominio.png`](img/v1/UML2_classes_dominio.png) · [`img/v1/UML2_classes_aplicacao.png`](img/v1/UML2_classes_aplicacao.png)
 > **Fonte da verdade para:** entidades, campos, métodos e nomes (Spec 1, C-04).
-> **Versão:** v1.4 (histórico do consentimento) · **Decisões relacionadas:** D-02, D-05, D-06, D-08, D-10, D-14, D-15, D-19, Q-34.
+> **Versão:** v1.10 (portal do titular) · **Decisões relacionadas:** D-02, D-05, D-06, D-08, D-10, D-14, D-15, D-19, Q-34, Q-48 a Q-52, Q-55 a Q-59.
 
 O modelo abaixo é o **implementado** em `internal/domain/entity`. Campos e métodos marcados `«ADIÇÃO»` não existem na imagem original e foram acrescentados pela Spec.
 
@@ -18,10 +18,13 @@ classDiagram
     -Email string
     -DataCadastro time
     -Ativo bool
+    -DataEliminacao *time «ADIÇÃO Q-50»
     +NovoCliente(id, nome, email, agora) «ADIÇÃO D-22»
     +AtualizarDados(nome, email) error
     +Ativar()
     +Desativar()
+    +Anonimizar(agora) error «ADIÇÃO Q-50»
+    +EstaEliminado() bool «ADIÇÃO Q-50»
   }
   class ConsentimentoLGPD {
     -ID uuid
@@ -99,6 +102,33 @@ classDiagram
     -Ativo bool
     +AtualizarPreco(preco) error
   }
+  class TokenAcessoTitular {
+    -ID uuid
+    -ClienteID uuid
+    -Hash string
+    -CriadoEm time
+    -ExpiraEm time
+    -UsadoEm *time
+    +NovoTokenAcesso(id, clienteID, hash, agora) «ADIÇÃO Q-56»
+    +EstaValido(agora) bool
+    +Usar(agora) error
+  }
+  class PedidoEliminacao {
+    -ID uuid
+    -ClienteID uuid
+    -Status StatusPedido
+    -DataPedido time
+    -DataAtendimento *time
+    +NovoPedidoEliminacao(id, clienteID, agora) «ADIÇÃO Q-58»
+    +Atender(agora) error
+  }
+  class MensagemSimulada {
+    -ID uuid
+    -Para string
+    -Assunto string
+    -Corpo string
+    -EnviadaEm time
+  }
 
   Cliente "1" --> "0..1" ConsentimentoLGPD : possui
   Cliente "1" --> "0..*" MovimentoConsentimento : histórico (Q-34)
@@ -107,11 +137,17 @@ classDiagram
   Cliente "1" --> "0..*" RecomendacaoProduto : recebe (D-15)
   PerfilCliente "0..*" --> "0..1" Segmento : pertence a (D-06)
   RecomendacaoProduto "0..*" --> "1" Produto : refere-se a
+  Cliente "1" --> "0..*" TokenAcessoTitular : entra no portal (Q-56)
+  Cliente "1" --> "0..*" PedidoEliminacao : pede (Q-58)
 ```
 
 Enumerações (C-05): `TipoEvento` = navegacao | compra | interacao · `StatusConsentimento` = NAO_CONCEDIDO | CONCEDIDO | REVOGADO · `StatusRecomendacao` = GERADA | ATIVA | EXPIRADA · `TipoMovimento` = CONCESSAO | REVOGACAO · `OrigemMovimento` = api | painel | portal | sistema | migracao (v1.4, Q-34).
 
 `MovimentoConsentimento` «ADIÇÃO v1.4, Q-34» é a prova de cada transição de `ConsentimentoLGPD` (RN-10): só de inclusão, sem métodos de alteração. O registro `ConsentimentoLGPD` continua sendo a fonte do estado.
+
+`Cliente.DataEliminacao`, `Anonimizar` e `EstaEliminado` «ADIÇÃO v1.9, Q-50» marcam o cadastro anonimizado pela eliminação a pedido do titular (RN-17): Nome e Email trocados por valores fixos, Ativo false. Depois disso, `AtualizarDados` e um novo `Anonimizar` recusam com `ErrClienteEliminado`. O consentimento e os movimentos do cliente continuam, como prova.
+
+`TokenAcessoTitular`, `PedidoEliminacao` e `MensagemSimulada` «ADIÇÃO v1.10, Q-56 a Q-58» servem ao portal do titular: o link de uso único (só o hash SHA-256 é guardado; 30 minutos; RN-19), o pedido de eliminação que a operação atende (`StatusPedido` = ABERTO | ATENDIDO; RN-20) e a mensagem da caixa de saída simulada (destinatário mascarado; Q-57). `MensagemSimulada` não se liga a `Cliente`: guarda só o e-mail mascarado.
 
 ## Aplicação e contratos
 
@@ -143,6 +179,30 @@ classDiagram
   class ExpirarRecomendacoesUseCase {
     +Executar(ctx) int, error «ADIÇÃO D-08»
   }
+  class AtualizarCadastroUseCase {
+    +Executar(ctx, clienteID, nome, email) Cliente, error «ADIÇÃO Q-48»
+  }
+  class ExportarDadosTitularUseCase {
+    +Executar(ctx, clienteID) DadosTitular, error «ADIÇÃO Q-49»
+  }
+  class EliminarDadosTitularUseCase {
+    +Executar(ctx, clienteID, confirmacao) error «ADIÇÃO Q-50, RN-17»
+  }
+  class AplicarRetencaoUseCase {
+    +Executar(ctx) int, error «ADIÇÃO Q-51, RN-18»
+  }
+  class SolicitarAcessoTitularUseCase {
+    +Executar(ctx, email) error «ADIÇÃO Q-56, RN-19»
+  }
+  class AutenticarTitularUseCase {
+    +Executar(ctx, token) uuid, error «ADIÇÃO Q-56, RN-19»
+  }
+  class ConsultarMeusDadosUseCase {
+    +Executar(ctx, clienteID) MeusDados, error «ADIÇÃO Q-55»
+  }
+  class PedirEliminacaoUseCase {
+    +Executar(ctx, clienteID) PedidoEliminacao, error «ADIÇÃO Q-58, RN-20»
+  }
   class PerfilamentoService {
     +GerarPerfil(clienteID, eventos) PerfilCliente
   }
@@ -163,7 +223,7 @@ classDiagram
   ColetarDadosUseCase ..> ValidadorLGPD : RN-01
 ```
 
-Ports (interfaces) — declarados no **domínio** (`internal/domain/port`, C-02): `ClienteRepository`, `EventoRepository`, `PerfilRepository`, `SegmentoRepository`, `RecomendacaoRepository`, `ConsentimentoRepository`, `ProdutoRepository` «ADIÇÃO D-05», `ConsentimentoGateway`, `IntegracaoGateway`, `Clock`. Assinaturas completas na Spec 3.6.
+Ports (interfaces) — declarados no **domínio** (`internal/domain/port`, C-02): `ClienteRepository`, `EventoRepository`, `PerfilRepository`, `SegmentoRepository`, `RecomendacaoRepository`, `ConsentimentoRepository`, `ProdutoRepository` «ADIÇÃO D-05», `ConsentimentoGateway`, `IntegracaoGateway`, `Clock`. Assinaturas completas na Spec 3.6. Desde a v1.9 (Q-51, Q-52): `RemoverPorCliente` em `EventoRepository`, `PerfilRepository` e `RecomendacaoRepository`, e `ConsentimentoRepository.ListarRevogadosAte`. Desde a v1.10 (Q-57, Q-59): `ClienteRepository.BuscarPorEmail`, `TokenAcessoRepository`, `PedidoEliminacaoRepository`, `Notificador` e `CaixaSaidaSimulada`; os casos de uso de leitura do painel `ListarPedidosEliminacaoUseCase` e `ListarCaixaSaidaUseCase` seguem a Spec 3.5.
 
 ## Diferenças em relação à imagem original
 
@@ -182,7 +242,9 @@ Ports (interfaces) — declarados no **domínio** (`internal/domain/port`, C-02)
 | `ListarAtivos(): [[Segmento` | `ListarAtivos(ctx) ([]Segmento, error)` | erro de digitação no diagrama |
 | — (sem catálogo) | `ProdutoRepository` | D-05 |
 | — (só o último registro do consentimento) | `MovimentoConsentimento`, `ConsentimentoRepository.Registrar` e `ListarMovimentos`, UC-08 `Historico` | Q-34: prova de cada concessão e revogação (L-06) |
+| — (sem direitos do titular) | `Cliente.DataEliminacao`, `Anonimizar`, `EstaEliminado`; casos de uso de correção, exportação, eliminação e retenção | Q-48 a Q-51: art. 18 da LGPD e retenção após a revogação (L-19, L-20) |
+| — (sem portal do titular) | `TokenAcessoTitular`, `PedidoEliminacao`, `MensagemSimulada`; casos de uso `SolicitarAcessoTitular`, `AutenticarTitular`, `ConsultarMeusDados`, `PedirEliminacao`; ports `TokenAcessoRepository`, `PedidoEliminacaoRepository`, `Notificador`, `CaixaSaidaSimulada` e `ClienteRepository.BuscarPorEmail` | Q-55 a Q-59, RN-19, RN-20 (v1.10) |
 
 ## Rastreabilidade
 
-Spec 3.2, 3.3, 3.6 · Features: `evento`, `perfilamento`, `segmentacao`, `recomendacao` · Código: `internal/domain/entity`, `internal/domain/service`, `internal/domain/port`
+Spec 3.2, 3.3, 3.6 · Features: `evento`, `perfilamento`, `segmentacao`, `recomendacao`, `direitos` · Código: `internal/domain/entity`, `internal/domain/service`, `internal/domain/port`

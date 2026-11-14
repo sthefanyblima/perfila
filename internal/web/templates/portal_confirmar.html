@@ -1,0 +1,25 @@
+{{define "conteudo"}}{{with .Dados}}
+<section class="pf-panel pf-portal__cartao" aria-labelledby="titulo-confirmar" data-teste="confirmar-{{.Confirmar}}">
+  <form method="post" action="/titular/{{.Confirmar}}">
+    <input type="hidden" name="_csrf" value="{{$.CSRF}}">
+    <div class="pf-dialog__body">
+    {{if eq .Confirmar "revogar"}}
+      <h1 class="pf-dialog__title" id="titulo-confirmar">Retirar sua autorização</h1>
+      <p>A partir de agora, seus dados de comportamento deixam de ser usados. Os dados já registrados continuam guardados até você pedir a eliminação ou até o prazo de retenção. Você pode autorizar de novo depois.</p>
+    {{else if eq .Confirmar "conceder"}}
+      <h1 class="pf-dialog__title" id="titulo-confirmar">Autorizar o uso dos seus dados</h1>
+      <p>Você autoriza o uso dos seus dados de comportamento para {{.FinalidadeEmPalavras}}, conforme o termo {{.VersaoTermo}}. Você pode retirar a autorização quando quiser.</p>
+    {{else}}
+      <h1 class="pf-dialog__title" id="titulo-confirmar">Pedir a eliminação dos seus dados</h1>
+      <p>A equipe vai apagar seus eventos, seu perfil e suas recomendações e anonimizar seu cadastro. O registro das suas autorizações fica guardado como prova, sem seu nome nem seu e-mail. Depois de atendido, não pode ser desfeito.</p>
+    {{end}}
+    </div>
+    <div class="pf-dialog__foot">
+      <a class="pf-btn" href="/titular/meus-dados"{{if ne .Confirmar "conceder"}} autofocus{{end}}>Cancelar</a>
+      {{if eq .Confirmar "revogar"}}<button type="submit" class="pf-btn pf-btn--danger-solid">Retirar autorização</button>
+      {{else if eq .Confirmar "conceder"}}<button type="submit" class="pf-btn pf-btn--primary">Autorizar</button>
+      {{else}}<button type="submit" class="pf-btn pf-btn--danger-solid">Pedir eliminação</button>{{end}}
+    </div>
+  </form>
+</section>
+{{end}}{{end}}

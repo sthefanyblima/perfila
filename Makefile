@@ -4,7 +4,7 @@
 
 GO ?= go
 
-.PHONY: verify fmt vet test bdd arch cover demo serve demo-api build contrato pg-teste implantar bdd-implantacao demo-implantacao expirar exemplos derrubar
+.PHONY: verify fmt vet test bdd arch cover demo serve demo-api build contrato pg-teste implantar bdd-implantacao demo-implantacao expirar retencao exemplos derrubar
 
 verify: fmt vet test bdd arch ## portão de toda tarefa (Definição de pronto)
 
@@ -47,10 +47,13 @@ build: ## binário estático do UML8
 # Credenciais de desenvolvimento do painel (Q-29): operador / dev-senha. Nunca use fora da máquina local.
 PAINEL_DEV_HASH = $$2a$$12$$XwydlCAe/Yz4gKKJFY8Dkem4QwOLLvhPfraOmQ3mvP9/CvqoKS3Am
 PAINEL_DEV_CHAVE = 00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff
+# Portal do titular em desenvolvimento (Q-60): o link aponta para a própria máquina; chave diferente da do painel.
+PORTAL_DEV_CHAVE = ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100
 
-serve: ## API e painel em modo memória na porta 8080 (token: dev-token; painel: operador / dev-senha)
+serve: ## API, painel e portal do titular em modo memória na porta 8080 (token: dev-token; painel: operador / dev-senha)
 	AUTH_TOKEN=$${AUTH_TOKEN:-dev-token} ENGAJAMENTO_META_EVENTOS=$${ENGAJAMENTO_META_EVENTOS:-10} \
-	PAINEL_SENHA_HASH='$(PAINEL_DEV_HASH)' PAINEL_CHAVE_SESSAO=$(PAINEL_DEV_CHAVE) $(GO) run ./cmd/omega-server serve
+	PAINEL_SENHA_HASH='$(PAINEL_DEV_HASH)' PAINEL_CHAVE_SESSAO=$(PAINEL_DEV_CHAVE) \
+	PORTAL_URL_BASE=$${PORTAL_URL_BASE:-http://localhost:8080} PORTAL_CHAVE_SESSAO=$(PORTAL_DEV_CHAVE) $(GO) run ./cmd/omega-server serve
 
 COMPOSE = docker compose -f deploy/docker-compose.yml
 
@@ -69,7 +72,10 @@ demo-implantacao: ## roteiro da API pelo Nginx (HTTPS) gravando no PostgreSQL (m
 expirar: ## administrador: expira recomendações vencidas na réplica app1 (UML8, via exec)
 	$(COMPOSE) exec app1 omega-server -config /etc/omega/config.env expirar-recomendacoes
 
-exemplos: ## carrega os 14 clientes de exemplo na implantação, se o banco não tiver clientes (Q-30, Q-32)
+retencao: ## administrador: aplica a retenção após a revogação na réplica app1 (RN-18, Q-51)
+	$(COMPOSE) exec app1 omega-server -config /etc/omega/config.env aplicar-retencao
+
+exemplos: ## carrega os 15 clientes de exemplo na implantação, se o banco não tiver clientes (Q-30, Q-32)
 	$(COMPOSE) exec app1 omega-server -config /etc/omega/config.env carregar-exemplos
 
 derrubar: ## derruba a implantação (mantém os dados; apague com: $(COMPOSE) down -v)

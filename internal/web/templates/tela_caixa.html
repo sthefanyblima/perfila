@@ -1,0 +1,22 @@
+{{define "conteudo"}}
+<header class="pf-header">
+  <ol class="pf-crumbs"><li>Operação</li><li aria-current="page">Caixa de saída (simulada)</li></ol>
+  <div class="pf-header__row"><h1 class="pf-header__title">Caixa de saída (simulada)</h1></div>
+</header>
+{{template "alerta" (alertaInfo "Simulação" "Simulação para a demonstração: nenhum e-mail sai do sistema. Mensagens com mais de 24 horas são apagadas.")}}
+{{if .Dados}}
+<ol class="pf-mensagens" data-teste="caixa-saida">
+  {{range .Dados}}
+  <li class="pf-panel pf-mensagem" data-teste="mensagem">
+    <div class="pf-panel__head"><h2 class="pf-panel__title">{{.Assunto}}</h2><span class="pf-muted pf-small pf-num">{{dataHora .EnviadaEm}}</span></div>
+    <div class="pf-panel__body">
+      <p class="pf-small"><span class="pf-label">Para</span> <span class="pf-mono">{{.Para}}</span></p>
+      <p class="pf-mensagem__corpo">{{.Corpo}}</p>
+    </div>
+  </li>
+  {{end}}
+</ol>
+{{else}}
+<div class="pf-empty" data-teste="caixa-vazia"><p class="pf-empty__title">Nenhuma mensagem nas últimas 24 horas.</p></div>
+{{end}}
+{{end}}

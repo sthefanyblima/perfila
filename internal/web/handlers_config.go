@@ -54,10 +54,16 @@ type dadosOperacao struct {
 	ModoMemoria bool
 	Migracoes   string
 	Confirmar   bool
+
+	PrazoRetencao     int  // RETENCAO_DIAS_REVOGADO (RN-18)
+	ConfirmarRetencao bool // página de confirmação da retenção, sem JavaScript
 }
 
 func (p *painel) dadosOperacao(ctx context.Context) dadosOperacao {
 	d := dadosOperacao{BancoOK: true, ModoMemoria: p.d.Saude == nil, Migracoes: p.d.Migracoes}
+	if p.d.AplicarRetencao != nil {
+		d.PrazoRetencao = p.d.AplicarRetencao.PrazoDias()
+	}
 	if p.d.Saude != nil {
 		c, cancelar := context.WithTimeout(ctx, 2*time.Second)
 		defer cancelar()

@@ -88,6 +88,30 @@ Prova de cada concessão e revogação (Q-34, RN-10, L-06). Base para os públic
 | T-45 | Painel: origem `painel` com o operador; linha do tempo pelo histórico, com a linha pelas datas para quem não tem movimentos | T-44 | cenários `@web` do histórico | ✅ 4 cenários `@web`; `TestDetalheMovimento`, `TestLinhaPeloHistorico` |
 | T-46 | Exemplos (Karina: v1, revoga, v2) conferidos pelo histórico; checklist L-06; README; fluxo no navegador | T-45 | `TestCarregarExemplos`; painel conferido | ✅ Karina com v1 pela API, revogação e v2 pelo painel; L-06 atendido; fluxo conferido no navegador; cobertura 91,0% |
 
+## Direitos do titular e retenção — Spec v1.9
+
+Correção, acesso e portabilidade e eliminação a pedido do titular (art. 18 da LGPD) e retenção após a revogação (RN-17, RN-18, Q-48 a Q-53; L-19, L-20). Numeração a partir de T-69, migração 009 e Q-48 para não colidir com as branches abertas (v1.5 a v1.8).
+
+| ID | Tarefa | Depende de | Prova | Status |
+|---|---|---|---|---|
+| T-69 | Spec v1.9, Q-48 a Q-53, exceção em C-03, UML2, UML7 e UML8 em texto, `02-telas-e-fluxos.md` e `03-textos.md`; `features/direitos.feature` (`@wip` até a tarefa que a implementa) | T-46 | Spec, UML e feature revisados | ✅ cenários escritos (`@wip`) |
+| T-70 | `Cliente.DataEliminacao`, `Anonimizar`, `EstaEliminado` e `ErrClienteEliminado`; `RemoverPorCliente` (eventos, perfis, recomendações) e `ListarRevogadosAte` na memória e no PostgreSQL; migração 009; contrato | T-69 | testes de tabela; contrato nos dois backends | ✅ `TestClienteAnonimizar`; contrato `DireitosDoTitular` e `RevogadosAte` (memória e PostgreSQL 16); `TestMigracaoEliminacaoExigeAnonimizado` |
+| T-71 | `AtualizarCadastro`, `ExportarDadosTitular`, `EliminarDadosTitular`, `AplicarRetencao`; RN-01 e UC-08 com o cliente eliminado; `RETENCAO_DIAS_REVOGADO` e subcomando `aplicar-retencao` | T-70 | cenários `@aplicacao` de `direitos.feature` | ✅ 36 cenários `@aplicacao`; `TestConfirmacaoConfere`, `TestRetencaoPrazoInvalido`, `TestCarregarPadroes`; subcomando em `TestArgumentosEConfig`; `@wip` só nos 10 `@web` |
+| T-72 | Painel: aba Direitos do titular (corrigir, baixar dados, eliminar com confirmação forte), ficha do eliminado e retenção na Operação; log `direito_atendido` | T-71 | cenários `@web` de `direitos.feature`; `@wip` retirado | ✅ 10 cenários `@web` (46 no total da feature); `TestExportacaoFormato` |
+| T-73 | Exemplo revogado há mais de 180 dias; checklist (L-19, L-20), README e roteiro; fluxo no navegador | T-72 | `TestCarregarExemplos`; painel conferido | ✅ Olga (c-015) revogada há 220 dias, atingida pela retenção; Fábio não; L-19 e L-20 ⚠️; `make retencao`; no navegador: exportação, eliminação (nome errado e certo), busca vazia pelo nome antigo, retenção pela Operação, foco inicial em Cancelar e celular sem rolagem lateral; cobertura 90,6% |
+
+## Portal do titular — Spec v1.10
+
+O próprio cliente vê e revoga o consentimento, concede de novo, baixa os próprios dados e pede a eliminação pelo portal `/titular`, com link de uso único por e-mail (RN-19, RN-20, Q-55 a Q-60; L-37 a L-40). Branch empilhada sobre a v1.9 (direitos do titular). Numeração a partir de T-75, migração 010 e Q-55, acima de todas as branches abertas.
+
+| ID | Tarefa | Depende de | Prova | Status |
+|---|---|---|---|---|
+| T-75 | Spec v1.10, Q-55 a Q-60, UML1, UML2, UML7 e UML8 em texto, `02-telas-e-fluxos.md` e `03-textos.md`; `features/portal.feature` (`@wip` até a tarefa que a implementa) | T-72 | Spec, UML e feature revisados | ✅ cenários escritos (`@wip`) |
+| T-76 | `TokenAcessoTitular`, `PedidoEliminacao`, `MensagemSimulada` e `ErrAcessoInvalido`; `BuscarPorEmail`, `TokenAcessoRepository`, `PedidoEliminacaoRepository` e `CaixaSaidaSimulada` na memória e no PostgreSQL; `NotificadorSimulado`; migração 010; contrato | T-75 | testes de tabela; contrato nos dois backends | ✅ `TestNovoTokenAcesso`, `TestTokenAcessoUsar`, `TestPedidoEliminacao`, `TestNotificadorSimulado`; contrato `BuscarPorEmail`, `TokenAcesso`, `PedidoEliminacao` e `CaixaSaidaSimulada` (memória e PostgreSQL 16) |
+| T-77 | `SolicitarAcessoTitular`, `AutenticarTitular`, `ConsultarMeusDados`, `PedirEliminacao`, `ListarPedidosEliminacao`, `ListarCaixaSaida`; RN-17 com tokens e pedido; `PORTAL_URL_BASE` e `PORTAL_CHAVE_SESSAO` | T-76 | cenários `@aplicacao` e `@dominio` de `portal.feature` | ✅ 29 cenários `@aplicacao` e `@dominio`; `TestCarregarPortal`; `@wip` só nos 21 `@web` |
+| T-78 | Portal web `/titular` (entrar, link, meus dados, revogar, conceder, baixar, pedir eliminação) com sessão própria; no painel, Pedidos do titular e Caixa de saída (simulada) | T-77 | cenários `@web` de `portal.feature`; `@wip` retirado | ✅ 21 cenários `@web` (51 no total da feature); 267 cenários no verify |
+| T-79 | Cenário `@implantacao` do portal pelo Nginx; exemplo com pedido aberto; checklist LGPD (seção 4), README e roteiro; fluxo no navegador | T-78 | `bdd-implantacao`; painel e portal conferidos | ✅ 5 cenários `@implantacao` (Nginx, duas réplicas e PostgreSQL); Fábio revogou pelo portal e tem pedido aberto (`TestCarregarExemplos`); L-17, L-18 e L-37 a L-40; fluxo conferido no navegador (`make serve`) |
+
 ## Fechamento
 
 | Data | Marco |

@@ -13,6 +13,7 @@ import (
 	"perfila/internal/application/usecase"
 	"perfila/internal/domain/entity"
 	"perfila/internal/domain/service"
+	"perfila/internal/infra/external"
 	"perfila/internal/infra/memoria"
 	"perfila/internal/infra/relogio"
 )
@@ -29,6 +30,10 @@ type Mundo struct {
 	recomendacoes  *memoria.RecomendacaoRepository
 	consentimentos *memoria.ConsentimentoRepository
 	produtos       *memoria.ProdutoRepository
+	// portal do titular (v1.10)
+	tokens     *memoria.TokenAcessoRepository
+	pedidos    *memoria.PedidoEliminacaoRepository
+	caixaSaida *memoria.CaixaSaidaSimulada
 
 	metaEventos  int
 	validadeDias int
@@ -48,6 +53,8 @@ type Mundo struct {
 	processamento          usecase.ResultadoProcessamento
 	leitura                estadoLeitura
 	web                    estadoWeb
+	direitos               estadoDireitos
+	portal                 estadoPortal
 
 	api estadoAPI
 }
@@ -69,8 +76,12 @@ func novoMundo() *Mundo {
 		recomendacoes:  memoria.NovoRecomendacaoRepository(),
 		consentimentos: memoria.NovoConsentimentoRepository(),
 		produtos:       memoria.NovoProdutoRepository(),
+		tokens:         memoria.NovoTokenAcessoRepository(),
+		pedidos:        memoria.NovoPedidoEliminacaoRepository(),
+		caixaSaida:     memoria.NovaCaixaSaidaSimulada(),
 		metaEventos:    metaPadrao,
 		validadeDias:   validadePadrao,
+		direitos:       estadoDireitos{prazoDias: prazoRetencaoPadrao},
 	}
 }
 
@@ -90,6 +101,20 @@ type casos struct {
 	listarSegmentos    *usecase.ListarSegmentosUseCase
 	listarCatalogo     *usecase.ListarCatalogoUseCase
 	expirar            *usecase.ExpirarRecomendacoesUseCase
+
+	// direitos do titular e retenção (v1.9)
+	atualizarCadastro *usecase.AtualizarCadastroUseCase
+	exportar          *usecase.ExportarDadosTitularUseCase
+	eliminar          *usecase.EliminarDadosTitularUseCase
+	retencao          *usecase.AplicarRetencaoUseCase
+
+	// portal do titular (v1.10)
+	solicitarAcesso *usecase.SolicitarAcessoTitularUseCase
+	autenticar      *usecase.AutenticarTitularUseCase
+	meusDados       *usecase.ConsultarMeusDadosUseCase
+	pedirEliminacao *usecase.PedirEliminacaoUseCase
+	listarPedidos   *usecase.ListarPedidosEliminacaoUseCase
+	listarCaixa     *usecase.ListarCaixaSaidaUseCase
 }
 
 func (m *Mundo) uc() casos {
@@ -112,6 +137,19 @@ func (m *Mundo) uc() casos {
 	c.consultarResultado = usecase.NovoConsultarResultadoUseCase(pre, m.eventos, m.perfis, m.segmentos, m.recomendacoes, m.produtos)
 	c.listarSegmentos = usecase.NovoListarSegmentosUseCase(m.segmentos)
 	c.listarCatalogo = usecase.NovoListarCatalogoUseCase(m.produtos)
+	c.atualizarCadastro = usecase.NovoAtualizarCadastroUseCase(m.clientes)
+	c.exportar = usecase.NovoExportarDadosTitularUseCase(m.clientes, c.consentimento, m.eventos, m.perfis, m.segmentos,
+		m.recomendacoes, m.produtos, m.clock)
+	c.eliminar = usecase.NovoEliminarDadosTitularUseCase(m.clientes, m.consentimentos, m.eventos, m.perfis, m.recomendacoes,
+		m.tokens, m.pedidos, m.clock)
+	c.retencao = usecase.NovoAplicarRetencaoUseCase(m.consentimentos, m.eventos, m.perfis, m.recomendacoes, m.clock, m.direitos.prazoDias)
+	c.solicitarAcesso = usecase.NovoSolicitarAcessoTitularUseCase(m.clientes, m.tokens,
+		external.NovoNotificadorSimulado(m.caixaSaida, m.clock), m.clock, m.portal.urlBase)
+	c.autenticar = usecase.NovoAutenticarTitularUseCase(m.clientes, m.tokens, m.clock)
+	c.meusDados = usecase.NovoConsultarMeusDadosUseCase(m.clientes, c.consentimento, m.pedidos)
+	c.pedirEliminacao = usecase.NovoPedirEliminacaoUseCase(m.clientes, c.consentimento, m.pedidos, m.clock)
+	c.listarPedidos = usecase.NovoListarPedidosEliminacaoUseCase(m.pedidos, m.clientes, c.consentimento)
+	c.listarCaixa = usecase.NovoListarCaixaSaidaUseCase(m.caixaSaida, m.clock)
 	return c
 }
 

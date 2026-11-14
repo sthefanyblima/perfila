@@ -58,7 +58,7 @@ func bancoDeTeste(t *testing.T, esquema string) *sql.DB {
 
 func esvaziar(t *testing.T, db *sql.DB) {
 	t.Helper()
-	_, err := db.Exec(`TRUNCATE recomendacoes_produto, perfis_cliente, eventos_comportamentais,
+	_, err := db.Exec(`TRUNCATE tokens_acesso_titular, pedidos_eliminacao, caixa_saida_simulada, recomendacoes_produto, perfis_cliente, eventos_comportamentais,
 		movimentos_consentimento, consentimentos_lgpd, clientes, produtos, segmentos`)
 	if err != nil {
 		t.Fatal(err)
@@ -78,6 +78,9 @@ func TestContratoPostgres(t *testing.T) {
 			Recomendacoes:  pg.NovoPgRecomendacaoRepository(db),
 			Consentimentos: pg.NovoPgConsentimentoRepository(db),
 			Produtos:       pg.NovoPgProdutoRepository(db),
+			Tokens:         pg.NovoPgTokenAcessoRepository(db),
+			Pedidos:        pg.NovoPgPedidoEliminacaoRepository(db),
+			CaixaSaida:     pg.NovaPgCaixaSaidaSimulada(db),
 			AdicionarSegmento: func(t *testing.T, s entity.Segmento) {
 				if _, err := db.Exec(`INSERT INTO segmentos (id, nome, descricao, criterio, prioridade, ativo)
 					VALUES ($1, $2, $3, $4, $5, $6)`, s.ID, s.Nome, s.Descricao, s.Criterio, s.Prioridade, s.Ativo); err != nil {
@@ -109,7 +112,7 @@ func TestMigracoes(t *testing.T) {
 		versoes = append(versoes, v)
 	}
 	linhas.Close()
-	if !reflect.DeepEqual(versoes, []string{"001_inicial", "002_dados_demonstracao", "003_recomendacoes_ativas_por_cliente", "004_listagem_de_clientes", "005_demonstracao_ampliada", "006_movimentos_consentimento"}) {
+	if !reflect.DeepEqual(versoes, []string{"001_inicial", "002_dados_demonstracao", "003_recomendacoes_ativas_por_cliente", "004_listagem_de_clientes", "005_demonstracao_ampliada", "006_movimentos_consentimento", "009_eliminacao_titular", "010_portal_titular"}) {
 		t.Fatalf("migrações registradas: %v", versoes)
 	}
 	aplicadas, err := pg.Migrar(ctx, db)
@@ -204,6 +207,27 @@ func TestMigracaoReconstroiMovimentos(t *testing.T) {
 	for _, sqlTexto := range []string{`UPDATE movimentos_consentimento SET versao_termo = 'v9'`, `DELETE FROM movimentos_consentimento`} {
 		if _, err := db.Exec(sqlTexto); err == nil {
 			t.Fatalf("o banco aceitou %q em movimentos_consentimento", sqlTexto)
+		}
+	}
+}
+
+// Spec: RN-17, Q-50 — a 009 só aceita data de eliminação em cadastro anonimizado e inativo.
+func TestMigracaoEliminacaoExigeAnonimizado(t *testing.T) {
+	db := bancoDeTeste(t, "teste_eliminacao")
+	casos := []struct {
+		nome, email string
+		ativo, ok   bool
+	}{
+		{"Titular eliminado", "eliminado@anonimizado.invalid", false, true},
+		{"Ana Sintética", "eliminado@anonimizado.invalid", false, false},
+		{"Titular eliminado", "c-001@exemplo.test", false, false},
+		{"Titular eliminado", "eliminado@anonimizado.invalid", true, false},
+	}
+	for i, c := range casos {
+		_, err := db.Exec(`INSERT INTO clientes (id, nome, email, data_cadastro, ativo, data_eliminacao)
+			VALUES (gen_random_uuid(), $1, $2, now(), $3, now())`, c.nome, c.email, c.ativo)
+		if (err == nil) != c.ok {
+			t.Errorf("caso %d (%+v): erro %v", i, c, err)
 		}
 	}
 }

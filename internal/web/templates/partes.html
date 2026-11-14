@@ -6,6 +6,7 @@
   <div class="pf-nav__group">
     <span class="pf-nav__heading">Clientes</span>
     <a class="pf-nav__link" href="/painel/clientes"{{if eq .Nav "clientes"}} aria-current="page"{{end}}>Clientes</a>
+    <a class="pf-nav__link" href="/painel/pedidos"{{if eq .Nav "pedidos"}} aria-current="page"{{end}}>Pedidos do titular</a>
   </div>
   <div class="pf-nav__group">
     <span class="pf-nav__heading">Configuração</span>
@@ -15,6 +16,7 @@
   <div class="pf-nav__group">
     <span class="pf-nav__heading">Operação</span>
     <a class="pf-nav__link" href="/painel/operacao"{{if eq .Nav "operacao"}} aria-current="page"{{end}}>Saúde e expiração</a>
+    {{if .Portal}}<a class="pf-nav__link" href="/painel/operacao/caixa-saida"{{if eq .Nav "caixa"}} aria-current="page"{{end}}>Caixa de saída (simulada)</a>{{end}}
   </div>
   <div class="pf-nav__foot">
     <span class="pf-nav__op"><span class="pf-nav__avatar" aria-hidden="true">{{slice .Operador 0 1}}</span>{{.Operador}}</span>
@@ -55,25 +57,29 @@
         {{if .Cliente.Ativo}}<span>Ativo</span>{{else}}{{template "tag" "INATIVO"}}{{end}}
       </div>
     </div>
-    <div id="selo-consentimento" class="pf-consent pf-consent--compact pf-consent--{{estado .Consentimento.Status}}" data-teste="selo" data-estado="{{estado .Consentimento.Status}}">
-      <span class="pf-consent__seal" aria-hidden="true">{{icone (iconeEstado (estado .Consentimento.Status))}}</span>
+    <div id="selo-consentimento" class="pf-consent pf-consent--compact pf-consent--{{.EstadoSelo}}" data-teste="selo" data-estado="{{.EstadoSelo}}">
+      <span class="pf-consent__seal" aria-hidden="true">{{icone (iconeEstado .EstadoSelo)}}</span>
       <div>
-        <div class="pf-consent__state"><span class="pf-sr">Consentimento: </span>{{rotulo (estado .Consentimento.Status)}}</div>
+        <div class="pf-consent__state"><span class="pf-sr">{{if .Eliminado}}Dados do titular: {{else}}Consentimento: {{end}}</span>{{rotulo .EstadoSelo}}</div>
         <div class="pf-consent__sub">
-          {{- if eq (estado .Consentimento.Status) "CONCEDIDO"}}Desde {{dataHora .Consentimento.DataConsentimento}} · termo {{.Consentimento.VersaoTermo}}
+          {{- if .Eliminado}}Eliminado em {{dataHoraPtr .Cliente.DataEliminacao}}
+          {{- else if eq (estado .Consentimento.Status) "CONCEDIDO"}}Desde {{dataHora .Consentimento.DataConsentimento}} · termo {{.Consentimento.VersaoTermo}}
           {{- else if eq (estado .Consentimento.Status) "REVOGADO"}}Revogado em {{dataHoraPtr .Consentimento.DataRevogacao}}
           {{- else}}Nenhum consentimento registrado{{end -}}
         </div>
       </div>
-      {{if ne .Aba "consentimento"}}<div class="pf-consent__actions">{{template "acao-consentimento" .}}</div>{{end}}
+      {{if and (ne .Aba "consentimento") (not .Eliminado)}}<div class="pf-consent__actions">{{template "acao-consentimento" .}}</div>{{end}}
     </div>
   </div>
 </header>
+{{if not .Eliminado}}
 <nav class="pf-tabs" aria-label="Seções da ficha">
   <a class="pf-tab" href="/painel/clientes/{{.Cliente.ID}}"{{if eq .Aba "visao"}} aria-current="page"{{end}}>Visão geral</a>
   <a class="pf-tab" href="/painel/clientes/{{.Cliente.ID}}/eventos"{{if eq .Aba "eventos"}} aria-current="page"{{end}}>Eventos{{if .Valido}}<span class="pf-tab__count">{{len .Eventos}}</span>{{end}}</a>
   <a class="pf-tab" href="/painel/clientes/{{.Cliente.ID}}/consentimento"{{if eq .Aba "consentimento"}} aria-current="page"{{end}}>Consentimento</a>
+  <a class="pf-tab" href="/painel/clientes/{{.Cliente.ID}}/direitos"{{if eq .Aba "direitos"}} aria-current="page"{{end}}>Direitos do titular</a>
 </nav>
+{{end}}
 {{end}}{{end}}
 
 {{define "acao-consentimento"}}
@@ -85,7 +91,8 @@
 {{end}}
 
 {{define "dialogos-consentimento"}}
-{{if eq (estado .D.Consentimento.Status) "CONCEDIDO"}}
+{{if .D.Eliminado}}
+{{else if eq (estado .D.Consentimento.Status) "CONCEDIDO"}}
 <dialog class="pf-dialog" id="dlg-revogar" aria-labelledby="dlg-revogar-titulo">{{template "form-consentimento" (formConsentimento .D .CSRF "revogar" true)}}</dialog>
 {{else}}
 <dialog class="pf-dialog" id="dlg-conceder" aria-labelledby="dlg-conceder-titulo">{{template "form-consentimento" (formConsentimento .D .CSRF "conceder" true)}}</dialog>
