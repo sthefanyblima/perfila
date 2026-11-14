@@ -50,7 +50,7 @@ Vira **Spec v1.3** antes do código (ordem Spec → features → código; regist
 | `ProdutoRepository.ListarTodos(ctx)` | Catálogo completo para a tela de catálogo |
 | Casos de uso de leitura | `ListarClientesUseCase` (com estado do consentimento por linha; o segmento só aparece com CONCEDIDO), `ConsultarClienteUseCase` (cadastro + consentimento, sem exigir consentimento, como UC-08), `ConsultarResultadoUseCase` (perfil, segmento e recomendações, com RN-01), `ListarSegmentosUseCase`, `ListarCatalogoUseCase` |
 | Índice de busca | Migração `004`: índice em `clientes (data_cadastro DESC)` e `lower(nome)` |
-| Configuração nova | `PAINEL_USUARIO`, `PAINEL_SENHA_HASH`, `PAINEL_CHAVE_SESSAO` (32 bytes em hex), `PAINEL_VERSAO_TERMO` (padrão `v1`), `PAINEL_FINALIDADE` (padrão `segmentacao`); gerados por `scripts/preparar-implantacao.sh` |
+| Configuração nova | `PAINEL_USUARIO`, `PAINEL_SENHA_HASH`, `PAINEL_CHAVE_SESSAO` (32 bytes em hex), `PAINEL_VERSAO_TERMO` (padrão `v1`) (desde a v1.9, `PAINEL_FINALIDADE` não existe mais, Q-48, e entra `PUBLICOS_ARQUIVO_HORAS`, Q-51); gerados por `scripts/preparar-implantacao.sh` |
 
 ## Sessão, CSRF e cabeçalhos
 

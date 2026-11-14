@@ -24,6 +24,7 @@ var (
 	ErrPerfilNaoEncontrado        = &Erro{"perfil_nao_encontrado", "perfil ausente ou ainda sem segmento"}
 	ErrSemProdutoElegivel         = &Erro{"sem_produto_elegivel", "nenhum produto elegível para recomendação"}
 	ErrConsentimentoNaoEncontrado = &Erro{"consentimento_nao_encontrado", "registro de consentimento inexistente"}
+	ErrArquivoIndisponivel        = &Erro{"arquivo_indisponivel", "arquivo de público inexistente, apagado ou vencido"} // v1.9, Q-51
 )
 
 // Codigo devolve o código do erro de domínio contido em err, ou "" se não houver.

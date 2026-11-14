@@ -27,8 +27,10 @@ type Config struct {
 	PainelUsuario     string
 	PainelSenhaHash   string // bcrypt; vazia = painel desligado
 	PainelChaveSessao []byte // 32 bytes (64 dígitos hexadecimais); vazia = painel desligado
-	PainelFinalidade  string
-	PainelVersaoTermo string
+	PainelVersaoTermo string // PAINEL_FINALIDADE deixou de existir na v1.9 (Q-48): é ignorada
+
+	// Públicos para campanha (v1.9, Q-51).
+	PublicosArquivoHoras int // por quanto tempo o arquivo pode ser baixado, de 1 a 168
 }
 
 // PainelLigado informa se o painel /painel deve ser montado (Q-29).
@@ -74,6 +76,10 @@ func Carregar(path string, getenv func(string) string) (Config, error) {
 		RecomendacaoValidadeDias: inteiro("RECOMENDACAO_VALIDADE_DIAS", 30, 1),
 		EngajamentoMetaEventos:   inteiro("ENGAJAMENTO_META_EVENTOS", 30, 1),
 		LogLevel:                 strings.ToLower(valor("LOG_LEVEL")),
+		PublicosArquivoHoras:     inteiro("PUBLICOS_ARQUIVO_HORAS", 24, 1),
+	}
+	if c.PublicosArquivoHoras > 168 {
+		problemas = append(problemas, fmt.Sprintf("PUBLICOS_ARQUIVO_HORAS deve ser no máximo 168 (recebido %d)", c.PublicosArquivoHoras))
 	}
 	if c.LogLevel == "" {
 		c.LogLevel = "info"
@@ -103,7 +109,6 @@ func (c *Config) lerPainel(valor func(string) string) []string {
 		return p
 	}
 	c.PainelUsuario = padrao("PAINEL_USUARIO", "operador")
-	c.PainelFinalidade = padrao("PAINEL_FINALIDADE", "segmentacao")
 	c.PainelVersaoTermo = padrao("PAINEL_VERSAO_TERMO", "v1")
 	c.PainelSenhaHash = valor("PAINEL_SENHA_HASH")
 	chave := valor("PAINEL_CHAVE_SESSAO")

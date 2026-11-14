@@ -63,7 +63,7 @@ func TestCarregarArquivo(t *testing.T) {
 func TestCarregarPainel(t *testing.T) {
 	chave := strings.Repeat("ab", 32)
 	c, err := Carregar("", env(map[string]string{"AUTH_TOKEN": "t"}))
-	if err != nil || c.PainelLigado() || c.PainelUsuario != "operador" || c.PainelFinalidade != "segmentacao" || c.PainelVersaoTermo != "v1" {
+	if err != nil || c.PainelLigado() || c.PainelUsuario != "operador" || c.PainelVersaoTermo != "v1" {
 		t.Fatalf("padrões do painel: %+v (%v)", c, err)
 	}
 	c, err = Carregar("", env(map[string]string{"AUTH_TOKEN": "t", "PAINEL_SENHA_HASH": "$2a$10$x", "PAINEL_CHAVE_SESSAO": chave}))

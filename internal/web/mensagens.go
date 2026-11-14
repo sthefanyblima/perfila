@@ -24,7 +24,15 @@ func mensagem(err error, contexto string) (titulo, texto string) {
 		return "Consentimento já concedido", "O consentimento já está concedido. Para mudar a versão do termo, revogue e conceda de novo."
 	case errs.ErrPerfilNaoEncontrado.Codigo:
 		return "Ainda não processado", "Este cliente ainda não foi processado. Use \"Processar agora\"."
+	case errs.ErrArquivoIndisponivel.Codigo:
+		return "Arquivo indisponível", "Este arquivo não está mais disponível. Gere um novo, se precisar."
 	case errs.ErrDadosInvalidos.Codigo:
+		switch contexto {
+		case "publico-exportar":
+			return "Público vazio", "Nenhum cliente entra neste público. Nada foi gerado."
+		case "publico-remocoes":
+			return "Sem remoção pendente", "Não há remoção pendente neste segmento. Nada foi gerado."
+		}
 		return "Dados inválidos", "Confira os campos destacados e tente de novo."
 	}
 	return "Algo falhou do nosso lado", "As etapas concluídas antes da falha ficaram salvas. Tente de novo; se continuar, informe o código da requisição à equipe técnica."
@@ -45,6 +53,8 @@ func statusDe(err error) int {
 		return http.StatusForbidden
 	case errs.ErrDadosInvalidos.Codigo:
 		return http.StatusUnprocessableEntity
+	case errs.ErrArquivoIndisponivel.Codigo:
+		return http.StatusGone
 	}
 	return http.StatusInternalServerError
 }
@@ -59,6 +69,8 @@ func aviso(codigo, n string) string {
 		return "Consentimento concedido"
 	case "consentimento-revogado":
 		return "Consentimento revogado"
+	case "arquivo-gerado":
+		return "Arquivo gerado"
 	case "evento-registrado":
 		return "Evento registrado"
 	case "processamento-concluido":

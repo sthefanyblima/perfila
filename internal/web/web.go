@@ -20,7 +20,6 @@ type Dependencias struct {
 	Usuario     string // PAINEL_USUARIO
 	SenhaHash   []byte // bcrypt de PAINEL_SENHA_HASH
 	ChaveSessao []byte // PAINEL_CHAVE_SESSAO (32 bytes)
-	Finalidade  string // PAINEL_FINALIDADE (Q-25)
 	VersaoTermo string // PAINEL_VERSAO_TERMO (Q-25)
 
 	Cadastrar          *usecase.CadastrarClienteUseCase
@@ -34,6 +33,12 @@ type Dependencias struct {
 	ListarCatalogo     *usecase.ListarCatalogoUseCase
 	Expirar            *usecase.ExpirarRecomendacoesUseCase
 	MetaEventos        int // ENGAJAMENTO_META_EVENTOS, para explicar o score
+
+	// Públicos para campanha (v1.9, UC-06 parcial, RN-17, RN-18).
+	GerarPublico         *usecase.GerarPublicoUseCase
+	ExportarPublico      *usecase.ExportarPublicoUseCase
+	Relatorio            *usecase.RelatorioAgregadoSegmentosUseCase
+	PublicosArquivoHoras int // PUBLICOS_ARQUIVO_HORAS, para o texto da confirmação (Q-51)
 
 	Clock port.Clock
 	Log   *slog.Logger
@@ -69,7 +74,7 @@ func NovoRouter(d Dependencias) (http.Handler, error) {
 		http.Redirect(w, r, "/painel/clientes", http.StatusSeeOther)
 	}))
 	for _, rotas := range []func(*http.ServeMux, func(http.HandlerFunc) http.Handler){
-		p.rotasClientes, p.rotasFicha, p.rotasConfiguracao,
+		p.rotasClientes, p.rotasFicha, p.rotasConfiguracao, p.rotasPublicos,
 	} {
 		rotas(mux, sessao)
 	}

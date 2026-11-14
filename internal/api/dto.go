@@ -22,6 +22,11 @@ type ConcederConsentimentoRequest struct {
 	VersaoTermo string `json:"versaoTermo"`
 }
 
+// RevogarConsentimentoRequest [ADIÇÃO] v1.9: opcional; sem corpo, segmentacao (Q-48).
+type RevogarConsentimentoRequest struct {
+	Finalidade string `json:"finalidade"`
+}
+
 type RegistrarEventoRequest struct {
 	Tipo      string    `json:"tipo"`
 	Origem    string    `json:"origem"`
@@ -54,6 +59,8 @@ type ConsentimentoResponse struct {
 	DataConsentimento *time.Time `json:"dataConsentimento,omitempty"`
 	DataRevogacao     *time.Time `json:"dataRevogacao,omitempty"`
 	DataAtualizacao   time.Time  `json:"dataAtualizacao"`
+	// Finalidades [ADIÇÃO] v1.9: um item por finalidade (Q-48); só na resposta de topo.
+	Finalidades []ConsentimentoResponse `json:"finalidades,omitempty"`
 }
 
 type EventoResponse struct {
@@ -109,7 +116,7 @@ func clienteDTO(c entity.Cliente) ClienteResponse {
 func consentimentoDTO(c entity.ConsentimentoLGPD) ConsentimentoResponse {
 	r := ConsentimentoResponse{
 		ClienteID: c.ClienteID.String(), Status: string(c.Status), Valido: c.EstaValido(),
-		Finalidade: c.Finalidade, VersaoTermo: c.VersaoTermo, DataRevogacao: c.DataRevogacao,
+		Finalidade: string(c.Finalidade), VersaoTermo: c.VersaoTermo, DataRevogacao: c.DataRevogacao,
 		DataAtualizacao: c.DataAtualizacao,
 	}
 	if !c.DataConsentimento.IsZero() {

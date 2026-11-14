@@ -90,10 +90,19 @@ func (p *painel) fichaConsentimento(w http.ResponseWriter, r *http.Request) {
 
 func acaoValida(a string) bool { return a == "conceder" || a == "revogar" }
 
-// GET /painel/clientes/{id}/consentimento/{acao} — confirmação sem JavaScript (o diálogo, com JS).
+// finalidadeDe lê a finalidade da query ou do formulário; sem ela, segmentacao (v1.9, Q-48).
+func finalidadeDe(r *http.Request) entity.Finalidade {
+	if f := strings.TrimSpace(r.FormValue("finalidade")); f != "" {
+		return entity.Finalidade(f)
+	}
+	return entity.FinalidadeSegmentacao
+}
+
+// GET /painel/clientes/{id}/consentimento/{acao}?finalidade= — confirmação sem JavaScript (o
+// diálogo, com JS). Spec: 3.7.1, Q-48.
 func (p *painel) confirmarConsentimento(w http.ResponseWriter, r *http.Request) {
-	acao := r.PathValue("acao")
-	if !acaoValida(acao) {
+	acao, f := r.PathValue("acao"), finalidadeDe(r)
+	if !acaoValida(acao) || !f.Valida() {
 		p.naoEncontrada(w, r)
 		return
 	}
@@ -101,12 +110,13 @@ func (p *painel) confirmarConsentimento(w http.ResponseWriter, r *http.Request) 
 	if !ok {
 		return
 	}
-	d.Confirmar = acao
+	d.Confirmar, d.Concessao.Finalidade = acao, string(f)
 	p.renderFicha(w, r, http.StatusOK, d)
 }
 
-// POST /painel/clientes/{id}/consentimento/{acao} — UC-08 Conceder ou Revogar, depois PRG para a
-// ficha com o selo novo. Transição recusada pelo domínio volta à confirmação com o motivo.
+// POST /painel/clientes/{id}/consentimento/{acao} — UC-08 Conceder ou Revogar da finalidade do
+// formulário, depois PRG para a ficha com o selo novo. Transição recusada pelo domínio volta à
+// confirmação com o motivo. Spec: 3.7.1, RN-10, Q-48.
 func (p *painel) alterarConsentimento(w http.ResponseWriter, r *http.Request) {
 	acao := r.PathValue("acao")
 	id, ok := idDaRota(r)
@@ -114,26 +124,27 @@ func (p *painel) alterarConsentimento(w http.ResponseWriter, r *http.Request) {
 		p.naoEncontrada(w, r)
 		return
 	}
-	f := formConsentimento{Finalidade: strings.TrimSpace(r.PostFormValue("finalidade")), VersaoTermo: strings.TrimSpace(r.PostFormValue("versaoTermo"))}
+	fin := finalidadeDe(r)
+	f := formConsentimento{Finalidade: string(fin), VersaoTermo: strings.TrimSpace(r.PostFormValue("versaoTermo"))}
 	ctx := usecase.ComOrigem(r.Context(), entity.OrigemPainel, sessaoDe(r).Operador) // RN-10: quem fez, pelo painel
 	var err error
 	if acao == "conceder" {
-		if f.Finalidade == "" {
-			f.ErroFinalidade = "Informe para que os dados serão usados."
-		}
 		if f.VersaoTermo == "" {
 			f.ErroVersao = "Informe a versão do termo que o titular aceitou."
-		}
-		if f.ErroFinalidade == "" && f.ErroVersao == "" {
-			err = p.d.Consentimento.Conceder(ctx, id, f.Finalidade, f.VersaoTermo)
+		} else {
+			err = p.d.Consentimento.Conceder(ctx, id, fin, f.VersaoTermo)
 		}
 	} else {
-		err = p.d.Consentimento.Revogar(ctx, id)
+		err = p.d.Consentimento.Revogar(ctx, id, fin)
 	}
-	if err == nil && f.ErroFinalidade == "" && f.ErroVersao == "" {
-		p.acao(r, acao+"_consentimento", id.String())
+	if err == nil && f.ErroVersao == "" {
+		nome, destino := acao+"_consentimento", fmt.Sprintf("/painel/clientes/%s", id)
+		if fin == entity.FinalidadePublicidadeTerceiros {
+			nome, destino = acao+"_publicidade", destino+"/consentimento"
+		}
+		p.acao(r, nome, id.String())
 		aviso := map[string]string{"conceder": "consentimento-concedido", "revogar": "consentimento-revogado"}[acao]
-		http.Redirect(w, r, fmt.Sprintf("/painel/clientes/%s?aviso=%s", id, aviso), http.StatusSeeOther)
+		http.Redirect(w, r, destino+"?aviso="+aviso, http.StatusSeeOther)
 		return
 	}
 	d, ok := p.carregarFicha(w, r, "consentimento")

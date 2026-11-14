@@ -32,7 +32,7 @@ func registrarPassosHistorico(sc *godog.ScenarioContext, m *Mundo) {
 	sc.Step(`^o cliente "([^"]*)" concede consentimento para a finalidade "([^"]*)" com o termo "([^"]*)" pela origem "([^"]*)" com o operador "([^"]*)"$`,
 		func(nome, finalidade, termo, origem, operador string) error {
 			ctx := usecase.ComOrigem(m.ctx, entity.OrigemMovimento(origem), operador)
-			m.err = m.uc().consentimento.Conceder(ctx, id(nome), finalidade, termo)
+			m.err = m.uc().consentimento.Conceder(ctx, id(nome), entity.Finalidade(finalidade), termo)
 			return nil
 		})
 	sc.Step(`^o último movimento do cliente "([^"]*)" é "([^"]*)" com a origem "([^"]*)" e o operador "([^"]*)"$`,
@@ -80,9 +80,9 @@ func (m *Mundo) tevesMovimentos(nome string, t *godog.Table) error {
 		}
 		switch linha["acao"] {
 		case "conceder":
-			err = m.uc().consentimento.Conceder(ctx, id(nome), "segmentacao", linha["termo"])
+			err = m.uc().consentimento.Conceder(ctx, id(nome), entity.FinalidadeSegmentacao, linha["termo"])
 		case "revogar":
-			err = m.uc().consentimento.Revogar(ctx, id(nome))
+			err = m.uc().consentimento.Revogar(ctx, id(nome), entity.FinalidadeSegmentacao)
 		default:
 			err = fmt.Errorf("ação de consentimento desconhecida: %q", linha["acao"])
 		}

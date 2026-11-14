@@ -13,6 +13,7 @@ import (
 	"perfila/internal/application/usecase"
 	"perfila/internal/domain/entity"
 	"perfila/internal/domain/service"
+	"perfila/internal/infra/external"
 	"perfila/internal/infra/memoria"
 	"perfila/internal/infra/relogio"
 )
@@ -29,6 +30,7 @@ type Mundo struct {
 	recomendacoes  *memoria.RecomendacaoRepository
 	consentimentos *memoria.ConsentimentoRepository
 	produtos       *memoria.ProdutoRepository
+	publicos       *memoria.PublicoRepository // v1.9, RN-17
 
 	metaEventos  int
 	validadeDias int
@@ -50,12 +52,15 @@ type Mundo struct {
 	web                    estadoWeb
 
 	api estadoAPI
+
+	pub estadoPublicos // v1.9, RN-17
 }
 
 // Padrões da Spec 3.8.
 const (
 	metaPadrao     = 30
 	validadePadrao = 30
+	horasArquivo   = 24 // PUBLICOS_ARQUIVO_HORAS (Q-51)
 )
 
 func novoMundo() *Mundo {
@@ -69,6 +74,7 @@ func novoMundo() *Mundo {
 		recomendacoes:  memoria.NovoRecomendacaoRepository(),
 		consentimentos: memoria.NovoConsentimentoRepository(),
 		produtos:       memoria.NovoProdutoRepository(),
+		publicos:       memoria.NovoPublicoRepository(),
 		metaEventos:    metaPadrao,
 		validadeDias:   validadePadrao,
 	}
@@ -90,15 +96,26 @@ type casos struct {
 	listarSegmentos    *usecase.ListarSegmentosUseCase
 	listarCatalogo     *usecase.ListarCatalogoUseCase
 	expirar            *usecase.ExpirarRecomendacoesUseCase
+
+	gerarPublico    *usecase.GerarPublicoUseCase
+	exportarPublico *usecase.ExportarPublicoUseCase
+	relatorio       *usecase.RelatorioAgregadoSegmentosUseCase
 }
 
 func (m *Mundo) uc() casos {
-	pre := usecase.NovasPrecondicoes(m.clientes, service.NovoValidadorLGPD(m.consentimentos))
+	validador := service.NovoValidadorLGPD(m.consentimentos)
+	pre := usecase.NovasPrecondicoes(m.clientes, validador)
 	coletar := usecase.NovoColetarDadosUseCase(pre, m.eventos, m.clock)
+	gerar := usecase.NovoGerarPublicoUseCase(m.clientes, m.perfis, m.segmentos, m.publicos, validador)
 	c := casos{
-		cadastrar:     usecase.NovoCadastrarClienteUseCase(m.clientes, m.clock),
-		consentimento: usecase.NovoGerenciarConsentimentoUseCase(m.clientes, m.consentimentos, m.clock),
-		coletar:       coletar,
+		cadastrar: usecase.NovoCadastrarClienteUseCase(m.clientes, m.clock),
+		consentimento: usecase.NovoGerenciarConsentimentoUseCase(m.clientes, m.consentimentos, m.clock,
+			usecase.NovoPropagarRevogacaoUseCase(m.publicos, m.clock, m.pub.logger())),
+		gerarPublico: gerar,
+		exportarPublico: usecase.NovoExportarPublicoUseCase(gerar, m.publicos, external.DestinoArquivoCSV{}, m.clock,
+			horasArquivo, m.pub.logger()),
+		relatorio: usecase.NovoRelatorioAgregadoSegmentosUseCase(m.segmentos, m.perfis, m.clientes, validador),
+		coletar:   coletar,
 		gerarPerfil: usecase.NovoGerarPerfilUseCase(pre, coletar,
 			service.NovoPerfilamentoService(m.clock, m.metaEventos), m.perfis),
 		segmentar: usecase.NovoSegmentarClienteUseCase(pre, m.perfis, service.NovoSegmentacaoService(m.segmentos)),

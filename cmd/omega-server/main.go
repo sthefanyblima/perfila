@@ -32,6 +32,7 @@ import (
 	"perfila/internal/domain/port"
 	"perfila/internal/domain/service"
 	"perfila/internal/infra/config"
+	"perfila/internal/infra/external"
 	"perfila/internal/infra/memoria"
 	"perfila/internal/infra/relogio"
 	"perfila/internal/infra/repository/pg"
@@ -135,6 +136,7 @@ type repositorios struct {
 	segmentos      port.SegmentoRepository
 	recomendacoes  port.RecomendacaoRepository
 	consentimentos port.ConsentimentoRepository
+	publicos       port.PublicoRepository // v1.9, RN-17
 	produtos       port.ProdutoRepository
 	saude          func(ctx context.Context) error // nil no modo memória (Q-19)
 	migracoes      string                          // versão do esquema, para a tela de Operação
@@ -163,7 +165,13 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 		usecase.NovoGerarRecomendacaoUseCase(pre, repos.perfis, repos.segmentos,
 			service.NovoRecomendacaoService(repos.produtos, clock), repos.recomendacoes, clock, cfg.RecomendacaoValidadeDias, log))
 	cadastrar := usecase.NovoCadastrarClienteUseCase(repos.clientes, clock)
-	consentimento := usecase.NovoGerenciarConsentimentoUseCase(repos.clientes, repos.consentimentos, clock)
+	validador := service.NovoValidadorLGPD(repos.consentimentos)
+	propagar := usecase.NovoPropagarRevogacaoUseCase(repos.publicos, clock, log)
+	consentimento := usecase.NovoGerenciarConsentimentoUseCase(repos.clientes, repos.consentimentos, clock, propagar)
+	gerarPublico := usecase.NovoGerarPublicoUseCase(repos.clientes, repos.perfis, repos.segmentos, repos.publicos, validador)
+	exportarPublico := usecase.NovoExportarPublicoUseCase(gerarPublico, repos.publicos, external.DestinoArquivoCSV{},
+		clock, cfg.PublicosArquivoHoras, log)
+	relatorio := usecase.NovoRelatorioAgregadoSegmentosUseCase(repos.segmentos, repos.perfis, repos.clientes, validador)
 	expirar := usecase.NovoExpirarRecomendacoesUseCase(repos.recomendacoes, clock)
 	deps := api.Dependencias{
 		AuthToken:     cfg.AuthToken,
@@ -181,8 +189,10 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 	if cfg.PainelLigado() {
 		painel, err := web.NovoRouter(web.Dependencias{
 			Usuario: cfg.PainelUsuario, SenhaHash: []byte(cfg.PainelSenhaHash), ChaveSessao: cfg.PainelChaveSessao,
-			Finalidade: cfg.PainelFinalidade, VersaoTermo: cfg.PainelVersaoTermo,
-			Cadastrar: cadastrar, Consentimento: consentimento, Coletar: coletar, Processar: processar,
+			VersaoTermo:  cfg.PainelVersaoTermo,
+			GerarPublico: gerarPublico, ExportarPublico: exportarPublico, Relatorio: relatorio,
+			PublicosArquivoHoras: cfg.PublicosArquivoHoras,
+			Cadastrar:            cadastrar, Consentimento: consentimento, Coletar: coletar, Processar: processar,
 			ListarClientes:     usecase.NovoListarClientesUseCase(repos.clientes, repos.consentimentos, repos.perfis, repos.segmentos),
 			ConsultarCliente:   usecase.NovoConsultarClienteUseCase(repos.clientes, consentimento),
 			ConsultarResultado: usecase.NovoConsultarResultadoUseCase(pre, repos.eventos, repos.perfis, repos.segmentos, repos.recomendacoes, repos.produtos),
@@ -222,6 +232,7 @@ func repositoriosEmMemoria() repositorios {
 		segmentos:      segmentos,
 		recomendacoes:  memoria.NovoRecomendacaoRepository(),
 		consentimentos: memoria.NovoConsentimentoRepository(),
+		publicos:       memoria.NovoPublicoRepository(),
 		produtos:       produtos,
 		fechar:         func() {},
 	}
@@ -247,6 +258,7 @@ func repositoriosPostgres(ctx context.Context, url string, log *slog.Logger) (re
 		segmentos:      pg.NovoPgSegmentoRepository(db),
 		recomendacoes:  pg.NovoPgRecomendacaoRepository(db),
 		consentimentos: pg.NovoPgConsentimentoRepository(db),
+		publicos:       pg.NovoPgPublicoRepository(db),
 		produtos:       pg.NovoPgProdutoRepository(db),
 		saude:          db.PingContext,
 		migracoes:      pg.UltimaMigracao(),

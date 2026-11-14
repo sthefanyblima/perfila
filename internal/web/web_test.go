@@ -142,7 +142,7 @@ func TestTelasCarregam(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, n := range []string{"entrar", "erro", "clientes", "novo", "ficha", "confirmar", "segmentos", "catalogo", "operacao"} {
+	for _, n := range []string{"entrar", "erro", "clientes", "novo", "ficha", "confirmar", "segmentos", "catalogo", "operacao", "publicos", "relatorio"} {
 		if ts[n] == nil {
 			t.Errorf("tela %s não carregou", n)
 		}

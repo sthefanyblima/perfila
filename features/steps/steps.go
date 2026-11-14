@@ -26,6 +26,9 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 	registrarPassosWeb(sc, m)
 	registrarPassosImplantacao(sc)
 	registrarPassosConfiguracao(sc, m)
+	registrarPassosFinalidade(sc, m)
+	registrarPassosPublicos(sc, m)
+	registrarPassosPublicosWeb(sc, m)
 
 	// ---- comuns ----
 	sc.Step(`^que a data atual é "([^"]*)"$`, m.dataAtual)
@@ -61,7 +64,7 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 	})
 	sc.Step(`^o consentimento do cliente cadastrado está no estado "([^"]*)"$`, m.estadoConsentimentoCadastrado)
 	sc.Step(`^que o cliente cadastrado concedeu consentimento para a finalidade "([^"]*)" com o termo "([^"]*)"$`, func(f, t string) error {
-		return m.uc().consentimento.Conceder(m.ctx, m.clienteCadastrado.ID, f, t)
+		return m.uc().consentimento.Conceder(m.ctx, m.clienteCadastrado.ID, entity.Finalidade(f), t)
 	})
 	sc.Step(`^o perfil do cliente cadastrado é gerado$`, func() error {
 		m.perfil, m.err = m.uc().gerarPerfil.Executar(m.ctx, m.clienteCadastrado.ID)
@@ -161,17 +164,23 @@ func (m *Mundo) clienteInativo(nome string) error {
 	return m.clientes.Salvar(m.ctx, c)
 }
 
-// consentimentoNoEstado monta o estado inicial usando as próprias transições do domínio.
+// consentimentoNoEstado monta o estado inicial da segmentacao (a finalidade dos cenários
+// anteriores à v1.9) usando as próprias transições do domínio.
 func (m *Mundo) consentimentoNoEstado(nome, estado string) error {
-	cid := id(nome)
+	return m.consentimentoNoEstadoPara(nome, string(entity.FinalidadeSegmentacao), estado)
+}
+
+// consentimentoNoEstadoPara monta o estado inicial de uma finalidade. Spec: Q-48.
+func (m *Mundo) consentimentoNoEstadoPara(nome, finalidade, estado string) error {
+	cid, f := id(nome), entity.Finalidade(finalidade)
 	agora := m.clock.Agora()
 	switch entity.StatusConsentimento(estado) {
 	case entity.StatusNaoConcedido:
-		m.consentimentos.Remover(cid)
+		m.consentimentos.Remover(cid, f)
 		return nil
 	case entity.StatusConcedido, entity.StatusRevogado:
-		c := entity.NovoConsentimento(uuid.New(), cid, agora)
-		if err := c.Conceder("segmentacao", "v1", agora); err != nil {
+		c := entity.NovoConsentimento(uuid.New(), cid, f, agora)
+		if err := c.Conceder(f, "v1", agora); err != nil {
 			return err
 		}
 		if estado == string(entity.StatusRevogado) {
@@ -204,12 +213,16 @@ func (m *Mundo) semErro() error {
 // ======================= consentimento =======================
 
 func (m *Mundo) concede(nome, finalidade, termo string) error {
-	m.err = m.uc().consentimento.Conceder(m.ctx, id(nome), finalidade, termo)
+	m.err = m.uc().consentimento.Conceder(m.ctx, id(nome), entity.Finalidade(finalidade), termo)
 	return nil
 }
 
 func (m *Mundo) revoga(nome string) error {
-	m.err = m.uc().consentimento.Revogar(m.ctx, id(nome))
+	return m.revogaPara(nome, string(entity.FinalidadeSegmentacao))
+}
+
+func (m *Mundo) revogaPara(nome, finalidade string) error {
+	m.err = m.uc().consentimento.Revogar(m.ctx, id(nome), entity.Finalidade(finalidade))
 	return nil
 }
 
@@ -224,12 +237,16 @@ func (m *Mundo) tentaConsentimento(nome, acao string) error {
 }
 
 func (m *Mundo) consulta(nome string) error {
-	m.consentimento, m.err = m.uc().consentimento.Consultar(m.ctx, id(nome))
+	m.consentimento, m.err = m.uc().consentimento.Consultar(m.ctx, id(nome), entity.FinalidadeSegmentacao)
 	return nil
 }
 
 func (m *Mundo) recarregaConsentimento(nome string) error {
-	c, err := m.uc().consentimento.Consultar(m.ctx, id(nome))
+	return m.recarregaConsentimentoPara(nome, string(entity.FinalidadeSegmentacao))
+}
+
+func (m *Mundo) recarregaConsentimentoPara(nome, finalidade string) error {
+	c, err := m.uc().consentimento.Consultar(m.ctx, id(nome), entity.Finalidade(finalidade))
 	if err != nil {
 		return err
 	}
@@ -730,7 +747,7 @@ func (m *Mundo) cadastradoAtivo() error {
 }
 
 func (m *Mundo) estadoConsentimentoCadastrado(estado string) error {
-	c, err := m.uc().consentimento.Consultar(m.ctx, m.clienteCadastrado.ID)
+	c, err := m.uc().consentimento.Consultar(m.ctx, m.clienteCadastrado.ID, entity.FinalidadeSegmentacao)
 	if err != nil {
 		return err
 	}

@@ -20,7 +20,7 @@ func TestConsentimentoLocal(t *testing.T) {
 	if ok, err := g.Validar(ctx, id); ok || err != nil {
 		t.Fatalf("sem registro deveria ser inválido: %v %v", ok, err)
 	}
-	c := entity.NovoConsentimento(uuid.New(), id, time.Now())
+	c := entity.NovoConsentimento(uuid.New(), id, entity.FinalidadeSegmentacao, time.Now())
 	if err := c.Conceder("segmentacao", "v1", time.Now()); err != nil {
 		t.Fatal(err)
 	}

@@ -178,10 +178,12 @@
 {{else}}
   <section class="pf-panel" aria-labelledby="titulo-consentimento" data-teste="consentimento-completo">
     <div class="pf-panel__head">
-      <h2 class="pf-panel__title" id="titulo-consentimento">Registro do consentimento</h2>
+      <h2 class="pf-panel__title" id="titulo-consentimento">Segmentação</h2>
+      <span data-teste="selo-finalidade" data-finalidade="segmentacao" data-estado="{{estado .Consentimento.Status}}">{{template "tag" (estado .Consentimento.Status)}}</span>
       <div class="pf-consent__actions">{{template "acao-consentimento" .}}</div>
     </div>
     <div class="pf-panel__body">
+    <p class="pf-muted pf-small">Perfil, segmento e recomendação: uso interno.</p>
     <dl class="pf-kv">
       <dt>Finalidade</dt><dd>{{if .Consentimento.Finalidade}}{{.Consentimento.Finalidade}}{{else}}—{{end}}</dd>
       <dt>Versão do termo</dt><dd>{{if .Consentimento.VersaoTermo}}{{.Consentimento.VersaoTermo}}{{else}}—{{end}}</dd>
@@ -205,6 +207,39 @@
         {{end}}
       </ol>
       {{if .PelasDatas}}<p class="pf-muted pf-small" data-teste="aviso-linha-pelas-datas">Linha montada pelas datas do registro. Os movimentos anteriores a ela não foram guardados.</p>{{end}}
+    </div>
+  </section>
+  <section class="pf-panel" aria-labelledby="titulo-publicidade" data-teste="consentimento-publicidade">
+    <div class="pf-panel__head">
+      <h2 class="pf-panel__title" id="titulo-publicidade">Publicidade com terceiros</h2>
+      <span data-teste="selo-finalidade" data-finalidade="publicidade_terceiros" data-estado="{{estado .Publicidade.Status}}">{{template "tag" (estado .Publicidade.Status)}}</span>
+      <div class="pf-consent__actions">
+        {{- if eq (estado .Publicidade.Status) "CONCEDIDO"}}
+        <a class="pf-btn pf-btn--danger" href="/painel/clientes/{{.Cliente.ID}}/consentimento/revogar?finalidade=publicidade_terceiros" data-teste="acao-revogar-publicidade">Revogar publicidade</a>
+        {{- else}}
+        <a class="pf-btn" href="/painel/clientes/{{.Cliente.ID}}/consentimento/conceder?finalidade=publicidade_terceiros" data-teste="acao-conceder-publicidade">{{if eq (estado .Publicidade.Status) "REVOGADO"}}Conceder publicidade novamente{{else}}Conceder publicidade{{end}}</a>
+        {{- end}}
+      </div>
+    </div>
+    <div class="pf-panel__body">
+    <p class="pf-muted pf-small">Entrar nos públicos enviados a plataformas de anúncio, só pelo e-mail em hash.</p>
+    {{if and (eq (estado .Publicidade.Status) "CONCEDIDO") (ne (estado .Consentimento.Status) "CONCEDIDO")}}{{template "alerta" (alertaInfo "Sem a Segmentação" "Sem a Segmentação, este cliente não entra em nenhum público.")}}{{end}}
+    <dl class="pf-kv">
+      <dt>Versão do termo</dt><dd>{{if .Publicidade.VersaoTermo}}{{.Publicidade.VersaoTermo}}{{else}}—{{end}}</dd>
+      <dt>Data do consentimento</dt><dd class="pf-num">{{dataHora .Publicidade.DataConsentimento}}</dd>
+      <dt>Data da revogação</dt><dd class="pf-num">{{dataHoraPtr .Publicidade.DataRevogacao}}</dd>
+    </dl>
+    {{with .LinhaPublicidade}}
+      <ol class="pf-marcos">
+        {{range .}}
+        <li class="pf-marco pf-marco--{{.Icone}}" data-teste="marco-publicidade">
+          <span class="pf-marco__ico" aria-hidden="true">{{icone .Icone}}</span>
+          <div><strong>{{.Titulo}}</strong><br><span class="pf-muted pf-small">{{.Detalhe}}</span></div>
+          <span class="pf-marco__data pf-num">{{dataHora .Data}}</span>
+        </li>
+        {{end}}
+      </ol>
+    {{else}}<p class="pf-muted pf-small">Nenhuma concessão registrada para esta finalidade.</p>{{end}}
     </div>
   </section>
 {{end}}

@@ -88,6 +88,19 @@ Prova de cada concessão e revogação (Q-34, RN-10, L-06). Base para os públic
 | T-45 | Painel: origem `painel` com o operador; linha do tempo pelo histórico, com a linha pelas datas para quem não tem movimentos | T-44 | cenários `@web` do histórico | ✅ 4 cenários `@web`; `TestDetalheMovimento`, `TestLinhaPeloHistorico` |
 | T-46 | Exemplos (Karina: v1, revoga, v2) conferidos pelo histórico; checklist L-06; README; fluxo no navegador | T-45 | `TestCarregarExemplos`; painel conferido | ✅ Karina com v1 pela API, revogação e v2 pelo painel; L-06 atendido; fluxo conferido no navegador; cobertura 91,0% |
 
+## Públicos para campanhas — Spec v1.9
+
+Consentimento por finalidade e UC-06 parcial, "Criar público para campanha" (Q-48 a Q-54, RN-17, RN-18; fecha L-04). Branch `feat/publicos`. Numeradas depois das tarefas das branches abertas (T-47 a T-68) para não colidir.
+
+| ID | Tarefa | Depende de | Prova | Status |
+|---|---|---|---|---|
+| T-69 | Spec v1.9 (Q-48 a Q-54, RN-17, RN-18, UC-06 parcial, contratos, ports, rotas, configuração), UML1, UML2, UML5, UML7 e UML8 em texto, design (telas e textos) e `features/publicos.feature` (`@aplicacao`, `@api`, `@web`, `@lgpd`) em `@wip` | T-46 | revisão; cenários vermelhos | ✅ |
+| T-70 | Domínio: `Finalidade`, consentimento por finalidade, `MembroPublico` e `HashEmail`; `ConsentimentoRepository` por finalidade na memória e no PostgreSQL; `Precondicoes` com `segmentacao` (L-04); migração 009 inteira (consentimento e as tabelas de públicos, para não ter duas migrações) | T-69 | testes de tabela; contrato nos dois backends; cenários de finalidade | ✅ `TestConsentimentoPorFinalidade`, `TestMembroPublicoTransicoes`, `TestHashEmail`, `TestMigracaoFinalidades`; contrato `Consentimento` por finalidade (memória e PostgreSQL 16); 7 cenários `@aplicacao` de finalidade |
+| T-71 | Ports e infraestrutura: `PublicoRepository` (memória, PostgreSQL, contrato), `PerfilRepository.ListarPorSegmento`, `DestinoPublicitarioGateway` em CSV | T-70 | contrato nos dois backends; `TestDestinoCSV` | ✅ contrato `PerfilPorSegmento` e `Publico` (memória e PostgreSQL 16); `TestDestinoCSV` |
+| T-72 | Casos de uso `GerarPublico`, `ExportarPublico`, `PropagarRevogacao` (chamado por UC-08 `Revogar`) e `RelatorioAgregadoSegmentos`; finalidade na API | T-71 | cenários `@aplicacao`, `@api` e `@lgpd` de `publicos.feature` | ✅ 36 cenários de `publicos.feature` (`@aplicacao`, `@dominio`, `@api`); 206 no verify; cobertura domínio + aplicação 88,9% |
+| T-73 | Painel: conceder e revogar cada finalidade na ficha (selo e linha do tempo por finalidade), tela Públicos (contagem, gerar e baixar, histórico, remoções pendentes) e relatório agregado | T-72 | cenários `@web` de `publicos.feature` | ✅ 10 cenários `@web` de `publicos_painel.feature` (a parte `@web` ficou em arquivo próprio); 216 no verify |
+| T-74 | Exemplos com a finalidade nova (e uma revogação), checklist LGPD (L-04 e itens novos), README e roteiro; fluxo no navegador | T-73 | `TestCarregarExemplos`; painel conferido | ✅ `TestCarregarExemplos` (Ana, Bruno, Heitor e Isabela com a publicidade; Carla revogou); checklist L-04 e L-33 a L-40; fluxo no navegador: conceder a publicidade, gerar e baixar, revogar, remoção pendente e arquivo de remoção |
+
 ## Fechamento
 
 | Data | Marco |

@@ -40,6 +40,8 @@ type EventoRepository interface {
 type PerfilRepository interface {
 	Salvar(ctx context.Context, p entity.PerfilCliente) (entity.PerfilCliente, error)
 	BuscarPorCliente(ctx context.Context, clienteID uuid.UUID) (entity.PerfilCliente, error)
+	// ListarPorSegmento [ADIÇÃO] v1.9: os perfis do segmento, em ordem de ClienteID. Spec: RN-17, RN-18.
+	ListarPorSegmento(ctx context.Context, segmentoID uuid.UUID) ([]entity.PerfilCliente, error)
 }
 
 // SegmentoRepository. ListarAtivos devolve em ordem crescente de Prioridade (RN-06).
@@ -56,12 +58,15 @@ type RecomendacaoRepository interface {
 	ListarPorCliente(ctx context.Context, clienteID uuid.UUID) ([]entity.RecomendacaoProduto, error)       // [ADIÇÃO] Q-23: DataGeracao decrescente
 }
 
-// ConsentimentoRepository. Salvar faz upsert por ClienteID, sem movimento (cargas e testes).
+// ConsentimentoRepository guarda um registro por (ClienteID, Finalidade) desde a v1.9 (Q-48).
+// Salvar faz upsert por (ClienteID, Finalidade), sem movimento (cargas e testes).
 // BuscarPorCliente devolve errs.ErrConsentimentoNaoEncontrado se não existir.
-// Spec: 3.6, RN-10, Q-34.
+// Spec: 3.6, RN-02, RN-10, Q-34, Q-48.
 type ConsentimentoRepository interface {
 	Salvar(ctx context.Context, c entity.ConsentimentoLGPD) error
-	BuscarPorCliente(ctx context.Context, clienteID uuid.UUID) (entity.ConsentimentoLGPD, error)
+	BuscarPorCliente(ctx context.Context, clienteID uuid.UUID, finalidade entity.Finalidade) (entity.ConsentimentoLGPD, error)
+	// ListarPorCliente [ADIÇÃO] v1.9: só os registros que existem, em ordem de Finalidade.
+	ListarPorCliente(ctx context.Context, clienteID uuid.UUID) ([]entity.ConsentimentoLGPD, error)
 	// Registrar [ADIÇÃO] v1.4: upsert do registro e inclusão do movimento numa operação atômica;
 	// ID de movimento repetido falha sem gravar nada.
 	Registrar(ctx context.Context, c entity.ConsentimentoLGPD, m entity.MovimentoConsentimento) error
@@ -73,6 +78,28 @@ type ConsentimentoRepository interface {
 type ProdutoRepository interface {
 	ListarAtivosPorCategoria(ctx context.Context, categoria string) ([]entity.Produto, error)
 	ListarTodos(ctx context.Context) ([]entity.Produto, error) // [ADIÇÃO] Q-23: por Categoria e Nome
+}
+
+// PublicoRepository [ADIÇÃO] v1.9 guarda as exportações de públicos, o conteúdo dos arquivos
+// (até ArquivoExpiraEm) e os membros. Spec: 3.6, RN-17, Q-51.
+type PublicoRepository interface {
+	// RegistrarExportacao é atômica: insere a exportação e o conteúdo, insere os membros novos e
+	// atualiza os existentes; exportação repetida falha sem gravar nada.
+	RegistrarExportacao(ctx context.Context, e entity.ExportacaoPublico, conteudo []byte, membros []entity.MembroPublico) error
+	ListarExportacoes(ctx context.Context, segmentoID uuid.UUID) ([]entity.ExportacaoPublico, error) // Data decrescente
+	// BuscarArquivo devolve errs.ErrArquivoIndisponivel se não houver conteúdo.
+	BuscarArquivo(ctx context.Context, exportacaoID uuid.UUID) (entity.ExportacaoPublico, []byte, error)
+	ApagarArquivosVencidos(ctx context.Context, agora time.Time) (int, error)                                                       // ArquivoExpiraEm <= agora
+	ListarMembrosPorSegmento(ctx context.Context, segmentoID uuid.UUID, status entity.StatusMembro) ([]entity.MembroPublico, error) // por HashEmail
+	ListarMembrosPorCliente(ctx context.Context, clienteID uuid.UUID, status entity.StatusMembro) ([]entity.MembroPublico, error)   // por HashEmail
+	// AtualizarMembros grava estado e datas; ID inexistente falha sem gravar nada.
+	AtualizarMembros(ctx context.Context, ms []entity.MembroPublico) error
+}
+
+// DestinoPublicitarioGateway [ADIÇÃO] v1.9 entrega o lote a uma plataforma de anúncio. No MVP,
+// gera um arquivo CSV (infra/external); trocar por API não muda os casos de uso. Spec: RN-17, Q-49.
+type DestinoPublicitarioGateway interface {
+	Enviar(ctx context.Context, lote entity.LotePublico) (entity.ReciboEnvio, error)
 }
 
 // ConsentimentoGateway — MVP: implementação local sobre ConsentimentoRepository (fase Support).

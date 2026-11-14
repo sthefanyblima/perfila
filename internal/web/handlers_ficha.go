@@ -38,21 +38,24 @@ type formEvento struct {
 	Erros                                  map[string]string
 }
 
+// formConsentimento: a finalidade vem do botão (campo oculto, Q-48); só o termo é editável.
 type formConsentimento struct {
-	Finalidade, VersaoTermo    string
-	ErroFinalidade, ErroVersao string
+	Finalidade, VersaoTermo string
+	ErroVersao              string
 }
 
 // dadosFicha alimenta as três abas da ficha (docs/design/02-telas-e-fluxos.md, Ficha do cliente).
 type dadosFicha struct {
-	Aba           string
-	Cliente       entity.Cliente
-	Consentimento entity.ConsentimentoLGPD
-	Movimentos    []entity.MovimentoConsentimento // ordem cronológica (RN-10); vazio = linha pelas datas
-	Valido        bool                            // consentimento CONCEDIDO: comportamento pode ser lido (inativo: só leitura, Q-31)
-	Bloqueio      *alerta                         // sem consentimento: nada de comportamento é lido
-	Inativo       *alerta                         // cadastro inativo com consentimento: histórico só para leitura
-	Falha         *alerta                         // processamento ou registro que acabou de falhar
+	Aba            string
+	Cliente        entity.Cliente
+	Consentimento  entity.ConsentimentoLGPD
+	Movimentos     []entity.MovimentoConsentimento // da segmentacao, ordem cronológica (RN-10); vazio = linha pelas datas
+	Publicidade    entity.ConsentimentoLGPD        // v1.9 (Q-48): o registro de publicidade_terceiros
+	MovPublicidade []entity.MovimentoConsentimento // v1.9: os movimentos de publicidade_terceiros
+	Valido         bool                            // consentimento CONCEDIDO: comportamento pode ser lido (inativo: só leitura, Q-31)
+	Bloqueio       *alerta                         // sem consentimento: nada de comportamento é lido
+	Inativo        *alerta                         // cadastro inativo com consentimento: histórico só para leitura
+	Falha          *alerta                         // processamento ou registro que acabou de falhar
 
 	Resultado     *usecase.ResultadoCliente
 	Processado    bool
@@ -72,6 +75,25 @@ type dadosFicha struct {
 }
 
 func (d dadosFicha) PodeConceder() bool { return d.Consentimento.Status != entity.StatusConcedido }
+
+// EhPublicidade: a confirmação aberta é da finalidade publicidade_terceiros (v1.9, Q-48).
+func (d dadosFicha) EhPublicidade() bool {
+	return d.Concessao.Finalidade == string(entity.FinalidadePublicidadeTerceiros)
+}
+
+// LinhaPublicidade: os movimentos de publicidade_terceiros, do mais recente para o mais antigo.
+func (d dadosFicha) LinhaPublicidade() []marco {
+	ms := make([]marco, 0, len(d.MovPublicidade))
+	for i := len(d.MovPublicidade) - 1; i >= 0; i-- {
+		m := d.MovPublicidade[i]
+		mc := marco{Data: m.Data, Titulo: "Publicidade revogada", Icone: "barra", Detalhe: detalheMovimento(m)}
+		if m.Tipo == entity.MovimentoConcessao {
+			mc.Titulo, mc.Icone = "Publicidade concedida", "ok"
+		}
+		ms = append(ms, mc)
+	}
+	return ms
+}
 
 // PodeAgir: processar e registrar eventos exigem RN-01 completa (consentimento e cliente ativo).
 func (d dadosFicha) PodeAgir() bool { return d.Valido && d.Cliente.Ativo }
@@ -150,7 +172,7 @@ func (d dadosFicha) marcosPelasDatas() []marco {
 	var ms []marco
 	if !c.DataConsentimento.IsZero() {
 		m := marco{Data: c.DataConsentimento, Titulo: "Consentimento concedido", Icone: "ok",
-			Detalhe: "Finalidade " + c.Finalidade + " · termo " + c.VersaoTermo}
+			Detalhe: "Finalidade " + string(c.Finalidade) + " · termo " + c.VersaoTermo}
 		if c.DataRevogacao != nil && c.DataRevogacao.Before(c.DataConsentimento) {
 			m.Titulo = "Consentimento concedido novamente"
 		}
@@ -185,8 +207,18 @@ func (p *painel) carregarFicha(w http.ResponseWriter, r *http.Request, aba strin
 		p.falha(w, r, err, "")
 		return dadosFicha{}, false
 	}
-	d := dadosFicha{Aba: aba, Cliente: ficha.Cliente, Consentimento: ficha.Consentimento, Movimentos: ficha.Historico, MetaEventos: p.d.MetaEventos,
-		Concessao: formConsentimento{Finalidade: p.d.Finalidade, VersaoTermo: p.d.VersaoTermo}}
+	d := dadosFicha{Aba: aba, Cliente: ficha.Cliente, Consentimento: ficha.Consentimento, MetaEventos: p.d.MetaEventos,
+		Concessao: formConsentimento{Finalidade: string(entity.FinalidadeSegmentacao), VersaoTermo: p.d.VersaoTermo}}
+	if len(ficha.Finalidades) > 1 {
+		d.Publicidade = ficha.Finalidades[1]
+	}
+	for _, m := range ficha.Historico { // cada linha do tempo com a sua finalidade (Q-48)
+		if m.FinalidadeEfetiva() == entity.FinalidadePublicidadeTerceiros {
+			d.MovPublicidade = append(d.MovPublicidade, m)
+		} else {
+			d.Movimentos = append(d.Movimentos, m)
+		}
+	}
 	d.Valido = ficha.Consentimento.EstaValido()
 	if !d.Valido {
 		d.Bloqueio = p.alertaBloqueio(d)

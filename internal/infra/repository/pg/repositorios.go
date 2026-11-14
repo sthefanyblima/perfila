@@ -227,6 +227,31 @@ func (r *PgPerfilRepository) BuscarPorCliente(ctx context.Context, clienteID uui
 	return p, nil
 }
 
+// ListarPorSegmento devolve os perfis do segmento, em ordem de ClienteID. Spec: 3.6, RN-17, RN-18.
+func (r *PgPerfilRepository) ListarPorSegmento(ctx context.Context, segmentoID uuid.UUID) ([]entity.PerfilCliente, error) {
+	linhas, err := r.db.QueryContext(ctx, `
+		SELECT id, cliente_id, frequencia_compras, ticket_medio, categoria_preferida, score_engajamento
+		FROM perfis_cliente WHERE segmento_id = $1 ORDER BY cliente_id`, segmentoID)
+	if err != nil {
+		return nil, fmt.Errorf("pg: listando perfis do segmento %s: %w", segmentoID, err)
+	}
+	defer linhas.Close()
+	out := []entity.PerfilCliente{}
+	for linhas.Next() {
+		var p entity.PerfilCliente
+		if err := linhas.Scan(&p.ID, &p.ClienteID, &p.FrequenciaCompras, &p.TicketMedio, &p.CategoriaPreferida, &p.ScoreEngajamento); err != nil {
+			return nil, fmt.Errorf("pg: lendo perfil do segmento %s: %w", segmentoID, err)
+		}
+		s := segmentoID
+		p.SegmentoID = &s
+		out = append(out, p)
+	}
+	if err := linhas.Err(); err != nil {
+		return nil, fmt.Errorf("pg: listando perfis do segmento %s: %w", segmentoID, err)
+	}
+	return out, nil
+}
+
 // ---------- Segmento ----------
 
 // PgSegmentoRepository lê `segmentos` (populados por migração). Spec: UC-03, RN-06.
@@ -355,7 +380,7 @@ type executor interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 }
 
-// Salvar faz upsert por ClienteID e preserva o ID original.
+// Salvar faz upsert por (ClienteID, Finalidade) e preserva o ID original. Spec: Q-48.
 func (r *PgConsentimentoRepository) Salvar(ctx context.Context, c entity.ConsentimentoLGPD) error {
 	return salvarConsentimento(ctx, r.db, c)
 }
@@ -412,10 +437,10 @@ func salvarConsentimento(ctx context.Context, ex executor, c entity.Consentiment
 		INSERT INTO consentimentos_lgpd (id, cliente_id, status, finalidade, versao_termo,
 			data_consentimento, data_revogacao, data_atualizacao)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-		ON CONFLICT (cliente_id) DO UPDATE SET status = EXCLUDED.status, finalidade = EXCLUDED.finalidade,
+		ON CONFLICT (cliente_id, finalidade) DO UPDATE SET status = EXCLUDED.status,
 			versao_termo = EXCLUDED.versao_termo, data_consentimento = EXCLUDED.data_consentimento,
 			data_revogacao = EXCLUDED.data_revogacao, data_atualizacao = EXCLUDED.data_atualizacao`,
-		c.ID, c.ClienteID, string(c.Status), c.Finalidade, c.VersaoTermo,
+		c.ID, c.ClienteID, string(c.Status), string(c.Finalidade), c.VersaoTermo,
 		nuloSeZero(c.DataConsentimento), nulo(c.DataRevogacao), c.DataAtualizacao.UTC())
 	if err != nil {
 		return fmt.Errorf("pg: salvando consentimento do cliente %s: %w", c.ClienteID, err)
@@ -423,22 +448,54 @@ func salvarConsentimento(ctx context.Context, ex executor, c entity.Consentiment
 	return nil
 }
 
-// BuscarPorCliente devolve errs.ErrConsentimentoNaoEncontrado se não houver registro.
-func (r *PgConsentimentoRepository) BuscarPorCliente(ctx context.Context, clienteID uuid.UUID) (entity.ConsentimentoLGPD, error) {
-	var c entity.ConsentimentoLGPD
-	var status string
-	var concessao, revogacao sql.NullTime
-	err := r.db.QueryRowContext(ctx, `
-		SELECT id, cliente_id, status, finalidade, versao_termo, data_consentimento, data_revogacao, data_atualizacao
-		FROM consentimentos_lgpd WHERE cliente_id = $1`, clienteID).
-		Scan(&c.ID, &c.ClienteID, &status, &c.Finalidade, &c.VersaoTermo, &concessao, &revogacao, &c.DataAtualizacao)
+// BuscarPorCliente devolve errs.ErrConsentimentoNaoEncontrado se não houver registro da finalidade.
+func (r *PgConsentimentoRepository) BuscarPorCliente(ctx context.Context, clienteID uuid.UUID, finalidade entity.Finalidade) (entity.ConsentimentoLGPD, error) {
+	c, err := lerConsentimento(r.db.QueryRowContext(ctx, `
+		SELECT `+colunasConsentimento+` FROM consentimentos_lgpd WHERE cliente_id = $1 AND finalidade = $2`,
+		clienteID, string(finalidade)))
 	if errors.Is(err, sql.ErrNoRows) {
 		return entity.ConsentimentoLGPD{}, errs.ErrConsentimentoNaoEncontrado
 	}
 	if err != nil {
 		return entity.ConsentimentoLGPD{}, fmt.Errorf("pg: buscando consentimento do cliente %s: %w", clienteID, err)
 	}
-	c.Status = entity.StatusConsentimento(status)
+	return c, nil
+}
+
+// ListarPorCliente devolve os registros existentes, em ordem de finalidade. Spec: 3.6, Q-48.
+func (r *PgConsentimentoRepository) ListarPorCliente(ctx context.Context, clienteID uuid.UUID) ([]entity.ConsentimentoLGPD, error) {
+	linhas, err := r.db.QueryContext(ctx, `
+		SELECT `+colunasConsentimento+` FROM consentimentos_lgpd WHERE cliente_id = $1 ORDER BY finalidade`, clienteID)
+	if err != nil {
+		return nil, fmt.Errorf("pg: listando consentimentos do cliente %s: %w", clienteID, err)
+	}
+	defer linhas.Close()
+	out := []entity.ConsentimentoLGPD{}
+	for linhas.Next() {
+		c, err := lerConsentimento(linhas)
+		if err != nil {
+			return nil, fmt.Errorf("pg: lendo consentimento do cliente %s: %w", clienteID, err)
+		}
+		out = append(out, c)
+	}
+	if err := linhas.Err(); err != nil {
+		return nil, fmt.Errorf("pg: listando consentimentos do cliente %s: %w", clienteID, err)
+	}
+	return out, nil
+}
+
+const colunasConsentimento = `id, cliente_id, status, finalidade, versao_termo, data_consentimento, data_revogacao, data_atualizacao`
+
+type escaneavel interface{ Scan(dest ...any) error }
+
+func lerConsentimento(l escaneavel) (entity.ConsentimentoLGPD, error) {
+	var c entity.ConsentimentoLGPD
+	var status, finalidade string
+	var concessao, revogacao sql.NullTime
+	if err := l.Scan(&c.ID, &c.ClienteID, &status, &finalidade, &c.VersaoTermo, &concessao, &revogacao, &c.DataAtualizacao); err != nil {
+		return entity.ConsentimentoLGPD{}, err
+	}
+	c.Status, c.Finalidade = entity.StatusConsentimento(status), entity.Finalidade(finalidade)
 	if concessao.Valid {
 		c.DataConsentimento = concessao.Time.UTC()
 	}
