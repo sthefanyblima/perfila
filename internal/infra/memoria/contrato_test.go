@@ -21,6 +21,9 @@ func TestContratoMemoria(t *testing.T) {
 			Recomendacoes:     memoria.NovoRecomendacaoRepository(),
 			Consentimentos:    memoria.NovoConsentimentoRepository(),
 			Produtos:          produtos,
+			Tokens:            memoria.NovoTokenAcessoRepository(),
+			Pedidos:           memoria.NovoPedidoEliminacaoRepository(),
+			CaixaSaida:        memoria.NovaCaixaSaidaSimulada(),
 			AdicionarSegmento: func(_ *testing.T, s entity.Segmento) { segmentos.Adicionar(s) },
 			AdicionarProduto:  func(_ *testing.T, p entity.Produto) { produtos.Adicionar(p) },
 		}

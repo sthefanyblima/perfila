@@ -58,7 +58,7 @@ func bancoDeTeste(t *testing.T, esquema string) *sql.DB {
 
 func esvaziar(t *testing.T, db *sql.DB) {
 	t.Helper()
-	_, err := db.Exec(`TRUNCATE recomendacoes_produto, perfis_cliente, eventos_comportamentais,
+	_, err := db.Exec(`TRUNCATE tokens_acesso_titular, pedidos_eliminacao, caixa_saida_simulada, recomendacoes_produto, perfis_cliente, eventos_comportamentais,
 		movimentos_consentimento, consentimentos_lgpd, clientes, produtos, segmentos`)
 	if err != nil {
 		t.Fatal(err)
@@ -78,6 +78,9 @@ func TestContratoPostgres(t *testing.T) {
 			Recomendacoes:  pg.NovoPgRecomendacaoRepository(db),
 			Consentimentos: pg.NovoPgConsentimentoRepository(db),
 			Produtos:       pg.NovoPgProdutoRepository(db),
+			Tokens:         pg.NovoPgTokenAcessoRepository(db),
+			Pedidos:        pg.NovoPgPedidoEliminacaoRepository(db),
+			CaixaSaida:     pg.NovaPgCaixaSaidaSimulada(db),
 			AdicionarSegmento: func(t *testing.T, s entity.Segmento) {
 				if _, err := db.Exec(`INSERT INTO segmentos (id, nome, descricao, criterio, prioridade, ativo)
 					VALUES ($1, $2, $3, $4, $5, $6)`, s.ID, s.Nome, s.Descricao, s.Criterio, s.Prioridade, s.Ativo); err != nil {
@@ -109,7 +112,7 @@ func TestMigracoes(t *testing.T) {
 		versoes = append(versoes, v)
 	}
 	linhas.Close()
-	if !reflect.DeepEqual(versoes, []string{"001_inicial", "002_dados_demonstracao", "003_recomendacoes_ativas_por_cliente", "004_listagem_de_clientes", "005_demonstracao_ampliada", "006_movimentos_consentimento", "009_eliminacao_titular"}) {
+	if !reflect.DeepEqual(versoes, []string{"001_inicial", "002_dados_demonstracao", "003_recomendacoes_ativas_por_cliente", "004_listagem_de_clientes", "005_demonstracao_ampliada", "006_movimentos_consentimento", "009_eliminacao_titular", "010_portal_titular"}) {
 		t.Fatalf("migrações registradas: %v", versoes)
 	}
 	aplicadas, err := pg.Migrar(ctx, db)
