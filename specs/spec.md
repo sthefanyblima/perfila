@@ -2,7 +2,7 @@
 
 **Perfila — Sistema de Segmentação e Perfilamento do Comportamento do Cliente — Go**
 
-Equipe Omega · GoLang & CLP · Documento 1 de 3 · **Versão 1.9 (13/11/2026)** · Base: Módulos 1 a 5 (casos de uso, classes, pacotes, sequência, estados, componentes e implantação), transcritos em `docs/uml/UML1..UML8`
+Equipe Omega · GoLang & CLP · Documento 1 de 3 · **Versão 1.10 (14/11/2026)** · Base: Módulos 1 a 5 (casos de uso, classes, pacotes, sequência, estados, componentes e implantação), transcritos em `docs/uml/UML1..UML8`
 
 ## Como usar este documento
 
@@ -34,9 +34,9 @@ Os diagramas foram feitos em módulos diferentes e nem sempre concordam. Para o 
 | Servidores, contêineres e configuração | Diagrama de Implantação (Mód. 5) | UML8 | Ver D-21 |
 | Trechos de código dos Mód. 2 e 3 | Nenhuma | — | São didáticos e divergem do modelo (D-11) |
 
-**Dentro do MVP:** UC-01, UC-02, UC-03, UC-04, UC-08 e UC-09 (cadastro, D-22) de ponta a ponta, como no diagrama de sequência, com consentimento obrigatório, API HTTP, PostgreSQL e implantação em contêineres; desde a v1.3, também o **painel web do operador** (`/painel`, Q-20), com as regras visuais e de texto do design system "Perfila Console" (`docs/design/`, ajustado pela Q-27); desde a v1.9, os **direitos do titular** pelo painel (correção, acesso e portabilidade, eliminação) e a **retenção** após a revogação (Q-48 a Q-53, RN-17, RN-18).
+**Dentro do MVP:** UC-01, UC-02, UC-03, UC-04, UC-08 e UC-09 (cadastro, D-22) de ponta a ponta, como no diagrama de sequência, com consentimento obrigatório, API HTTP, PostgreSQL e implantação em contêineres; desde a v1.3, também o **painel web do operador** (`/painel`, Q-20), com as regras visuais e de texto do design system "Perfila Console" (`docs/design/`, ajustado pela Q-27); desde a v1.9, os **direitos do titular** pelo painel (correção, acesso e portabilidade, eliminação) e a **retenção** após a revogação (Q-48 a Q-53, RN-17, RN-18); desde a v1.10, o **portal do titular** (`/titular`, Q-55 a Q-60): o próprio cliente entra por um link de uso único enviado por e-mail, vê e revoga o consentimento, concede de novo, baixa os próprios dados e pede a eliminação (RN-19, RN-20).
 
-**Fora do MVP:** UC-05, UC-06 e UC-07 (D-04); portal do titular (fase 2, Q-20); notificação real ao cliente; autenticação JWT e perfis de acesso; gestão de segmentos pela API (segmentos entram por migração); rotas da API para os direitos do titular (ficam para o portal, Q-53).
+**Fora do MVP:** UC-05, UC-06 e UC-07 (D-04); notificação real ao cliente (o portal usa uma caixa de saída simulada, Q-57); autenticação JWT e perfis de acesso; gestão de segmentos pela API (segmentos entram por migração); rotas da API JSON para os direitos do titular (o titular os exerce pelo portal, Q-53, Q-55).
 
 ## 2. Constituição
 
@@ -80,6 +80,17 @@ Casos de uso de aplicação dos direitos do titular [ADIÇÃO, v1.9, Q-48 a Q-53
 | `ExportarDadosTitularUseCase` (acesso e portabilidade, art. 18, II e V) | Não: o próprio titular recebe o que o sistema guarda (Q-49) | Painel |
 | `EliminarDadosTitularUseCase` (eliminação, art. 18, VI; RN-17) | Não; recusada com consentimento CONCEDIDO (Q-50) | Painel |
 | `AplicarRetencaoUseCase` (RN-18) | Não: atinge só quem revogou (Q-51) | Subcomando `aplicar-retencao` e painel |
+
+Titular [ADIÇÃO, v1.10, Q-55]: é o ator Cliente do UML1 quando age sozinho, pelo portal `/titular`, sobre os próprios dados (UC-08 e os direitos do titular). Entra por um link de uso único (RN-19) e só alcança o próprio cadastro.
+
+| Caso de uso de aplicação | Exige consentimento (RN-01) | Usado por |
+|---|---|---|
+| `SolicitarAcessoTitularUseCase` (RN-19) | Não: só procura o cadastro pelo e-mail e envia o link | Portal |
+| `AutenticarTitularUseCase` (RN-19) | Não: confere o link | Portal |
+| `ConsultarMeusDadosUseCase` | Não: cadastro, consentimento e histórico, como `ConsultarCliente` (Q-21) | Portal |
+| UC-08 `Conceder`, `Revogar`, `Historico` e `ExportarDadosTitularUseCase` | Não (C-03) | Portal, com a origem `portal` (RN-10) |
+| `PedirEliminacaoUseCase` (RN-20) | Não; recusado com consentimento CONCEDIDO (Q-58) | Portal |
+| `ListarPedidosEliminacaoUseCase`, `ListarCaixaSaidaUseCase` | Não: a operação acompanha os pedidos e a caixa de saída simulada | Painel |
 
 ### 3.2 Modelo de domínio
 
@@ -173,6 +184,36 @@ type Produto struct {
     Preco     float64
     Ativo     bool
 }
+
+// [ADIÇÃO, v1.10, Q-56] Link de uso único do portal do titular. O token em claro só existe no link.
+type TokenAcessoTitular struct {
+    ID        uuid.UUID
+    ClienteID uuid.UUID
+    Hash      string     // SHA-256 do token, 64 dígitos hexadecimais minúsculos
+    CriadoEm  time.Time
+    ExpiraEm  time.Time  // CriadoEm + 30 minutos
+    UsadoEm   *time.Time // preenchida no primeiro uso
+}
+
+// [ADIÇÃO, v1.10, Q-58] Pedido de eliminação feito pelo titular no portal.
+type StatusPedido string // ABERTO, ATENDIDO
+
+type PedidoEliminacao struct {
+    ID              uuid.UUID
+    ClienteID       uuid.UUID
+    Status          StatusPedido
+    DataPedido      time.Time
+    DataAtendimento *time.Time
+}
+
+// [ADIÇÃO, v1.10, Q-57] Mensagem gravada pelo NotificadorSimulado na caixa de saída simulada.
+type MensagemSimulada struct {
+    ID        uuid.UUID
+    Para      string // e-mail mascarado (c***@exemplo.test), nunca o completo
+    Assunto   string
+    Corpo     string // texto com o link de acesso
+    EnviadaEm time.Time
+}
 ```
 
 | Entidade | Métodos | Observação |
@@ -185,6 +226,9 @@ type Produto struct {
 | Segmento | `ClassificarPerfil(p PerfilCliente) (bool, error)` | RN-06. Nome corrigido na v1.0 para o do UML2 (era `ClassificaPerfil`, contrariando C-04) |
 | RecomendacaoProduto | `NovaRecomendacao(...)` (equivale a `Gerar()`), `Disponibilizar(agora time.Time, validadeDias int) error`, `Expirar(agora time.Time) error` | Transições da seção 3.4.2 |
 | Produto | `AtualizarPreco(preco float64) error` | Preço maior ou igual a zero |
+| TokenAcessoTitular [ADIÇÃO, v1.10] | `NovoTokenAcesso(id, clienteID uuid.UUID, hash string, agora time.Time) (TokenAcessoTitular, error)`, `EstaValido(agora time.Time) bool`, `Usar(agora time.Time) error` | Hash fora do formato ou ClienteID nulo: `ErrDadosInvalidos`. ExpiraEm = agora + 30 min. Válido enquanto não usado e com agora antes de ExpiraEm. `Usar` num token inválido: `ErrAcessoInvalido`; senão, UsadoEm = agora |
+| PedidoEliminacao [ADIÇÃO, v1.10] | `NovoPedidoEliminacao(id, clienteID uuid.UUID, agora time.Time) (PedidoEliminacao, error)`, `Atender(agora time.Time) error` | Nasce ABERTO, com DataPedido = agora; ClienteID nulo: `ErrDadosInvalidos`. `Atender`: ABERTO → ATENDIDO com DataAtendimento = agora; já ATENDIDO: `ErrTransicaoInvalida` |
+| MensagemSimulada [ADIÇÃO, v1.10] | — | Só leitura depois de gravada |
 
 Desvios idiomáticos em relação aos diagramas (não são lacunas): `context.Context` como primeiro parâmetro; `error` no lugar de `bool` em `Validar` para informar a causa; construtor no lugar de `Gerar()`; tempo recebido por parâmetro ou `Clock`, nunca `time.Now()` (C-07); assinaturas dos serviços ajustadas na seção 3.6.
 
@@ -219,12 +263,19 @@ Desvios idiomáticos em relação aos diagramas (não são lacunas): `context.Co
     1. Cliente existe (`ErrClienteNaoEncontrado`) e ainda não foi eliminado (`ErrClienteEliminado`).
     2. A confirmação é o nome atual do cliente, comparado sem diferenciar maiúsculas, acentos e espaços nas pontas. Diferente: `ErrDadosInvalidos`, e nada é apagado.
     3. Consentimento CONCEDIDO: `ErrTransicaoInvalida`. É preciso revogar antes, pelo UC-08, o que deixa o movimento REVOGACAO como prova.
-    4. Apaga os eventos, o perfil e as recomendações do cliente.
-    5. Por último, `Anonimizar` e grava o cadastro.
+    4. Apaga os eventos, o perfil e as recomendações do cliente e, desde a v1.10, os tokens de acesso ao portal (Q-58).
+    5. `Anonimizar` e grava o cadastro.
+    6. Desde a v1.10 (RN-20), marca como ATENDIDO o pedido de eliminação aberto do cliente, se houver.
     - O consentimento e os movimentos ficam como prova do tratamento (art. 16, I): não têm nome nem e-mail.
     - A eliminação é irreversível. Repetir depois de uma falha conclui o pedido, porque as remoções não falham sem dados.
     - Depois dela, nenhuma escrita vale para o cliente: a correção, UC-08 Conceder e Revogar e as pré-condições RN-01 respondem `ErrClienteEliminado`. A busca pelo nome antigo não o encontra, porque o nome não existe mais. A exportação entrega o que restou.
 - **RN-18 Retenção após a revogação (v1.9, Q-51).** O comportamento (eventos, perfil e recomendações) de quem está com o consentimento REVOGADO e `DataRevogacao` há `RETENCAO_DIAS_REVOGADO` dias ou mais (menor ou igual a agora menos o prazo) é apagado por `AplicarRetencaoUseCase`. O cadastro, o consentimento e o histórico ficam. Não atinge quem concedeu de novo (CONCEDIDO), quem nunca concedeu nem quem está dentro do prazo. Devolve quantos clientes tiveram algum dado apagado; executar de novo sem nada vencido devolve 0. Executada pelo subcomando `aplicar-retencao` e pelo painel (Operação).
+- **RN-19 Acesso do titular ao portal (v1.10, Q-56).**
+    1. `SolicitarAcessoTitularUseCase` recebe um e-mail (sem espaços nas pontas; vazio ou sem `@`: `ErrDadosInvalidos`) e procura os cadastros com esse e-mail, sem diferenciar maiúsculas. Para cada cadastro não eliminado com menos de 3 links criados na última hora, gera um token de 32 bytes aleatórios, grava só o hash SHA-256 (`TokenAcessoTitular`, 30 minutos) e envia pelo `Notificador` o link `PORTAL_URL_BASE + "/titular/acesso?t=" + token`.
+    2. O resultado é o mesmo para e-mail desconhecido, cadastro eliminado e limite atingido: nada é enviado e nenhum erro é devolvido. Quem chama nunca sabe se o e-mail existe.
+    3. `AutenticarTitularUseCase` recebe o token, calcula o hash e o consome no repositório (`Consumir`, atômico): inexistente, expirado ou já usado é `ErrAcessoInvalido`, e um segundo uso do mesmo link falha mesmo em outra réplica. Cliente inexistente ou eliminado também é `ErrAcessoInvalido`. Sucesso devolve o ID do cliente, que vira a sessão do portal.
+    4. O token e o link nunca vão para o log (C-09).
+- **RN-20 Pedido de eliminação pelo portal (v1.10, Q-58).** `PedirEliminacaoUseCase` confere, nesta ordem: cliente existe (`ErrClienteNaoEncontrado`), não foi eliminado (`ErrClienteEliminado`) e o consentimento não está CONCEDIDO (`ErrTransicaoInvalida`: é preciso revogar antes, como na RN-17). Se já houver um pedido ABERTO do cliente, devolve esse mesmo pedido; senão, cria um pedido ABERTO. Quem atende é a operação, pela eliminação da RN-17, que marca o pedido como ATENDIDO. Com pedido aberto, o portal não oferece conceder de novo.
 
 ### 3.4 Máquinas de estado
 
@@ -261,7 +312,9 @@ Qualquer outra combinação: `ErrTransicaoInvalida`. O comando `expirar-recomend
 | `ErrDadosInvalidos` | Argumento, evento ou critério inválido | 422 | dados_invalidos |
 | `ErrPerfilNaoEncontrado` | Perfil ausente ou ainda sem segmento | 409 | perfil_nao_encontrado |
 | `ErrSemProdutoElegivel` | RN-07 | Não é erro HTTP: 200 com recomendação nula | sem_produto_elegivel |
+| `ErrAcessoInvalido` [v1.10] | Link do portal inexistente, expirado ou já usado; cliente do link eliminado (RN-19) | 401 | acesso_invalido |
 | `ErrConsentimentoNaoEncontrado` | Uso interno do repositório; o caso de uso traduz em NAO_CONCEDIDO | — | — |
+| `ErrPedidoNaoEncontrado` [v1.10] | Uso interno: cliente sem pedido de eliminação aberto | — | — |
 
 **UC-09 `CadastrarClienteUseCase`** [ADIÇÃO, D-22] (não exige consentimento: é o ponto de entrada do cliente)
 
@@ -317,7 +370,18 @@ Qualquer outra combinação: `ErrTransicaoInvalida`. O comando `expirar-recomend
 - `AtualizarCadastroUseCase.Executar(ctx, clienteID, nome, email string) (Cliente, error)`: cliente existe (`ErrClienteNaoEncontrado`); `AtualizarDados` (nome e e-mail obrigatórios, `ErrDadosInvalidos`; eliminado, `ErrClienteEliminado`); `ClienteRepository.Salvar`. Não exige consentimento nem cliente ativo (Q-48).
 - `ExportarDadosTitularUseCase.Executar(ctx, clienteID) (DadosTitular, error)`: cliente existe; devolve `DadosTitular` com `GeradoEm` (agora), `Cliente`, `Consentimento` (sintético em NAO_CONCEDIDO sem registro), `Historico`, `Eventos` (Timestamp crescente), `Perfil *PerfilCliente` e `Segmento *Segmento` (nulos sem perfil ou sem segmento), `Recomendacoes` (DataGeracao decrescente) e `Produtos` (os citados pelas recomendações). Lê tudo com qualquer estado do consentimento, inclusive do cliente eliminado (Q-49).
 - `EliminarDadosTitularUseCase.Executar(ctx, clienteID, confirmacao string) error`: RN-17.
-- `AplicarRetencaoUseCase.Executar(ctx) (int, error)`: RN-18. `ConsentimentoRepository.ListarRevogadosAte(ctx, agora menos o prazo)` e, para cada cliente, as remoções do passo 4 da RN-17; devolve quantos clientes tiveram algum dado apagado.
+- `AplicarRetencaoUseCase.Executar(ctx) (int, error)`: RN-18. `ConsentimentoRepository.ListarRevogadosAte(ctx, agora menos o prazo)` e, para cada cliente, as remoções do passo 4 da RN-17 (eventos, perfil e recomendações); devolve quantos clientes tiveram algum dado apagado.
+- Desde a v1.10, `NovoEliminarDadosTitularUseCase` recebe também `TokenAcessoRepository` e `PedidoEliminacaoRepository` (passos 4 e 6 da RN-17).
+
+**Casos de uso do portal do titular** [ADIÇÃO, v1.10, Q-55 a Q-59]
+
+- `SolicitarAcessoTitularUseCase.Executar(ctx, email string) error`: RN-19, passos 1 e 2. Recebe no construtor o endereço base do link (`PORTAL_URL_BASE`). Só devolve erro com e-mail vazio ou sem `@` (`ErrDadosInvalidos`) ou falha de infraestrutura.
+- `AutenticarTitularUseCase.Executar(ctx, token string) (uuid.UUID, error)`: RN-19, passo 3.
+- `ConsultarMeusDadosUseCase.Executar(ctx, clienteID) (MeusDados, error)`: cliente existe (`ErrClienteNaoEncontrado`) e não eliminado (`ErrClienteEliminado`); `MeusDados` traz `Cliente`, `Consentimento` (sintético em NAO_CONCEDIDO sem registro), `Historico` (RN-10) e `PedidoAberto *PedidoEliminacao` (nulo sem pedido aberto). Não exige consentimento (Q-21, C-03).
+- `PedirEliminacaoUseCase.Executar(ctx, clienteID) (PedidoEliminacao, error)`: RN-20.
+- `ListarPedidosEliminacaoUseCase.Executar(ctx) ([]LinhaPedido, error)`: os pedidos, abertos primeiro e depois por DataPedido decrescente, cada um com o cliente (`LinhaPedido{Pedido, Cliente}`) para a operação abrir a ficha.
+- `ListarCaixaSaidaUseCase.Executar(ctx) ([]MensagemSimulada, error)`: as mensagens das últimas 24 horas, da mais recente para a mais antiga.
+- Conceder, revogar e baixar os dados no portal usam UC-08 e `ExportarDadosTitularUseCase`, com `usecase.ComOrigem(ctx, portal, "")` (RN-10).
 
 Serviços de domínio calculam e só leem ports quando precisam (segmentos e produtos). Quem persiste resultados são os casos de uso (D-09).
 
@@ -329,6 +393,7 @@ type ClienteRepository interface {
     Salvar(ctx context.Context, c entity.Cliente) error
     BuscarPorID(ctx context.Context, id uuid.UUID) (entity.Cliente, error) // ErrClienteNaoEncontrado
     Listar(ctx context.Context, f FiltroClientes) ([]entity.Cliente, int, error) // [ADIÇÃO] Q-23: página e total
+    BuscarPorEmail(ctx context.Context, email string) ([]entity.Cliente, error) // [ADIÇÃO] v1.10 Q-59: sem diferenciar maiúsculas e espaços nas pontas; cadastro mais recente primeiro; vazio sem erro
 }
 type FiltroClientes struct { // [ADIÇÃO] Q-23
     Busca        string // vazio = todos; UUID = ID exato; senão, nome contém (sem diferenciar maiúsculas e acentos)
@@ -374,6 +439,27 @@ type IntegracaoGateway interface { // e-commerce/CRM; MVP: stub que devolve list
     BuscarEventos(ctx context.Context, clienteID uuid.UUID, desde time.Time) ([]entity.EventoComportamental, error)
 }
 type Clock interface{ Agora() time.Time }
+
+// [ADIÇÃO] v1.10 — portal do titular (Q-56 a Q-59)
+type TokenAcessoRepository interface {
+    Salvar(ctx context.Context, t entity.TokenAcessoTitular) error
+    Consumir(ctx context.Context, hash string, agora time.Time) (entity.TokenAcessoTitular, error) // marca UsadoEm de forma atômica; inexistente, expirado ou usado: ErrAcessoInvalido
+    ContarDesde(ctx context.Context, clienteID uuid.UUID, desde time.Time) (int, error)            // tokens do cliente com CriadoEm >= desde
+    RemoverPorCliente(ctx context.Context, clienteID uuid.UUID) (int, error)                       // RN-17
+}
+type PedidoEliminacaoRepository interface {
+    Salvar(ctx context.Context, p entity.PedidoEliminacao) error // insere ou atualiza por ID; um ABERTO por cliente
+    BuscarAbertoPorCliente(ctx context.Context, clienteID uuid.UUID) (entity.PedidoEliminacao, error) // ErrPedidoNaoEncontrado
+    Listar(ctx context.Context) ([]entity.PedidoEliminacao, error) // ABERTO primeiro, depois DataPedido decrescente
+}
+type Notificador interface { // MVP: NotificadorSimulado (caixa de saída simulada, Q-57)
+    EnviarLinkAcesso(ctx context.Context, para, link string, expiraEm, dataCadastro time.Time) error
+}
+type CaixaSaidaSimulada interface {
+    Guardar(ctx context.Context, m entity.MensagemSimulada) error
+    Listar(ctx context.Context, desde time.Time) ([]entity.MensagemSimulada, error) // EnviadaEm >= desde, mais recente primeiro
+    RemoverAte(ctx context.Context, limite time.Time) (int, error)                   // EnviadaEm < limite
+}
 
 // internal/domain/service
 func (s *PerfilamentoService) GerarPerfil(clienteID uuid.UUID, eventos []entity.EventoComportamental) entity.PerfilCliente
@@ -430,6 +516,8 @@ Adaptador de apresentação HTML em `internal/web` (irmão de `internal/api`, Q-
 | `GET /painel/segmentos`, `GET /painel/catalogo` | Configuração (somente leitura) | `ListarSegmentos`, `ListarCatalogo` |
 | `GET /painel/operacao`, `GET` e `POST /painel/operacao/expirar` | Saúde e expiração | `ExpirarRecomendacoes` |
 | `GET` e `POST /painel/operacao/retencao` | Aplicar retenção [v1.9] | `AplicarRetencao` |
+| `GET /painel/pedidos` | Pedidos do titular [v1.10] | `ListarPedidosEliminacao` |
+| `GET /painel/operacao/caixa-saida` | Caixa de saída (simulada) [v1.10] | `ListarCaixaSaida` |
 | `GET /painel/static/{arquivo}` | CSS, JS, fontes | — |
 
 - **Sessão (Q-22):** cookie `perfila_sessao` com `operador|expiraEm|csrf` assinado por HMAC-SHA256 (`PAINEL_CHAVE_SESSAO`), `HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/painel`, 8 h renovadas a cada uso; sem estado no servidor. Sem sessão válida, toda rota (menos Entrar e estáticos) leva a Entrar com o destino guardado; sessão vencida mostra "Sua sessão expirou." Em requisição htmx, a resposta é `HX-Redirect`.
@@ -445,9 +533,37 @@ Adaptador de apresentação HTML em `internal/web` (irmão de `internal/api`, Q-
     - Cliente eliminado: a ficha mostra o selo "Eliminado", o aviso com a data e só a linha do tempo do consentimento; nenhuma ação é oferecida.
     - A Operação ganha "Aplicar retenção", com confirmação que cita o prazo.
     - Cada pedido atendido gera o log `direito_atendido` (Q-53).
+- **Pedidos do titular e caixa de saída (v1.10, Q-57, Q-58):** "Pedidos do titular" (grupo Clientes) lista os pedidos de eliminação feitos pelo portal, abertos primeiro, com cliente, data, situação e o consentimento atual; cada linha leva à aba Direitos da ficha, que mostra o aviso "O titular pediu a eliminação pelo portal em {data}." enquanto o pedido estiver aberto. A eliminação é a mesma da v1.9 e marca o pedido como atendido. "Caixa de saída (simulada)" (grupo Operação) mostra as mensagens das últimas 24 horas (destinatário mascarado, assunto, texto com o link, data). Só aparece com o portal ligado; hoje é da pessoa operadora única (Q-22) e passa a exigir ADMINISTRADOR quando os papéis da v1.5 entrarem na main.
 - **Sem JavaScript:** formulários comuns com redirecionamento 303 no sucesso (PRG) e confirmação em página própria. Com JavaScript, o htmx (`hx-boost`) faz as mesmas requisições e troca só a área do painel (`#app`), sem recarregar a página; os diálogos usam `<dialog>` nativo. Respostas de erro (4xx e 5xx) também são exibidas.
 - **Erros:** o código estável (`errs.Codigo`) escolhe a mensagem de `docs/design/03-textos.md`; o texto técnico nunca aparece. Falha inesperada mostra o código da requisição (`X-Request-ID` do Nginx).
 - **Logs (C-09, Q-24):** método, caminho (só UUIDs) e status; nas ações, operador, ação e `clienteId`. Nunca nome, e-mail, senha nem o termo de busca. Desde a v1.9, `direito_atendido` com operador, pedido (`correcao`, `exportacao`, `eliminacao`, `retencao`) e `clienteId` (ou a quantidade, na retenção). É a auditoria dos pedidos até a v1.5 (`RegistroAuditoria`) entrar na main; aí passam a ser gravados nela e a eliminação fica restrita a ADMINISTRADOR (Q-53).
+
+### 3.7.2 Portal do titular [ADIÇÃO, v1.10]
+
+Segundo adaptador HTML de `internal/web` (Q-55), montado no mesmo `omega-server` sob `/titular`, com roteador, sessão e templates próprios; reaproveita o CSS, as fontes e o htmx do painel, servidos também em `/titular/static/`. Nenhuma rota do portal recebe ID de cliente: o cliente é sempre o da sessão. Telas e textos: `docs/design/02-telas-e-fluxos.md` e `03-textos.md` (seção Portal do titular).
+
+| Método e rota | Tela ou ação | Caso de uso |
+|---|---|---|
+| `GET /titular` | Leva a Meus dados (com sessão) ou a Entrar | — |
+| `GET /titular/entrar`, `POST /titular/entrar` | Pedir o link de acesso | `SolicitarAcessoTitular` |
+| `GET /titular/acesso?t=`, `POST /titular/acesso` | Abrir o link (não consome) e entrar (consome) | `AutenticarTitular` |
+| `POST /titular/sair` | Sair | — |
+| `GET /titular/meus-dados` | Cadastro, autorização e histórico | `ConsultarMeusDados` |
+| `GET` e `POST /titular/revogar` | Confirmar e retirar a autorização | UC-08 Revogar |
+| `GET` e `POST /titular/conceder` | Confirmar e autorizar com o termo vigente | UC-08 Conceder |
+| `GET /titular/dados` | Baixar meus dados (JSON) | `ExportarDadosTitular` |
+| `GET` e `POST /titular/eliminacao` | Confirmar e pedir a eliminação | `PedirEliminacao` |
+| `GET /titular/static/{arquivo}` | CSS, JS, fontes | — |
+
+- **Sessão (Q-55):** cookie `perfila_titular` com `clienteId|expiraEm|csrf` assinado por HMAC-SHA256 (`PORTAL_CHAVE_SESSAO`), `HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/titular`, 30 minutos renovados a cada uso; sem estado no servidor. Cada requisição com sessão chama `ConsultarMeusDados`: cliente eliminado ou inexistente encerra a sessão e leva a Entrar. Sem sessão, as rotas de Meus dados levam a Entrar; sessão vencida mostra "Sua sessão terminou. Peça um novo link para continuar."
+- **Entrar (RN-19):** formulário com o e-mail. Depois do POST, sempre o mesmo destino (`/titular/entrar?enviado=1`, PRG) e o mesmo texto: "Se o e-mail estiver cadastrado, enviamos um link de acesso. Ele vale por 30 minutos e só pode ser usado uma vez." E-mail vazio ou sem `@`: erro ao lado do campo (422). 10 pedidos por IP em 15 minutos (memória, por réplica): 429 "Muitas tentativas. Aguarde 15 minutos."
+- **Link (RN-19, Q-56):** `GET /titular/acesso?t=` só mostra o botão "Entrar no portal" (sem consumir); o POST consome e, com sucesso, grava a sessão e leva a Meus dados (303). Link inválido: 401 com "Este link não vale mais. Peça um novo." e o caminho para Entrar.
+- **CSRF:** os POST com sessão conferem o token da sessão (`_csrf` ou `X-CSRF-Token`); os POST de Entrar e do link conferem o token de um cookie próprio, `perfila_titular_entrar`. Ausente ou diferente: 403.
+- **Cabeçalhos:** os mesmos do painel (3.7.1), com `Cache-Control: no-store` nas páginas e `Referrer-Policy: same-origin`, que não deixa o token sair na navegação.
+- **Meus dados:** cadastro (nome e e-mail completos: é o próprio titular), o estado da autorização com finalidade, termo e datas, e a linha do tempo do consentimento (como a do painel, com a origem "por você, no portal" no lugar de "pelo portal do titular"). Uma ação de consentimento por tela (Q-27): "Retirar autorização" com CONCEDIDO; "Autorizar de novo" com NAO_CONCEDIDO ou REVOGADO, se não houver pedido de eliminação aberto. "Baixar meus dados (JSON)" sempre; "Pedir eliminação" sem consentimento CONCEDIDO e sem pedido aberto; com CONCEDIDO, o aviso "Para pedir a eliminação, retire a autorização antes."; com pedido aberto, "Você pediu a eliminação em {data}. A equipe vai atender o pedido."
+- **Revogar e conceder:** confirmação em página própria (sem JavaScript) ou em `<dialog>`, com o texto de `03-textos.md`; revogar com o foco inicial em Cancelar. Movimento com origem `portal` (RN-10). Conceder usa `PAINEL_FINALIDADE` e `PAINEL_VERSAO_TERMO`, que o titular não edita.
+- **Baixar meus dados:** o mesmo arquivo da v1.9 (`perfila-dados-{id}.json`, anexo, `versaoFormato` "1").
+- **Logs (C-09):** `portal_http` com método, caminho e status (nunca a query string, que leva o token) e `portal_acao` com a ação (`link_pedido`, `entrada`, `saida`, `revogacao`, `concessao`, `exportacao`, `eliminacao_pedida`) e o `clienteId` quando houver sessão. `link_pedido` não traz `clienteId` nem e-mail. Nunca nome, e-mail, token ou link.
 
 ### 3.8 Configuração, estrutura de pastas e persistência
 
@@ -465,6 +581,8 @@ Adaptador de apresentação HTML em `internal/web` (irmão de `internal/api`, Q-
 | `PAINEL_FINALIDADE` | segmentacao | Finalidade sugerida ao conceder (Q-25) |
 | `PAINEL_VERSAO_TERMO` | v1 | Versão vigente do termo (Q-25) |
 | `RETENCAO_DIAS_REVOGADO` | 180 | Prazo da RN-18 em dias, inteiro maior que zero (Q-51) |
+| `PORTAL_URL_BASE` | vazia = portal desligado (Q-60) | Endereço público do portal usado no link (`https://…`, sem barra no fim); nunca o cabeçalho `Host` |
+| `PORTAL_CHAVE_SESSAO` | vazia = portal desligado (Q-60) | Chave HMAC da sessão do titular: 64 dígitos hexadecimais, diferente da do painel |
 
 As variáveis são lidas de `config.env` ao subir o contêiner; variável obrigatória ausente aborta a inicialização com mensagem clara.
 
@@ -475,7 +593,7 @@ perfila/                          módulo Go `perfila`
   cmd/perfila-demo/main.go        [Core] demonstração do fluxo em memória
   internal/
     api/                          [Support] handlers, rotas, middlewares, DTOs
-    web/                          [v1.3] painel do operador: rotas /painel, sessão, CSRF, templates e static embutidos
+    web/                          [v1.3] painel do operador: rotas /painel, sessão, CSRF, templates e static embutidos; [v1.10] portal do titular (/titular), com sessão própria
     application/usecase/          [Core] os cinco casos de uso + ExpirarRecomendacoes + Precondicoes; [v1.3] ProcessarCliente e leituras do painel
     domain/entity/                [Core] entidades e enums (importa só uuid e shared/errs)
     domain/port/                  [Core] repositórios, gateways e Clock
@@ -498,6 +616,7 @@ Persistência e implantação:
 - PostgreSQL via `database/sql` com o driver `pgx/v5/stdlib` (Q-10); migrações em SQL versionado, embutidas no binário e aplicadas pelo `omega-server` ao subir, sob `pg_advisory_lock` e registradas em `schema_migracoes` (Q-09); uma tabela por entidade (clientes, eventos_comportamentais, perfis_cliente, segmentos, recomendacoes_produto, consentimentos_lgpd, produtos e, desde a v1.4, movimentos_consentimento), em snake_case.
 - Chaves UUID; timestamps em `timestamptz` (UTC); `UNIQUE(cliente_id)` em perfis_cliente e consentimentos_lgpd; `CHECK` nos enums de status; chaves estrangeiras para clientes. Reforços de integridade que só repetem regras já existentes: chaves estrangeiras `perfis_cliente.segmento_id → segmentos` (D-06) e `recomendacoes_produto.produto_id → produtos` (D-05); `CHECK` de valor ≥ 0 nos eventos (RN-04), score entre 0 e 1 (RN-05) e preço ≥ 0 (`Produto.AtualizarPreco`).
 - Clientes de exemplo (Q-30, Q-32): catorze clientes sintéticos com história (datas de cadastro, consentimento, revogação, eventos e recomendações ao longo de meses), criados pelos casos de uso com um relógio de carga; no modo memória ao subir, no PostgreSQL por `carregar-exemplos`, e só com o banco sem clientes.
+- A migração 010 (v1.10, Q-59) cria `tokens_acesso_titular` (hash único, chave estrangeira para clientes), `pedidos_eliminacao` (`CHECK` no status, um ABERTO por cliente por índice único parcial) e `caixa_saida_simulada`, e um índice em `lower(clientes.email)` para `BuscarPorEmail`. A suíte de contrato cobre os três ports novos e `BuscarPorEmail`.
 - A migração 009 (v1.9, Q-50) acrescenta `clientes.data_eliminacao` (nula). Recebe o número 009 porque 007 e 008 estão nas branches abertas da v1.5 e da v1.6; o migrador aplica cada versão pelo nome, seja qual for a ordem de chegada (Q-09).
 - Subcomando `aplicar-retencao` (v1.9, RN-18): o administrador o executa como `expirar-recomendacoes`; o log `retencao_aplicada` traz só a quantidade.
 - A migração 006 (v1.4, Q-34) cria `movimentos_consentimento` (chave UUID, coluna de ordem de gravação, `CHECK` em tipo e origem, operador obrigatório com origem painel, chave estrangeira para clientes) com um gatilho que recusa `UPDATE` e `DELETE` (só inclusão, RN-10), e reconstrói os movimentos dos clientes antigos a partir das datas que o registro prova: a última concessão (com finalidade e termo) e a última revogação (com finalidade e termo só se o estado ainda for REVOGADO; senão, em branco), com origem `migracao`.
@@ -543,6 +662,7 @@ Prioridade Alta: impede gerar código correto. Média: gera comportamento ambíg
 | Versão | Data | Mudanças |
 |---|---|---|
 | v0 | 27/10/2026 | Documento único (PDF) e depois dividido em três `.md` |
+| v1.10 | 14/11/2026 | Portal do titular (Q-55 a Q-60): ator Titular e casos de uso `SolicitarAcessoTitular`, `AutenticarTitular`, `ConsultarMeusDados`, `PedirEliminacao`, `ListarPedidosEliminacao` e `ListarCaixaSaida` (3.1, 3.5); entidades `TokenAcessoTitular`, `PedidoEliminacao` e `MensagemSimulada` (3.2); RN-19 (acesso por link de uso único) e RN-20 (pedido de eliminação), RN-17 com os tokens e o pedido atendido (3.3); `ErrAcessoInvalido` (3.5); `ClienteRepository.BuscarPorEmail`, `TokenAcessoRepository`, `PedidoEliminacaoRepository`, `Notificador` e `CaixaSaidaSimulada` (3.6); pedidos e caixa de saída no painel (3.7.1); seção 3.7.2; `PORTAL_URL_BASE`, `PORTAL_CHAVE_SESSAO` e migração 010 (3.8). Empilhada sobre a v1.9; os números seguem os das branches abertas |
 | v1.9 | 13/11/2026 | Direitos do titular e retenção (Q-48 a Q-53): `Cliente.DataEliminacao`, `Anonimizar` e `EstaEliminado` (3.2); RN-01 com o cliente eliminado, RN-03 sem D-13, RN-17 (eliminação) e RN-18 (retenção) (3.3); `ErrClienteEliminado` e os casos de uso `AtualizarCadastro`, `ExportarDadosTitular`, `EliminarDadosTitular` e `AplicarRetencao` (3.1, 3.5); `RemoverPorCliente` em eventos, perfis e recomendações e `ConsentimentoRepository.ListarRevogadosAte` (3.6); aba Direitos do titular e retenção na Operação, log `direito_atendido` (3.7.1); `RETENCAO_DIAS_REVOGADO`, subcomando `aplicar-retencao` e migração 009 (3.8); exceção dos direitos do titular em C-03. As versões v1.5 a v1.8 estão nas branches abertas (usuários e auditoria, segmentos e catálogo, relatórios, importação de eventos) |
 | v1.4 | 12/11/2026 | Histórico completo do consentimento (Q-34): entidade `MovimentoConsentimento` (3.2), RN-10, UC-08 `Historico` e origem pelo contexto (3.5), `FichaCliente.Historico`, `ConsentimentoRepository.Registrar` e `ListarMovimentos` (3.6), origem nas rotas da API e do painel e linha do tempo pelo histórico (3.7, 3.7.1), migração 006 (3.8) |
 | v1.3 | 12/11/2026 | Painel web do operador (Q-20 a Q-29): seção 3.7.1, casos de uso de aplicação do painel (3.1 e 3.5), `ProcessarClienteUseCase` com o estado por etapa (RN-09, Q-26), `ClienteRepository.Listar`, `RecomendacaoRepository.ListarPorCliente` e `ProdutoRepository.ListarTodos` (3.6), configuração `PAINEL_*` (3.8), migração 004, subcomando `hash-senha` (Q-28); camada BDD `@web` |

@@ -3,9 +3,9 @@
 > **Fonte:** Módulo 2 · imagem original: [`img/UML1_casos_de_uso.png`](img/UML1_casos_de_uso.png)
 > **Imagem corrigida (v1, gerada do Mermaid abaixo):** [`img/v1/UML1_casos_de_uso.png`](img/v1/UML1_casos_de_uso.png)
 > **Fonte da verdade para:** atores e casos de uso (Spec 1).
-> **Versão:** v1.1 (Core) · **Decisões relacionadas:** D-04, D-07, D-15, D-17, D-22.
+> **Versão:** v1.10 (portal do titular) · **Decisões relacionadas:** D-04, D-07, D-15, D-17, D-22, Q-55, Q-58.
 
-## Diagrama (v1.0)
+## Diagrama (v1.10)
 
 ```mermaid
 flowchart LR
@@ -13,6 +13,7 @@ flowchart LR
   analista(("👤 Analista de<br/>Marketing"))
   admin(("👤 Administrador<br/>do Sistema"))
   agente(("⚙ Agente Inteligente<br/>[ADIÇÃO D-17]"))
+  titular(("👤 Titular<br/>(Cliente no portal)<br/>[ADIÇÃO v1.10]"))
 
   subgraph sistema["«sistema» Perfila — Segmentação e Perfilamento do Comportamento do Cliente"]
     UC01(["UC-01 Coletar Dados<br/>Comportamentais do Cliente"])
@@ -30,6 +31,7 @@ flowchart LR
   cliente --- UC08
   cliente --- UC09
   admin --- UC08
+  titular --- UC08
   agente --- UC03
   analista --- UC05
   analista --- UC06
@@ -54,6 +56,8 @@ flowchart LR
 | UC-08 | Gerenciar Consentimento de Dados (LGPD) | Cliente (titular) e Administrador | `GerenciarConsentimentoUseCase` | Sim | Core |
 | UC-09 | Cadastrar Cliente [ADIÇÃO] | Cliente / Sistema Externo | `CadastrarClienteUseCase` | Sim | Core |
 
+O **Titular** «ADIÇÃO v1.10, Q-55» é o próprio Cliente agindo pelo portal `/titular`, sem a operação: entra por um link de uso único (RN-19), vê e revoga o consentimento e concede de novo (UC-08), baixa os próprios dados e pede a eliminação (direitos do titular, RN-20). Quem atende o pedido de eliminação é o Administrador, no painel (RN-17).
+
 ## Relações
 
 - **UC-02 «include» UC-01**: gerar perfil sempre incorpora a coleta. No código, `GerarPerfilUseCase` reutiliza `ColetarDadosUseCase.Executar` (D-07).
@@ -66,6 +70,7 @@ flowchart LR
 2. Todo UC que processa dado pessoal (UC-01 a UC-04) começa pelas pré-condições RN-01 (cliente existe → ativo → consentimento válido).
 3. UC-08 não exige consentimento válido (é quem o gerencia), mas exige cliente existente.
 4. UC-09 é a porta de entrada: cria o cliente ativo e sem consentimento (NAO_CONCEDIDO).
+5. O Titular só alcança o próprio cadastro: no portal, o cliente vem sempre da sessão, nunca da URL (Q-55).
 
 ## Divergências registradas
 

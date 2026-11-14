@@ -47,6 +47,10 @@ Na Spec, cada regra de negócio descreve o comportamento em prosa. No BDD, a mes
 | exportação | `ExportarDadosTitularUseCase`, `DadosTitular` (v1.9) |
 | eliminação, cliente eliminado | `EliminarDadosTitularUseCase`, `Cliente.Anonimizar` (RN-17) |
 | retenção, prazo de retenção | `AplicarRetencaoUseCase`, `RETENCAO_DIAS_REVOGADO` (RN-18) |
+| titular, portal | ator Titular, rotas `/titular` (v1.10, Q-55) |
+| link de acesso, link enviado | `TokenAcessoTitular`, `SolicitarAcessoTitularUseCase`, `AutenticarTitularUseCase` (RN-19) |
+| pedido de eliminação | `PedidoEliminacao`, `PedirEliminacaoUseCase` (RN-20) |
+| caixa de saída | `CaixaSaidaSimulada`, `NotificadorSimulado` (Q-57) |
 
 ## 4. Camadas de teste e tags
 
@@ -119,6 +123,7 @@ As features vivem em `features/` e são a versão executável deste documento. E
 | `leitura.feature` | RN-01, Q-21, Q-23, Q-31 | `@aplicacao` | 18 | Painel web ✅ (T-34) |
 | `painel.feature` | 3.7.1, UC-01, UC-08, UC-09, RN-01, RN-09, Q-21 a Q-24, Q-31, Q-32, RN-10, Q-34 | `@web` | 33 | Painel web ✅ (T-35 a T-38; +4 do histórico, T-45) |
 | `direitos.feature` | UC-09, RN-01, RN-17, RN-18, Q-48 a Q-53 | `@aplicacao` e `@web` | 46 | Direitos do titular (v1.9) ✅ (T-71 e T-72) |
+| `portal.feature` | UC-08, RN-03, RN-10, RN-17, RN-19, RN-20, Q-49, Q-55 a Q-58 | `@aplicacao`, `@dominio` e `@web` | — | Portal do titular (v1.10) ⬜ (`@wip` até a T-78) |
 
 Total no `make verify`: **216 cenários, todos verdes** (107 até a v1.2, os do painel, 12 do histórico do consentimento, v1.4, e 46 dos direitos do titular, v1.9); mais 3 cenários `@implantacao` (11 passos) em `make bdd-implantacao`.
 

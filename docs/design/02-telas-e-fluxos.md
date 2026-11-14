@@ -17,9 +17,12 @@ Configuração (somente leitura no MVP)
   /painel/catalogo                     Produtos por categoria (RN-07)
 Operação
   /painel/operacao                     Saúde do sistema e expiração de recomendações (RN-08)
+  /painel/operacao/caixa-saida         Caixa de saída (simulada), com o portal ligado (v1.10)
 ```
 
-Fase 2, fora deste escopo: `/titular` (portal do titular para ver e revogar o próprio consentimento, que exige autenticação do titular) e relatórios de segmento (UC-05 a UC-07).
+No grupo Clientes, desde a v1.10: `/painel/pedidos`, os pedidos de eliminação feitos pelo portal do titular.
+
+O portal do titular (`/titular`, v1.10) tem mapa e moldura próprios (seção Portal do titular, abaixo). Relatórios de segmento (UC-05 a UC-07) continuam fora deste escopo.
 
 ## Moldura de toda tela
 
@@ -80,6 +83,36 @@ Tabela agrupada por categoria, com Nome, Preço (R$) e Situação. A nota explic
 - Painel **Expirar recomendações vencidas**: o texto explica a regra ("Recomendações ativas com validade vencida passam a Expirada."); o botão "Expirar agora" abre um diálogo de confirmação; o resultado aparece em toast: "3 recomendações expiradas" ou "Nenhuma recomendação vencida".
 - Painel **Retenção após a revogação** (v1.9, RN-18): o texto explica a regra com o prazo configurado; o botão "Aplicar retenção" (danger) abre a confirmação; o resultado aparece em toast: "Retenção aplicada a 2 clientes" ou "Nenhum cliente com a retenção vencida".
 
+### Pedidos do titular (v1.10)
+
+`DataTable` com **Cliente** (nome e `UuidTag`), **Pedido em**, **Situação** (`StatusTag`: Aberto em warn, Atendido em ok) e **Consentimento** (estado atual). Abertos primeiro. A linha leva à aba Direitos do titular da ficha, onde fica o aviso "O titular pediu a eliminação pelo portal em {data}." e a eliminação de sempre. Vazio: "Nenhum pedido do titular."
+
+### Caixa de saída (simulada) (v1.10)
+
+Nota no topo: "Simulação para a demonstração: nenhum e-mail sai do sistema. Mensagens com mais de 24 horas são apagadas." Lista das mensagens, da mais recente para a mais antiga: **Para** (mascarado), **Assunto**, **Enviada em** e o texto com o link. Vazio: "Nenhuma mensagem nas últimas 24 horas."
+
+## Portal do titular (v1.10, Q-55 a Q-58)
+
+Para a pessoa titular dos dados, não para a operação. Sem barra lateral: uma coluna única (`size-measure`), cabeçalho com a marca **Perfila** em destaque e, com sessão, "Sair" à direita. Linguagem do dia a dia: "autorização" no lugar de "consentimento" nas ações, sem siglas nem números de regra.
+
+```text
+/titular/entrar        Pedir o link de acesso (e-mail)
+/titular/acesso?t=     Abrir o link: botão "Entrar no portal"
+/titular/meus-dados    Cadastro, autorização, histórico e pedidos
+/titular/revogar       Confirmar: retirar a autorização
+/titular/conceder      Confirmar: autorizar de novo com o termo vigente
+/titular/dados         Baixar meus dados (JSON)
+/titular/eliminacao    Confirmar: pedir a eliminação
+```
+
+- **Entrar:** título "Acesse seus dados", o campo **E-mail** e o botão "Enviar link de acesso". Depois de enviar, sempre o mesmo `Alert` info: "Se o e-mail estiver cadastrado, enviamos um link de acesso. Ele vale por 30 minutos e só pode ser usado uma vez." Nada indica se o e-mail existe.
+- **Abrir o link:** "Entrar no portal" (primário). Link inválido: `Alert` crítico "Este link não vale mais. Peça um novo." com "Pedir novo link".
+- **Meus dados:** três painéis.
+  - **Seus dados de cadastro**: nome, e-mail e data do cadastro.
+  - **Sua autorização**: `StatusTag` do consentimento, finalidade em palavras ("segmentação: entender seu comportamento de compra para recomendar produtos"), termo e datas; uma só ação: "Retirar autorização" (danger) com Concedido, ou "Autorizar de novo" (primário) com Não concedido ou Revogado. Abaixo, a linha do tempo, igual à da ficha.
+  - **Seus direitos**: "Baixar meus dados (JSON)" e "Pedir eliminação" (danger). Com Concedido, no lugar do botão, o `Alert` atenção "Para pedir a eliminação, retire a autorização antes."; com pedido aberto, o `Alert` info "Você pediu a eliminação em {data}. A equipe vai atender o pedido." e nenhuma ação de autorizar.
+- **Confirmações:** página própria (ou `<dialog>` com JavaScript), com o efeito escrito; em retirar e em pedir eliminação, o foco inicial fica em Cancelar.
+
 ## Fluxos principais
 
 ### A. Primeiro atendimento (cadastro → consentimento → eventos → processamento)
@@ -117,6 +150,14 @@ Qualquer ação com a sessão vencida volta para **Entrar**, com o aviso "Sua se
 2. Aba **Direitos do titular** → **Baixar dados (JSON)**, se o titular também pediu uma cópia antes de eliminar.
 3. **Eliminar dados** → a confirmação explica o efeito e pede o nome do cliente → digitar o nome → **Eliminar dados**.
 4. A ficha mostra o selo **Eliminado** e o aviso com a data; o toast diz "Dados eliminados". A busca pelo nome antigo não encontra mais o cliente.
+
+### G. Titular retira a autorização sozinho (v1.10)
+
+1. `/titular/entrar` → e-mail → "Enviar link de acesso" → a mensagem de sempre.
+2. Na demonstração, a operação abre **Operação › Caixa de saída (simulada)** e copia o link; na vida real, o titular abre o e-mail.
+3. O link mostra "Entrar no portal" → **Meus dados**.
+4. **Retirar autorização** → a confirmação diz o efeito → **Retirar autorização**. O selo vira **Revogado**; a linha do tempo mostra "Revogação, por você, no portal". No painel, a ficha mostra o mesmo movimento "pelo portal do titular".
+5. **Pedir eliminação** → confirmação → o pedido aparece em **Clientes › Pedidos do titular**; a operação segue o fluxo F.
 
 ## Estados obrigatórios em toda tela
 

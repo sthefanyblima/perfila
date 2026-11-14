@@ -100,6 +100,18 @@ Correção, acesso e portabilidade e eliminação a pedido do titular (art. 18 d
 | T-72 | Painel: aba Direitos do titular (corrigir, baixar dados, eliminar com confirmação forte), ficha do eliminado e retenção na Operação; log `direito_atendido` | T-71 | cenários `@web` de `direitos.feature`; `@wip` retirado | ✅ 10 cenários `@web` (46 no total da feature); `TestExportacaoFormato` |
 | T-73 | Exemplo revogado há mais de 180 dias; checklist (L-19, L-20), README e roteiro; fluxo no navegador | T-72 | `TestCarregarExemplos`; painel conferido | ⬜ |
 
+## Portal do titular — Spec v1.10
+
+O próprio cliente vê e revoga o consentimento, concede de novo, baixa os próprios dados e pede a eliminação pelo portal `/titular`, com link de uso único por e-mail (RN-19, RN-20, Q-55 a Q-60; L-37 a L-40). Branch empilhada sobre a v1.9 (direitos do titular). Numeração a partir de T-75, migração 010 e Q-55, acima de todas as branches abertas.
+
+| ID | Tarefa | Depende de | Prova | Status |
+|---|---|---|---|---|
+| T-75 | Spec v1.10, Q-55 a Q-60, UML1, UML2, UML7 e UML8 em texto, `02-telas-e-fluxos.md` e `03-textos.md`; `features/portal.feature` (`@wip` até a tarefa que a implementa) | T-72 | Spec, UML e feature revisados | ✅ cenários escritos (`@wip`) |
+| T-76 | `TokenAcessoTitular`, `PedidoEliminacao`, `MensagemSimulada` e `ErrAcessoInvalido`; `BuscarPorEmail`, `TokenAcessoRepository`, `PedidoEliminacaoRepository` e `CaixaSaidaSimulada` na memória e no PostgreSQL; `NotificadorSimulado`; migração 010; contrato | T-75 | testes de tabela; contrato nos dois backends | ⬜ |
+| T-77 | `SolicitarAcessoTitular`, `AutenticarTitular`, `ConsultarMeusDados`, `PedirEliminacao`, `ListarPedidosEliminacao`, `ListarCaixaSaida`; RN-17 com tokens e pedido; `PORTAL_URL_BASE` e `PORTAL_CHAVE_SESSAO` | T-76 | cenários `@aplicacao` e `@dominio` de `portal.feature` | ⬜ |
+| T-78 | Portal web `/titular` (entrar, link, meus dados, revogar, conceder, baixar, pedir eliminação) com sessão própria; no painel, Pedidos do titular e Caixa de saída (simulada) | T-77 | cenários `@web` de `portal.feature`; `@wip` retirado | ⬜ |
+| T-79 | Cenário `@implantacao` do portal pelo Nginx; exemplo com pedido aberto; checklist LGPD (seção 4), README e roteiro; fluxo no navegador | T-78 | `bdd-implantacao`; painel e portal conferidos | ⬜ |
+
 ## Fechamento
 
 | Data | Marco |
