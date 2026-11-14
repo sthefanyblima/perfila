@@ -115,6 +115,8 @@ func rotulo(v string) string {
 		return "Concedido"
 	case string(entity.StatusRevogado):
 		return "Revogado"
+	case estadoEliminado:
+		return "Eliminado"
 	case string(entity.StatusGerada):
 		return "Gerada"
 	case string(entity.StatusAtiva):
@@ -136,7 +138,7 @@ func tomDoEstado(v string) string {
 	switch v {
 	case string(entity.StatusConcedido), string(entity.StatusAtiva):
 		return "ok"
-	case string(entity.StatusRevogado):
+	case string(entity.StatusRevogado), estadoEliminado:
 		return "critical"
 	case string(entity.StatusGerada):
 		return "warn"

@@ -200,8 +200,14 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 			ListarSegmentos:    usecase.NovoListarSegmentosUseCase(repos.segmentos),
 			ListarCatalogo:     usecase.NovoListarCatalogoUseCase(repos.produtos),
 			Expirar:            expirar,
-			MetaEventos:        cfg.EngajamentoMetaEventos,
-			Clock:              clock, Log: log, Saude: repos.saude, Migracoes: repos.migracoes,
+			AtualizarCadastro:  usecase.NovoAtualizarCadastroUseCase(repos.clientes),
+			ExportarDados: usecase.NovoExportarDadosTitularUseCase(repos.clientes, consentimento, repos.eventos, repos.perfis,
+				repos.segmentos, repos.recomendacoes, repos.produtos, clock),
+			EliminarDados: usecase.NovoEliminarDadosTitularUseCase(repos.clientes, repos.consentimentos, repos.eventos,
+				repos.perfis, repos.recomendacoes, clock),
+			AplicarRetencao: retencao,
+			MetaEventos:     cfg.EngajamentoMetaEventos,
+			Clock:           clock, Log: log, Saude: repos.saude, Migracoes: repos.migracoes,
 		})
 		if err != nil {
 			repos.fechar()

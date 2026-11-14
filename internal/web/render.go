@@ -44,6 +44,13 @@ type formCons struct {
 	Dialogo             bool
 }
 
+// formRet alimenta a confirmação da retenção, no diálogo ou na página (RN-18).
+type formRet struct {
+	CSRF    string
+	Prazo   int
+	Dialogo bool
+}
+
 // alerta alimenta a parte "alerta" (Alert): Tom critical, warn, ok ou info; Teste marca o
 // aviso para os cenários @web; Agora pede role="alert" (erro que acabou de acontecer).
 type alerta struct {
@@ -69,6 +76,9 @@ func funcoes(versoes map[string]string) template.FuncMap {
 		"motivo":       motivoLegivel,
 		"lista":        func(v ...string) []string { return v },
 		"fichaComCSRF": func(d dadosFicha, csrf string) fichaCSRF { return fichaCSRF{D: d, CSRF: csrf} },
+		"formRetencao": func(csrf string, prazo int, dialogo bool) formRet {
+			return formRet{CSRF: csrf, Prazo: prazo, Dialogo: dialogo}
+		},
 		"formConsentimento": func(d dadosFicha, csrf, acao string, dialogo bool) formCons {
 			f := formCons{D: d, CSRF: csrf, Acao: acao, Dialogo: dialogo}
 			if dialogo {

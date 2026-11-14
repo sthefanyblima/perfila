@@ -67,8 +67,26 @@ type dadosFicha struct {
 	MaisEventos   bool
 	Evento        formEvento
 	Concessao     formConsentimento
-	Confirmar     string // "conceder" ou "revogar" na página de confirmação
+	Confirmar     string // "conceder", "revogar" ou "eliminar" na página de confirmação
 	ErroConfirmar *alerta
+
+	// Direitos do titular (v1.9, Q-48 a Q-50).
+	Eliminado  bool // cadastro anonimizado: só a prova do consentimento é mostrada (RN-17)
+	Cadastro   formCadastro
+	Eliminacao formEliminacao
+}
+
+// EstadoSelo é o estado do selo do cabeçalho: o do consentimento ou, eliminado, ELIMINADO.
+func (d dadosFicha) EstadoSelo() string {
+	if d.Eliminado {
+		return estadoEliminado
+	}
+	return string(d.Consentimento.Status)
+}
+
+// PodeEliminar: a eliminação pede a revogação antes, com consentimento concedido (RN-17, Q-27).
+func (d dadosFicha) PodeEliminar() bool {
+	return !d.Eliminado && d.Consentimento.Status != entity.StatusConcedido
 }
 
 func (d dadosFicha) PodeConceder() bool { return d.Consentimento.Status != entity.StatusConcedido }
@@ -186,7 +204,12 @@ func (p *painel) carregarFicha(w http.ResponseWriter, r *http.Request, aba strin
 		return dadosFicha{}, false
 	}
 	d := dadosFicha{Aba: aba, Cliente: ficha.Cliente, Consentimento: ficha.Consentimento, Movimentos: ficha.Historico, MetaEventos: p.d.MetaEventos,
-		Concessao: formConsentimento{Finalidade: p.d.Finalidade, VersaoTermo: p.d.VersaoTermo}}
+		Concessao: formConsentimento{Finalidade: p.d.Finalidade, VersaoTermo: p.d.VersaoTermo},
+		Cadastro:  formCadastro{Nome: ficha.Cliente.Nome, Email: ficha.Cliente.Email}}
+	if ficha.Cliente.EstaEliminado() { // RN-17: nada de comportamento resta; só a prova do consentimento
+		d.Eliminado = true
+		return d, true
+	}
 	d.Valido = ficha.Consentimento.EstaValido()
 	if !d.Valido {
 		d.Bloqueio = p.alertaBloqueio(d)
