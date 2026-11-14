@@ -123,19 +123,22 @@ type EliminarDadosTitularUseCase struct {
 	clientes       port.ClienteRepository
 	consentimentos port.ConsentimentoRepository
 	remocoes       remocoes
+	tokens         port.TokenAcessoRepository      // v1.10: links do portal (passo 4)
+	pedidos        port.PedidoEliminacaoRepository // v1.10: pedido do portal atendido (passo 5)
 	clock          port.Clock
 }
 
 // NovoEliminarDadosTitularUseCase injeta as dependências (C-08).
 func NovoEliminarDadosTitularUseCase(clientes port.ClienteRepository, consentimentos port.ConsentimentoRepository,
 	eventos port.EventoRepository, perfis port.PerfilRepository, recomendacoes port.RecomendacaoRepository,
-	clock port.Clock) *EliminarDadosTitularUseCase {
+	tokens port.TokenAcessoRepository, pedidos port.PedidoEliminacaoRepository, clock port.Clock) *EliminarDadosTitularUseCase {
 	return &EliminarDadosTitularUseCase{clientes: clientes, consentimentos: consentimentos, clock: clock,
-		remocoes: remocoes{eventos: eventos, perfis: perfis, recomendacoes: recomendacoes}}
+		remocoes: remocoes{eventos: eventos, perfis: perfis, recomendacoes: recomendacoes}, tokens: tokens, pedidos: pedidos}
 }
 
 // Executar segue a ordem da RN-17: cliente existe e não eliminado; confirmação igual ao nome;
-// consentimento diferente de CONCEDIDO; comportamento apagado; por último, cadastro anonimizado.
+// consentimento diferente de CONCEDIDO; comportamento e links do portal apagados; pedido do portal
+// atendido (v1.10); por último, cadastro anonimizado. Spec: RN-17, RN-20.
 func (uc *EliminarDadosTitularUseCase) Executar(ctx context.Context, clienteID uuid.UUID, confirmacao string) error {
 	c, err := uc.clientes.BuscarPorID(ctx, clienteID)
 	if err != nil {
@@ -157,10 +160,31 @@ func (uc *EliminarDadosTitularUseCase) Executar(ctx context.Context, clienteID u
 	if _, err := uc.remocoes.apagar(ctx, clienteID); err != nil {
 		return err
 	}
+	if _, err := uc.tokens.RemoverPorCliente(ctx, clienteID); err != nil {
+		return err
+	}
+	if err := uc.atenderPedido(ctx, clienteID); err != nil {
+		return err
+	}
 	if err := c.Anonimizar(uc.clock.Agora()); err != nil {
 		return err
 	}
 	return uc.clientes.Salvar(ctx, c)
+}
+
+// atenderPedido marca como ATENDIDO o pedido aberto do cliente; sem pedido, nada a fazer. Spec: RN-20.
+func (uc *EliminarDadosTitularUseCase) atenderPedido(ctx context.Context, clienteID uuid.UUID) error {
+	p, err := uc.pedidos.BuscarAbertoPorCliente(ctx, clienteID)
+	if errors.Is(err, errs.ErrPedidoNaoEncontrado) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if err := p.Atender(uc.clock.Agora()); err != nil {
+		return err
+	}
+	return uc.pedidos.Salvar(ctx, p)
 }
 
 // ConfirmacaoConfere compara a confirmação digitada com o nome do cadastro sem diferenciar

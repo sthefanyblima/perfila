@@ -149,8 +149,22 @@ func (m *Mundo) temComportamentoDesde(c, data string) error {
 	})
 }
 
+// revogouEm revoga na data informada; quem ainda não tinha concedido concede antes, no mesmo
+// instante (revogar pressupõe a concessão): o histórico fica com os dois movimentos.
 func (m *Mundo) revogouEm(c, data string) error {
-	return m.emData(data, func() error { return m.uc().consentimento.Revogar(m.ctx, id(c)) })
+	return m.emData(data, func() error {
+		uc := m.uc()
+		cons, err := uc.consentimento.Consultar(m.ctx, id(c))
+		if err != nil {
+			return err
+		}
+		if cons.Status != entity.StatusConcedido {
+			if err := uc.consentimento.Conceder(m.ctx, id(c), "segmentacao", "v1"); err != nil {
+				return err
+			}
+		}
+		return uc.consentimento.Revogar(m.ctx, id(c))
+	})
 }
 
 func (m *Mundo) foiEliminado(c string) error {

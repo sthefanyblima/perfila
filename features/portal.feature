@@ -1,5 +1,5 @@
 # language: pt
-@wip @Q-55 @Q-56 @Q-57 @Q-58
+@Q-55 @Q-56 @Q-57 @Q-58
 Funcionalidade: Portal do titular
   O próprio cliente entra no portal por um link de uso único enviado por e-mail, vê e retira a
   autorização, autoriza de novo, baixa os próprios dados e pede a eliminação, sem depender da
@@ -179,7 +179,7 @@ Funcionalidade: Portal do titular
 
   # ---- Portal (web) ----
 
-  @web @RN-19 @lgpd
+  @wip @web @RN-19 @lgpd
   Esquema do Cenário: Pelo portal, a resposta ao pedido de link é sempre a mesma
     Quando o titular pede o link pelo portal com o e-mail "<email>"
     Então a resposta leva a "/titular/entrar"
@@ -190,14 +190,14 @@ Funcionalidade: Portal do titular
       | c-001@exemplo.test   |
       | ninguem@exemplo.test |
 
-  @web @RN-19
+  @wip @web @RN-19
   Cenário: Muitos pedidos de link do mesmo endereço são recusados
     Dado que o titular pediu o link pelo portal 10 vezes
     Quando o titular pede o link pelo portal com o e-mail "c-001@exemplo.test"
     Então a resposta tem status 429
     E a página mostra "Muitas tentativas. Aguarde 15 minutos."
 
-  @web @RN-19
+  @wip @web @RN-19
   Cenário: Abrir o link não o consome
     Dado que o titular pediu um link com o e-mail "c-001@exemplo.test"
     Quando o titular abre o link enviado
@@ -205,7 +205,7 @@ Funcionalidade: Portal do titular
     E a página pede a confirmação "entrar-portal"
     E o link enviado ainda vale
 
-  @web @RN-19 @lgpd
+  @wip @web @RN-19 @lgpd
   Cenário: Pelo link, o titular vê só os próprios dados
     Dado que existe o cliente "c-002" ativo com o nome "Bruno Sintético"
     E que o titular pediu um link com o e-mail "c-001@exemplo.test"
@@ -214,45 +214,45 @@ Funcionalidade: Portal do titular
     E a página de destino mostra "Ana Sintética"
     E a página de destino não mostra "Bruno Sintético"
 
-  @web @RN-19
+  @wip @web @RN-19
   Cenário: O link usado não entra de novo
     Dado que o titular entrou no portal pelo link enviado
     Quando o titular entra pelo link enviado
     Então a resposta tem status 401
     E a página mostra "Este link não vale mais. Peça um novo."
 
-  @web @RN-19
+  @wip @web @RN-19
   Cenário: O link expirado não entra
     Dado que o titular pediu um link com o e-mail "c-001@exemplo.test"
     E que se passaram 31 minutos
     Quando o titular entra pelo link enviado
     Então a resposta tem status 401
 
-  @web @Q-55
+  @wip @web @Q-55
   Cenário: Sem sessão, Meus dados leva a Entrar
     Quando a página "/titular/meus-dados" é aberta sem sessão
     Então a resposta leva a "/titular/entrar"
 
-  @web @Q-55
+  @wip @web @Q-55
   Cenário: A sessão do portal termina depois de 30 minutos sem uso
     Dado que o titular entrou no portal pelo link enviado
     E que se passaram 31 minutos
     Quando a página "/titular/meus-dados" é aberta
     Então a resposta leva a "/titular/entrar"
 
-  @web @Q-55 @lgpd
+  @wip @web @Q-55 @lgpd
   Cenário: A sessão do portal não abre o painel
     Dado que o titular entrou no portal pelo link enviado
     Quando a página "/painel/clientes" é aberta
     Então a resposta leva a "/painel/entrar"
 
-  @web @Q-55 @lgpd
+  @wip @web @Q-55 @lgpd
   Cenário: A sessão do painel não abre o portal
     Dado que o operador entrou no painel
     Quando a página "/titular/meus-dados" é aberta
     Então a resposta leva a "/titular/entrar"
 
-  @web @lgpd @UC-08 @RN-03 @RN-10
+  @wip @web @lgpd @UC-08 @RN-03 @RN-10
   Cenário: Retirar a autorização pelo portal tem efeito imediato e entra no histórico
     Dado que o consentimento do cliente "c-001" está no estado "CONCEDIDO"
     E que o titular entrou no portal pelo link enviado
@@ -262,7 +262,7 @@ Funcionalidade: Portal do titular
     E o último movimento do cliente "c-001" é "REVOGACAO" com a origem "portal" e o operador ""
     E a página de destino mostra "por você, no portal"
 
-  @web @UC-08 @RN-10
+  @wip @web @UC-08 @RN-10
   Cenário: Autorizar de novo pelo portal usa o termo vigente
     Dado que o cliente "c-001" revogou o consentimento em "2026-11-10T10:00:00Z"
     E que o titular entrou no portal pelo link enviado
@@ -270,7 +270,7 @@ Funcionalidade: Portal do titular
     Então o consentimento do cliente "c-001" está no estado "CONCEDIDO"
     E o último movimento do cliente "c-001" é "CONCESSAO" com a origem "portal" e o operador ""
 
-  @web @UC-08
+  @wip @web @UC-08
   Cenário: Retirar a autorização exige confirmação
     Dado que o consentimento do cliente "c-001" está no estado "CONCEDIDO"
     E que o titular entrou no portal pelo link enviado
@@ -278,14 +278,14 @@ Funcionalidade: Portal do titular
     Então a página pede a confirmação "revogar"
     E o consentimento do cliente "c-001" está no estado "CONCEDIDO"
 
-  @web @Q-49 @lgpd
+  @wip @web @Q-49 @lgpd
   Cenário: Baixar meus dados entrega só o arquivo do próprio titular
     Dado que o cliente "c-001" tem dados de comportamento desde "2026-11-01T10:00:00Z"
     E que o titular entrou no portal pelo link enviado
     Quando a página "/titular/dados" é aberta
     Então a resposta é um arquivo JSON anexo com o cadastro de "Ana Sintética" e 2 eventos
 
-  @web @RN-20 @Q-27
+  @wip @web @RN-20 @Q-27
   Cenário: Com a autorização concedida, o portal pede para retirá-la antes de pedir a eliminação
     Dado que o consentimento do cliente "c-001" está no estado "CONCEDIDO"
     E que o titular entrou no portal pelo link enviado
@@ -293,7 +293,7 @@ Funcionalidade: Portal do titular
     Então a página mostra "Para pedir a eliminação, retire a autorização antes."
     E a página de destino não oferece "pedir-eliminacao"
 
-  @web @RN-20
+  @wip @web @RN-20
   Cenário: O pedido de eliminação feito no portal aparece no painel
     Dado que o cliente "c-001" revogou o consentimento em "2026-11-10T10:00:00Z"
     E que o titular entrou no portal pelo link enviado
@@ -303,7 +303,7 @@ Funcionalidade: Portal do titular
     Então a página mostra "Ana Sintética"
     E a página mostra o selo "ABERTO"
 
-  @web @RN-20
+  @wip @web @RN-20
   Cenário: Com o pedido aberto, o portal mostra o pedido e não oferece autorizar de novo
     Dado que o cliente "c-001" revogou o consentimento em "2026-11-10T10:00:00Z"
     E que o titular entrou no portal pelo link enviado
@@ -312,7 +312,7 @@ Funcionalidade: Portal do titular
     E a página de destino mostra "Você pediu a eliminação em 14/11/2026"
     E a página de destino não oferece "conceder"
 
-  @web @Q-57 @lgpd
+  @wip @web @Q-57 @lgpd
   Cenário: A caixa de saída simulada mostra o destinatário mascarado
     Dado que o titular pediu um link com o e-mail "c-001@exemplo.test"
     E que o operador entrou no painel
@@ -320,12 +320,12 @@ Funcionalidade: Portal do titular
     Então a página mostra "c***@exemplo.test"
     E a página de destino não mostra "c-001@exemplo.test"
 
-  @web @Q-55
+  @wip @web @Q-55
   Cenário: O portal responde com os cabeçalhos de segurança
     Quando a página "/titular/entrar" é aberta sem sessão
     Então a resposta tem os cabeçalhos de segurança do painel
 
-  @web @Q-55
+  @wip @web @Q-55
   Cenário: Envio pelo portal sem o token CSRF é recusado
     Dado que o consentimento do cliente "c-001" está no estado "CONCEDIDO"
     E que o titular entrou no portal pelo link enviado
@@ -333,7 +333,7 @@ Funcionalidade: Portal do titular
     Então a resposta tem status 403
     E o consentimento do cliente "c-001" está no estado "CONCEDIDO"
 
-  @web @lgpd @Q-56
+  @wip @web @lgpd @Q-56
   Cenário: Os logs do portal não contêm nome, e-mail nem o link
     Dado que o titular entrou no portal pelo link enviado
     Quando o titular pede o link pelo portal com o e-mail "c-001@exemplo.test"

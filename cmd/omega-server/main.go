@@ -145,6 +145,9 @@ type repositorios struct {
 	recomendacoes  port.RecomendacaoRepository
 	consentimentos port.ConsentimentoRepository
 	produtos       port.ProdutoRepository
+	tokens         port.TokenAcessoRepository      // portal do titular (v1.10)
+	pedidos        port.PedidoEliminacaoRepository // portal do titular (v1.10)
+	caixaSaida     port.CaixaSaidaSimulada         // NotificadorSimulado (Q-57)
 	saude          func(ctx context.Context) error // nil no modo memória (Q-19)
 	migracoes      string                          // versão do esquema, para a tela de Operação
 	fechar         func()
@@ -204,7 +207,7 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 			ExportarDados: usecase.NovoExportarDadosTitularUseCase(repos.clientes, consentimento, repos.eventos, repos.perfis,
 				repos.segmentos, repos.recomendacoes, repos.produtos, clock),
 			EliminarDados: usecase.NovoEliminarDadosTitularUseCase(repos.clientes, repos.consentimentos, repos.eventos,
-				repos.perfis, repos.recomendacoes, clock),
+				repos.perfis, repos.recomendacoes, repos.tokens, repos.pedidos, clock),
 			AplicarRetencao: retencao,
 			MetaEventos:     cfg.EngajamentoMetaEventos,
 			Clock:           clock, Log: log, Saude: repos.saude, Migracoes: repos.migracoes,
@@ -241,6 +244,9 @@ func repositoriosEmMemoria() repositorios {
 		recomendacoes:  memoria.NovoRecomendacaoRepository(),
 		consentimentos: memoria.NovoConsentimentoRepository(),
 		produtos:       produtos,
+		tokens:         memoria.NovoTokenAcessoRepository(),
+		pedidos:        memoria.NovoPedidoEliminacaoRepository(),
+		caixaSaida:     memoria.NovaCaixaSaidaSimulada(),
 		fechar:         func() {},
 	}
 }
@@ -266,6 +272,9 @@ func repositoriosPostgres(ctx context.Context, url string, log *slog.Logger) (re
 		recomendacoes:  pg.NovoPgRecomendacaoRepository(db),
 		consentimentos: pg.NovoPgConsentimentoRepository(db),
 		produtos:       pg.NovoPgProdutoRepository(db),
+		tokens:         pg.NovoPgTokenAcessoRepository(db),
+		pedidos:        pg.NovoPgPedidoEliminacaoRepository(db),
+		caixaSaida:     pg.NovaPgCaixaSaidaSimulada(db),
 		saude:          db.PingContext,
 		migracoes:      pg.UltimaMigracao(),
 		fechar:         func() { db.Close() },

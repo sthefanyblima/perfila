@@ -264,8 +264,8 @@ Desvios idiomáticos em relação aos diagramas (não são lacunas): `context.Co
     2. A confirmação é o nome atual do cliente, comparado sem diferenciar maiúsculas, acentos e espaços nas pontas. Diferente: `ErrDadosInvalidos`, e nada é apagado.
     3. Consentimento CONCEDIDO: `ErrTransicaoInvalida`. É preciso revogar antes, pelo UC-08, o que deixa o movimento REVOGACAO como prova.
     4. Apaga os eventos, o perfil e as recomendações do cliente e, desde a v1.10, os tokens de acesso ao portal (Q-58).
-    5. `Anonimizar` e grava o cadastro.
-    6. Desde a v1.10 (RN-20), marca como ATENDIDO o pedido de eliminação aberto do cliente, se houver.
+    5. Desde a v1.10 (RN-20), marca como ATENDIDO o pedido de eliminação aberto do cliente, se houver.
+    6. Por último, `Anonimizar` e grava o cadastro. Sendo o último passo, uma falha antes dele deixa o cliente sem eliminar, e repetir conclui o pedido.
     - O consentimento e os movimentos ficam como prova do tratamento (art. 16, I): não têm nome nem e-mail.
     - A eliminação é irreversível. Repetir depois de uma falha conclui o pedido, porque as remoções não falham sem dados.
     - Depois dela, nenhuma escrita vale para o cliente: a correção, UC-08 Conceder e Revogar e as pré-condições RN-01 respondem `ErrClienteEliminado`. A busca pelo nome antigo não o encontra, porque o nome não existe mais. A exportação entrega o que restou.
@@ -371,7 +371,7 @@ Qualquer outra combinação: `ErrTransicaoInvalida`. O comando `expirar-recomend
 - `ExportarDadosTitularUseCase.Executar(ctx, clienteID) (DadosTitular, error)`: cliente existe; devolve `DadosTitular` com `GeradoEm` (agora), `Cliente`, `Consentimento` (sintético em NAO_CONCEDIDO sem registro), `Historico`, `Eventos` (Timestamp crescente), `Perfil *PerfilCliente` e `Segmento *Segmento` (nulos sem perfil ou sem segmento), `Recomendacoes` (DataGeracao decrescente) e `Produtos` (os citados pelas recomendações). Lê tudo com qualquer estado do consentimento, inclusive do cliente eliminado (Q-49).
 - `EliminarDadosTitularUseCase.Executar(ctx, clienteID, confirmacao string) error`: RN-17.
 - `AplicarRetencaoUseCase.Executar(ctx) (int, error)`: RN-18. `ConsentimentoRepository.ListarRevogadosAte(ctx, agora menos o prazo)` e, para cada cliente, as remoções do passo 4 da RN-17 (eventos, perfil e recomendações); devolve quantos clientes tiveram algum dado apagado.
-- Desde a v1.10, `NovoEliminarDadosTitularUseCase` recebe também `TokenAcessoRepository` e `PedidoEliminacaoRepository` (passos 4 e 6 da RN-17).
+- Desde a v1.10, `NovoEliminarDadosTitularUseCase` recebe também `TokenAcessoRepository` e `PedidoEliminacaoRepository` (passos 4 e 5 da RN-17).
 
 **Casos de uso do portal do titular** [ADIÇÃO, v1.10, Q-55 a Q-59]
 
@@ -379,7 +379,7 @@ Qualquer outra combinação: `ErrTransicaoInvalida`. O comando `expirar-recomend
 - `AutenticarTitularUseCase.Executar(ctx, token string) (uuid.UUID, error)`: RN-19, passo 3.
 - `ConsultarMeusDadosUseCase.Executar(ctx, clienteID) (MeusDados, error)`: cliente existe (`ErrClienteNaoEncontrado`) e não eliminado (`ErrClienteEliminado`); `MeusDados` traz `Cliente`, `Consentimento` (sintético em NAO_CONCEDIDO sem registro), `Historico` (RN-10) e `PedidoAberto *PedidoEliminacao` (nulo sem pedido aberto). Não exige consentimento (Q-21, C-03).
 - `PedirEliminacaoUseCase.Executar(ctx, clienteID) (PedidoEliminacao, error)`: RN-20.
-- `ListarPedidosEliminacaoUseCase.Executar(ctx) ([]LinhaPedido, error)`: os pedidos, abertos primeiro e depois por DataPedido decrescente, cada um com o cliente (`LinhaPedido{Pedido, Cliente}`) para a operação abrir a ficha.
+- `ListarPedidosEliminacaoUseCase.Executar(ctx) ([]LinhaPedido, error)`: os pedidos, abertos primeiro e depois por DataPedido decrescente, cada um com o cliente e o estado atual do consentimento (`LinhaPedido{Pedido, Cliente, Consentimento}`), para a operação abrir a ficha.
 - `ListarCaixaSaidaUseCase.Executar(ctx) ([]MensagemSimulada, error)`: as mensagens das últimas 24 horas, da mais recente para a mais antiga.
 - Conceder, revogar e baixar os dados no portal usam UC-08 e `ExportarDadosTitularUseCase`, com `usecase.ComOrigem(ctx, portal, "")` (RN-10).
 
