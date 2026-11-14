@@ -30,7 +30,7 @@ type exemplos struct {
 // passo é uma ação na linha do tempo de um cliente, "dias" antes de agora.
 type passo struct {
 	dias      float64
-	acao      string // cadastrar, conceder, compra, navegar, processar, revogar, expirar, desativar
+	acao      string // cadastrar, conceder, compra, navegar, processar, revogar, expirar, desativar, pedir-eliminacao
 	categoria string
 	valor     float64
 	termo     string
@@ -60,6 +60,9 @@ func rev(d float64) passo        { return passo{dias: d, acao: "revogar"} }
 func exp(d float64) passo        { return passo{dias: d, acao: "expirar"} }
 func desat(d float64) passo      { return passo{dias: d, acao: "desativar"} }
 
+// pedirElim é o pedido de eliminação feito pelo titular no portal (v1.10, RN-20).
+func pedirElim(d float64) passo { return passo{dias: d, acao: "pedir-eliminacao"} }
+
 func (e exemplos) lista() []exemplo {
 	meta := float64(e.metaEventos)
 	engajado := int(math.Ceil(0.8 * meta))   // 80% da meta em 30 dias: engajado
@@ -75,8 +78,9 @@ func (e exemplos) lista() []exemplo {
 		{"Davi Sintético", "c-004@exemplo.test", []passo{ // ocasional, sem produto elegível (moveis)
 			cad(40), conc(39, "v1"), comp(12, "moveis", 120), proc(11)}},
 		{"Elisa Sintética", "c-005@exemplo.test", []passo{cad(12)}}, // nunca concedeu
-		{"Fábio Sintético", "c-006@exemplo.test", []passo{ // revogado: dados guardados e bloqueados
-			cad(200), conc(198, "v1"), comp(190, "livros", 90), comp(150, "livros", 60), proc(149), exp(110), rev(45)}},
+		{"Fábio Sintético", "c-006@exemplo.test", []passo{ // revogou pelo portal e pediu a eliminação (Q-58): dados guardados e bloqueados
+			cad(200), conc(198, "v1"), comp(190, "livros", 90), comp(150, "livros", 60), proc(149), exp(110),
+			rev(45).pelo(entity.OrigemPortal), pedirElim(44)}},
 		{"Gabi Sintética", "c-007@exemplo.test", []passo{ // inativa com consentimento: histórico só leitura
 			cad(300), conc(299, "v1"), comp(280, "games", 150), comp(250, "games", 320), proc(249), exp(200), desat(180)}},
 		{"Heitor Sintético", "c-008@exemplo.test", []passo{ // vip
@@ -178,6 +182,9 @@ func (e exemplos) executar(ctx context.Context, p passo, ex exemplo, id *uuid.UU
 		return consentimento.Revogar(p.contexto(ctx), *id)
 	case "expirar":
 		_, err := expirar.Executar(ctx)
+		return err
+	case "pedir-eliminacao":
+		_, err := usecase.NovoPedirEliminacaoUseCase(e.repos.clientes, consentimento, e.repos.pedidos, carga).Executar(ctx, *id)
 		return err
 	case "desativar":
 		c, err := e.repos.clientes.BuscarPorID(ctx, *id)

@@ -19,6 +19,7 @@ Desenvolvido com **Spec-Driven Development** (a especificação é a fonte da ve
 | **Generic** (PostgreSQL, Docker/Nginx, LGPD), 25% | 16–19/11 | ✅ contrato nos dois backends · 3 cenários de implantação · checklist LGPD |
 | **Painel web do operador** (Spec v1.3, T-31 a T-38) | 12/11 | ✅ 26 cenários `@web` · 21 de aplicação novos · 1 de implantação |
 | **Histórico do consentimento** (Spec v1.4, T-42 a T-46, Q-34) | 12/11 | ✅ 8 cenários de aplicação · 4 `@web` · contrato e migração 006 nos dois backends |
+| **Portal do titular** (Spec v1.10, T-75 a T-79, Q-55 a Q-60) | 14/11 | ✅ 51 cenários (29 de aplicação e domínio, 21 `@web`) · 1 de implantação · contrato e migração 010 nos dois backends |
 | Fechamento do escopo | 19/11 | daqui em diante, só correções |
 | Ensaio · evento final | 23/11 · 24/11 | roteiro em `docs/ROTEIRO_DEMONSTRACAO.md` |
 
@@ -79,7 +80,8 @@ make derrubar          # derruba (os dados ficam no volume omega_db)
 | `LOG_LEVEL` | info | debug, info, warn ou error |
 | `PAINEL_USUARIO` | operador | login do operador do painel |
 | `PAINEL_SENHA_HASH`, `PAINEL_CHAVE_SESSAO` | vazias = painel desligado | hash bcrypt (`omega-server hash-senha`) e chave HMAC de 64 dígitos hexadecimais (Q-22, Q-29) |
-| `PAINEL_FINALIDADE`, `PAINEL_VERSAO_TERMO` | segmentacao, v1 | sugeridos ao conceder o consentimento (Q-25) |
+| `PAINEL_FINALIDADE`, `PAINEL_VERSAO_TERMO` | segmentacao, v1 | sugeridos ao conceder o consentimento (Q-25); no portal, são o termo vigente que o titular aceita |
+| `PORTAL_URL_BASE`, `PORTAL_CHAVE_SESSAO` | vazias = portal desligado | endereço público usado no link de acesso (o do Nginx) e chave HMAC da sessão do titular, diferente da do painel (Q-60) |
 
 O ambiente prevalece sobre o arquivo. Exemplo em `deploy/config.env.example`.
 
@@ -110,9 +112,23 @@ Interface web em `/painel`, servida pelo próprio `omega-server`, seguindo o des
 | Segmentos e Catálogo | somente leitura |
 | Operação | saúde do banco e expiração de recomendações vencidas |
 
-Demonstração (Q-30, Q-32): 7 segmentos (vip, premium, fiel, engajado, explorador, ocasional, padrao), catálogo de 7 categorias e 14 clientes com história ao longo de meses: Ana (premium, com recomendações expiradas), Bruno (engajado), Carla e Davi (ocasional; Davi sem produto elegível), Elisa (nunca concedeu), Fábio (revogou), Gabi (inativa, histórico só leitura), Heitor (vip), Isabela (fiel), João (explorador), Karina (concedeu v1 pela API, revogou e concedeu v2 pelo painel: histórico completo), Lucas (ainda não processado), Marina (só recomendação expirada) e Nina (padrão). No `make serve` eles entram sozinhos; na implantação, com `make exemplos`.
+Demonstração (Q-30, Q-32): 7 segmentos (vip, premium, fiel, engajado, explorador, ocasional, padrao), catálogo de 7 categorias e 14 clientes com história ao longo de meses: Ana (premium, com recomendações expiradas), Bruno (engajado), Carla e Davi (ocasional; Davi sem produto elegível), Elisa (nunca concedeu), Fábio (revogou pelo portal do titular e pediu a eliminação), Gabi (inativa, histórico só leitura), Heitor (vip), Isabela (fiel), João (explorador), Karina (concedeu v1 pela API, revogou e concedeu v2 pelo painel: histórico completo), Lucas (ainda não processado), Marina (só recomendação expirada) e Nina (padrão). No `make serve` eles entram sozinhos; na implantação, com `make exemplos`.
 
 Sessão assinada sem estado (funciona com as duas réplicas), CSRF em todo envio, 5 tentativas de entrada por IP em 5 minutos, CSP `'self'`. Funciona sem JavaScript (formulários com redirecionamento e páginas de confirmação); com JavaScript, troca só a área do painel e usa diálogos nativos.
+
+## Portal do titular (Spec 3.7.2)
+
+Em `/titular`, no mesmo `omega-server`, para o próprio cliente, sem depender da operação (Q-55). Mesmo design system, com a marca em destaque e linguagem sem jargão.
+
+| Tela | O que faz |
+|---|---|
+| Entrar | o titular informa o e-mail; a resposta é **sempre a mesma**, com ou sem cadastro, para não revelar quem é cliente |
+| Link de acesso | uso único, 30 minutos, só o hash guardado; abrir o link mostra "Entrar no portal" e só o envio consome (Q-56) |
+| Meus dados | cadastro, estado e histórico da autorização; retirar (efeito imediato, movimento com origem `portal`) ou autorizar de novo com o termo vigente; baixar os próprios dados (JSON); pedir a eliminação |
+
+Sessão própria (cookie `perfila_titular`, caminho `/titular`, 30 minutos), sem acesso a nada do painel. Limites: 3 links por cadastro por hora (no banco) e 10 pedidos por IP em 15 minutos. O envio de e-mail fica atrás do port `Notificador`; no MVP, a **caixa de saída simulada** guarda a mensagem com o destinatário mascarado por 24 horas e aparece só no painel, em **Operação › Caixa de saída (simulada)** (Q-57). O pedido de eliminação aparece em **Clientes › Pedidos do titular** e é atendido na aba Direitos do titular da ficha, que o marca como atendido (Q-58).
+
+Experimente com `make serve`: abra `http://localhost:8080/titular`, peça o link com `c-006@exemplo.test` (Fábio, que revogou pelo portal e tem um pedido aberto) e copie o link da caixa de saída do painel.
 
 ## LGPD
 

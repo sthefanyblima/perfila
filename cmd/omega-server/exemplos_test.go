@@ -81,8 +81,12 @@ func TestCarregarExemplos(t *testing.T) {
 		if strings.Join(resumo, "|") != strings.Join(quer, "|") {
 			t.Errorf("Karina: histórico %q, esperado %q", resumo, quer)
 		}
-		if fabio, _ := r.consentimentos.ListarMovimentos(ctx, porEmail["c-006@exemplo.test"].ID); len(fabio) != 2 || fabio[1].Origem != entity.OrigemSistema {
+		if fabio, _ := r.consentimentos.ListarMovimentos(ctx, porEmail["c-006@exemplo.test"].ID); len(fabio) != 2 || fabio[1].Origem != entity.OrigemPortal {
 			t.Errorf("Fábio: histórico %+v", fabio)
+		}
+		// Portal do titular (Q-58): Fábio revogou pelo portal e tem um pedido de eliminação aberto.
+		if p, err := r.pedidos.BuscarAbertoPorCliente(ctx, porEmail["c-006@exemplo.test"].ID); err != nil || p.Status != entity.PedidoAberto {
+			t.Errorf("Fábio deveria ter um pedido de eliminação aberto: %+v (%v)", p, err)
 		}
 		// Histórico de recomendações: Ana tem expiradas e uma ativa; Marina, só expirada.
 		recs, _ := r.recomendacoes.ListarPorCliente(ctx, porEmail["c-001@exemplo.test"].ID)

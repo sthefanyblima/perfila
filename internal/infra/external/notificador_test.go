@@ -30,7 +30,7 @@ func TestNotificadorSimulado(t *testing.T) {
 	if m.Para != "c***@exemplo.test" || strings.Contains(m.Corpo, "c-001@exemplo.test") {
 		t.Errorf("destinatário não mascarado: %q / %q", m.Para, m.Corpo)
 	}
-	for _, quer := range []string{link, "02/03/2026", "14/11/2026 09:30", "Ele só pode ser usado uma vez."} {
+	for _, quer := range []string{link, "02/03/2026", "14/11/2026 09:30", "ele só pode ser usado uma vez."} {
 		if !strings.Contains(m.Corpo, quer) {
 			t.Errorf("corpo sem %q: %q", quer, m.Corpo)
 		}

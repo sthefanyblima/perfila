@@ -107,7 +107,7 @@ Fala com a própria pessoa, em segunda pessoa e sem jargão: "autorização" nas
 
 Toasts do portal: "Autorização retirada" · "Autorização registrada" · "Pedido de eliminação registrado".
 
-Mensagem da caixa de saída simulada: assunto "Seu link de acesso ao Perfila"; texto "Olá. Recebemos um pedido de acesso aos dados do cadastro feito em {data do cadastro}. Use este link até {hora de expiração}: {link}. Ele só pode ser usado uma vez. Se não foi você, ignore esta mensagem."
+Mensagem da caixa de saída simulada: assunto "Seu link de acesso ao Perfila"; texto "Olá. Recebemos um pedido de acesso aos dados do cadastro feito em {data do cadastro}. Use o link abaixo até {hora de expiração}; ele só pode ser usado uma vez. Se não foi você, ignore esta mensagem. {link}" (o link por último, sem pontuação depois dele)
 
 No painel: "O titular pediu a eliminação pelo portal em {data}." (aba Direitos do titular) · "Nenhum pedido do titular." · "Nenhuma mensagem nas últimas 24 horas." · "Simulação para a demonstração: nenhum e-mail sai do sistema. Mensagens com mais de 24 horas são apagadas."
 

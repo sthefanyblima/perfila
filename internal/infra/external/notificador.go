@@ -37,8 +37,9 @@ func (n *NotificadorSimulado) EnviarLinkAcesso(ctx context.Context, para, link s
 		return err
 	}
 	loc := saoPaulo()
+	// O link vai no fim, sem pontuação depois dele, para nenhum leitor de e-mail colar um ponto no token.
 	corpo := fmt.Sprintf("Olá. Recebemos um pedido de acesso aos dados do cadastro feito em %s. "+
-		"Use este link até %s: %s. Ele só pode ser usado uma vez. Se não foi você, ignore esta mensagem.",
+		"Use o link abaixo até %s; ele só pode ser usado uma vez. Se não foi você, ignore esta mensagem. %s",
 		dataCadastro.In(loc).Format("02/01/2006"), expiraEm.In(loc).Format("02/01/2006 15:04"), link)
 	return n.caixa.Guardar(ctx, entity.MensagemSimulada{ID: uuid.New(), Para: MascararEmail(para),
 		Assunto: "Seu link de acesso ao Perfila", Corpo: corpo, EnviadaEm: agora.UTC()})
