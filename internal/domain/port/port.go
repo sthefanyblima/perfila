@@ -19,6 +19,9 @@ type ClienteRepository interface {
 	BuscarPorID(ctx context.Context, id uuid.UUID) (entity.Cliente, error)
 	// Listar [ADIÇÃO] devolve a página pedida e o total que casa com a busca. Spec: 3.6, Q-23.
 	Listar(ctx context.Context, f FiltroClientes) ([]entity.Cliente, int, error)
+	// BuscarPorEmail [ADIÇÃO] v1.10 compara sem maiúsculas e sem espaços nas pontas; cadastro mais
+	// recente primeiro; vazio sem erro. Spec: RN-19, Q-59.
+	BuscarPorEmail(ctx context.Context, email string) ([]entity.Cliente, error)
 }
 
 // FiltroClientes [ADIÇÃO] seleciona e pagina clientes, do cadastro mais recente para o mais
@@ -96,3 +99,36 @@ type IntegracaoGateway interface {
 
 // Clock é a única fonte de tempo do sistema (C-07).
 type Clock interface{ Agora() time.Time }
+
+// TokenAcessoRepository [ADIÇÃO] v1.10 guarda os links de uso único do portal (só o hash).
+// Spec: 3.6, RN-19, Q-56, Q-59.
+type TokenAcessoRepository interface {
+	Salvar(ctx context.Context, t entity.TokenAcessoTitular) error
+	// Consumir marca UsadoEm de forma atômica (vale entre réplicas); inexistente, vencido ou já
+	// usado: errs.ErrAcessoInvalido.
+	Consumir(ctx context.Context, hash string, agora time.Time) (entity.TokenAcessoTitular, error)
+	// ContarDesde conta os tokens do cliente com CriadoEm >= desde (limite por cadastro).
+	ContarDesde(ctx context.Context, clienteID uuid.UUID, desde time.Time) (int, error)
+	// RemoverPorCliente apaga os tokens do cliente e diz quantos. Spec: RN-17.
+	RemoverPorCliente(ctx context.Context, clienteID uuid.UUID) (int, error)
+}
+
+// PedidoEliminacaoRepository [ADIÇÃO] v1.10 guarda os pedidos feitos no portal. Spec: RN-20, Q-58.
+type PedidoEliminacaoRepository interface {
+	Salvar(ctx context.Context, p entity.PedidoEliminacao) error // insere ou atualiza por ID; um ABERTO por cliente
+	// BuscarAbertoPorCliente devolve errs.ErrPedidoNaoEncontrado sem pedido aberto.
+	BuscarAbertoPorCliente(ctx context.Context, clienteID uuid.UUID) (entity.PedidoEliminacao, error)
+	Listar(ctx context.Context) ([]entity.PedidoEliminacao, error) // ABERTO primeiro, depois DataPedido decrescente
+}
+
+// Notificador [ADIÇÃO] v1.10 avisa o titular; no MVP, NotificadorSimulado (Q-57).
+type Notificador interface {
+	EnviarLinkAcesso(ctx context.Context, para, link string, expiraEm, dataCadastro time.Time) error
+}
+
+// CaixaSaidaSimulada [ADIÇÃO] v1.10 guarda as mensagens do NotificadorSimulado. Spec: Q-57.
+type CaixaSaidaSimulada interface {
+	Guardar(ctx context.Context, m entity.MensagemSimulada) error
+	Listar(ctx context.Context, desde time.Time) ([]entity.MensagemSimulada, error) // EnviadaEm >= desde, mais recente primeiro
+	RemoverAte(ctx context.Context, limite time.Time) (int, error)                  // EnviadaEm < limite
+}

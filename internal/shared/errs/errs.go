@@ -25,6 +25,8 @@ var (
 	ErrPerfilNaoEncontrado        = &Erro{"perfil_nao_encontrado", "perfil ausente ou ainda sem segmento"}
 	ErrSemProdutoElegivel         = &Erro{"sem_produto_elegivel", "nenhum produto elegível para recomendação"}
 	ErrConsentimentoNaoEncontrado = &Erro{"consentimento_nao_encontrado", "registro de consentimento inexistente"}
+	ErrAcessoInvalido             = &Erro{"acesso_invalido", "link de acesso inexistente, vencido ou já usado"} // v1.10 RN-19
+	ErrPedidoNaoEncontrado        = &Erro{"pedido_nao_encontrado", "nenhum pedido de eliminação aberto"}        // v1.10, uso interno
 )
 
 // Codigo devolve o código do erro de domínio contido em err, ou "" se não houver.
