@@ -118,9 +118,9 @@ As features vivem em `features/` e são a versão executável deste documento. E
 | `processamento.feature` | RN-09, Q-26 | `@aplicacao` | 4 | Painel web ✅ (T-32) |
 | `leitura.feature` | RN-01, Q-21, Q-23, Q-31 | `@aplicacao` | 18 | Painel web ✅ (T-34) |
 | `painel.feature` | 3.7.1, UC-01, UC-08, UC-09, RN-01, RN-09, Q-21 a Q-24, Q-31, Q-32, RN-10, Q-34 | `@web` | 33 | Painel web ✅ (T-35 a T-38; +4 do histórico, T-45) |
-| `direitos.feature` | UC-09, RN-01, RN-17, RN-18, Q-48 a Q-53 | `@aplicacao` e `@web` | 0 (`@wip`) | Direitos do titular (v1.9) ⬜ (T-71 e T-72) |
+| `direitos.feature` | UC-09, RN-01, RN-17, RN-18, Q-48 a Q-53 | `@aplicacao` e `@web` | 46 | Direitos do titular (v1.9) ✅ (T-71 e T-72) |
 
-Total no `make verify`: **170 cenários, todos verdes** (107 até a v1.2, os do painel e 12 do histórico do consentimento, v1.4); mais 3 cenários `@implantacao` (11 passos) em `make bdd-implantacao`.
+Total no `make verify`: **216 cenários, todos verdes** (107 até a v1.2, os do painel, 12 do histórico do consentimento, v1.4, e 46 dos direitos do titular, v1.9); mais 3 cenários `@implantacao` (11 passos) em `make bdd-implantacao`.
 
 ### 6.1 Mudanças da v1.0 nas features (aprovadas junto com a Spec v1.0, B-14)
 

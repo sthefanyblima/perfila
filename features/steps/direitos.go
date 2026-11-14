@@ -1,8 +1,11 @@
 package steps
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/cucumber/godog"
@@ -56,6 +59,56 @@ func registrarPassosDireitos(sc *godog.ScenarioContext, m *Mundo) {
 	sc.Step(`^a exportação traz (\d+) eventos?, o perfil no segmento "([^"]*)" e (\d+) recomendaç(?:ão|ões)$`, m.exportacaoCompleta)
 	sc.Step(`^a exportação traz (\d+) eventos?, sem perfil e sem recomendações$`, m.exportacaoSemPerfil)
 	sc.Step(`^a retenção atinge (\d+) clientes?$`, m.retencaoAtinge)
+
+	// ---- painel (@web) ----
+	sc.Step(`^o operador corrige o cadastro do cliente "([^"]*)" para o nome "([^"]*)" e o e-mail "([^"]*)"$`, func(c, nome, email string) error {
+		return m.webPOST("/painel/clientes/"+c+"/cadastro", url.Values{"nome": {nome}, "email": {email}}, true)
+	})
+	sc.Step(`^o operador baixa os dados do cliente "([^"]*)"$`, func(c string) error { return m.webGET("/painel/clientes/"+c+"/dados", true) })
+	sc.Step(`^a resposta é um arquivo JSON anexo com o cadastro de "([^"]*)" e (\d+) eventos?$`, m.arquivoExportado)
+	sc.Step(`^o operador confirma a eliminação dos dados do cliente "([^"]*)" digitando "([^"]*)"$`, func(c, nome string) error {
+		return m.webPOST("/painel/clientes/"+c+"/eliminar", url.Values{"confirmacao": {nome}}, true)
+	})
+	sc.Step(`^o operador confirma a aplicação da retenção$`, func() error {
+		return m.webPOST("/painel/operacao/retencao", url.Values{}, true)
+	})
+	sc.Step(`^o log registra o pedido "([^"]*)" atendido para o cliente "([^"]*)"$`, m.logRegistraPedido)
+}
+
+// arquivoExportado confere o anexo JSON: cabeçalhos, nome do titular e quantidade de eventos (Q-49).
+func (m *Mundo) arquivoExportado(nome string, eventos int) error {
+	r := m.api.resposta
+	if cd := r.Header().Get("Content-Disposition"); !strings.HasPrefix(cd, "attachment;") || !strings.HasSuffix(cd, `.json"`) {
+		return fmt.Errorf("Content-Disposition inesperado: %q", cd)
+	}
+	if ct := r.Header().Get("Content-Type"); !strings.HasPrefix(ct, "application/json") {
+		return fmt.Errorf("Content-Type inesperado: %q", ct)
+	}
+	var arq struct {
+		VersaoFormato string `json:"versaoFormato"`
+		Cliente       struct {
+			Nome string `json:"nome"`
+		} `json:"cliente"`
+		Eventos []json.RawMessage `json:"eventos"`
+	}
+	if err := json.Unmarshal(r.Body.Bytes(), &arq); err != nil {
+		return fmt.Errorf("arquivo não é JSON: %v", err)
+	}
+	if arq.VersaoFormato != "1" || arq.Cliente.Nome != nome || len(arq.Eventos) != eventos {
+		return fmt.Errorf("arquivo: versão %q, nome %q, %d eventos", arq.VersaoFormato, arq.Cliente.Nome, len(arq.Eventos))
+	}
+	return nil
+}
+
+// logRegistraPedido confere a auditoria do pedido: direito_atendido com o pedido e o ID (Q-53).
+func (m *Mundo) logRegistraPedido(pedido, c string) error {
+	for _, linha := range strings.Split(m.web.log.String(), "\n") {
+		if strings.Contains(linha, "msg=direito_atendido") && strings.Contains(linha, "pedido="+pedido) &&
+			strings.Contains(linha, "clienteId="+id(c).String()) {
+			return nil
+		}
+	}
+	return fmt.Errorf("log sem direito_atendido do pedido %q para %s", pedido, c)
 }
 
 // emData executa f com o relógio do cenário em t e depois o devolve ao instante atual (B-07).
