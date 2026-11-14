@@ -32,6 +32,7 @@ import (
 	"perfila/internal/domain/port"
 	"perfila/internal/domain/service"
 	"perfila/internal/infra/config"
+	"perfila/internal/infra/external"
 	"perfila/internal/infra/memoria"
 	"perfila/internal/infra/relogio"
 	"perfila/internal/infra/repository/pg"
@@ -192,6 +193,32 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 	}
 	mux := http.NewServeMux()
 	mux.Handle("/", api.NovoRouter(deps))
+	exportar := usecase.NovoExportarDadosTitularUseCase(repos.clientes, consentimento, repos.eventos, repos.perfis,
+		repos.segmentos, repos.recomendacoes, repos.produtos, clock)
+	meusDados := usecase.NovoConsultarMeusDadosUseCase(repos.clientes, consentimento, repos.pedidos)
+	var caixaSaida *usecase.ListarCaixaSaidaUseCase
+	if cfg.PortalLigado() { // portal do titular (v1.10, Q-55 a Q-60)
+		portal, err := web.NovoPortal(web.DependenciasPortal{
+			ChaveSessao: cfg.PortalChaveSessao, Finalidade: cfg.PainelFinalidade, VersaoTermo: cfg.PainelVersaoTermo,
+			Solicitar: usecase.NovoSolicitarAcessoTitularUseCase(repos.clientes, repos.tokens,
+				external.NovoNotificadorSimulado(repos.caixaSaida, clock), clock, cfg.PortalURLBase),
+			Autenticar:    usecase.NovoAutenticarTitularUseCase(repos.clientes, repos.tokens, clock),
+			MeusDados:     meusDados,
+			Consentimento: consentimento,
+			ExportarDados: exportar,
+			Eliminacao:    usecase.NovoPedirEliminacaoUseCase(repos.clientes, consentimento, repos.pedidos, clock),
+			Clock:         clock, Log: log,
+		})
+		if err != nil {
+			repos.fechar()
+			return aplicacao{}, err
+		}
+		mux.Handle("/titular/", portal)
+		mux.Handle("/titular", http.RedirectHandler("/titular/entrar", http.StatusSeeOther))
+		caixaSaida = usecase.NovoListarCaixaSaidaUseCase(repos.caixaSaida, clock)
+	} else {
+		log.Warn("portal_desligado", "detalhe", "defina PORTAL_URL_BASE e PORTAL_CHAVE_SESSAO para ligar o portal do titular (Q-60)")
+	}
 	if cfg.PainelLigado() {
 		painel, err := web.NovoRouter(web.Dependencias{
 			Usuario: cfg.PainelUsuario, SenhaHash: []byte(cfg.PainelSenhaHash), ChaveSessao: cfg.PainelChaveSessao,
@@ -204,11 +231,13 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 			ListarCatalogo:     usecase.NovoListarCatalogoUseCase(repos.produtos),
 			Expirar:            expirar,
 			AtualizarCadastro:  usecase.NovoAtualizarCadastroUseCase(repos.clientes),
-			ExportarDados: usecase.NovoExportarDadosTitularUseCase(repos.clientes, consentimento, repos.eventos, repos.perfis,
-				repos.segmentos, repos.recomendacoes, repos.produtos, clock),
+			ExportarDados:      exportar,
 			EliminarDados: usecase.NovoEliminarDadosTitularUseCase(repos.clientes, repos.consentimentos, repos.eventos,
 				repos.perfis, repos.recomendacoes, repos.tokens, repos.pedidos, clock),
 			AplicarRetencao: retencao,
+			MeusDados:       meusDados,
+			Pedidos:         usecase.NovoListarPedidosEliminacaoUseCase(repos.pedidos, repos.clientes, consentimento),
+			CaixaSaida:      caixaSaida,
 			MetaEventos:     cfg.EngajamentoMetaEventos,
 			Clock:           clock, Log: log, Saude: repos.saude, Migracoes: repos.migracoes,
 		})

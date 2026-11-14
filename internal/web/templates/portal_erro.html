@@ -1,0 +1,9 @@
+{{define "conteudo"}}{{with .Dados}}
+<section class="pf-panel pf-portal__cartao" aria-labelledby="titulo-erro">
+  <div class="pf-panel__body pf-form">
+    <h1 id="titulo-erro" class="pf-header__title">{{.Titulo}}</h1>
+    <p>{{.Texto}}</p>
+    <div><a class="pf-btn" href="/titular">Voltar ao início</a></div>
+  </div>
+</section>
+{{end}}{{end}}

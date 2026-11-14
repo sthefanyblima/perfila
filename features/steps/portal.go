@@ -1,8 +1,12 @@
 package steps
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
+	"log/slog"
+	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -13,6 +17,7 @@ import (
 
 	"perfila/internal/application/usecase"
 	"perfila/internal/domain/entity"
+	"perfila/internal/web"
 )
 
 // Passos do portal do titular nas camadas @aplicacao e @dominio. Spec: v1.10, RN-19, RN-20, Q-55 a Q-58.
@@ -140,6 +145,63 @@ func registrarPassosPortal(sc *godog.ScenarioContext, m *Mundo) {
 	})
 	sc.Step(`^a lista de pedidos é "([^"]*)"$`, m.listaDePedidos)
 
+	// ---- portal pela web (httptest) ----
+	sc.Step(`^o titular pede o link pelo portal com o e-mail "([^"]*)"$`, m.pedirLinkPeloPortal)
+	sc.Step(`^que o titular pediu o link pelo portal (\d+) vezes$`, func(n int) error {
+		for i := 0; i < n; i++ {
+			if err := m.pedirLinkPeloPortal(fmt.Sprintf("pedido-%d@exemplo.test", i)); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	sc.Step(`^o titular abre o link enviado$`, func() error {
+		link, _, err := m.linkEnviado()
+		if err != nil {
+			return err
+		}
+		return m.webGET(caminhoDoLink(link), true)
+	})
+	sc.Step(`^o link enviado ainda vale$`, func() error {
+		t, err := m.tokenDoLink()
+		if err == nil && t.UsadoEm != nil {
+			err = errors.New("abrir o link consumiu o token")
+		}
+		return err
+	})
+	sc.Step(`^o titular entra pelo link enviado$`, m.entrarPeloLink)
+	sc.Step(`^que o titular entrou no portal pelo link enviado$`, func() error {
+		if err := m.pediuLinks("", "c-001@exemplo.test"); err != nil {
+			return err
+		}
+		if err := m.entrarPeloLink(); err != nil {
+			return err
+		}
+		return m.levaA("/titular/meus-dados")
+	})
+	sc.Step(`^o titular confirma "(revogar|conceder)" a autorização pelo portal$`, func(acao string) error {
+		return m.confirmarNoPortal("/titular/" + acao)
+	})
+	sc.Step(`^(?:que )?o titular (?:confirma|confirmou) o pedido de eliminação pelo portal$`, func() error {
+		return m.confirmarNoPortal("/titular/eliminacao")
+	})
+	sc.Step(`^o titular envia "([^"]*)" sem o token CSRF$`, func(caminho string) error {
+		return m.webPOST(caminho, url.Values{}, false)
+	})
+	sc.Step(`^a página (?:de destino )?não mostra "([^"]*)"$`, func(t string) error {
+		if strings.Contains(m.web.pagina, t) {
+			return fmt.Errorf("a página mostra %q", t)
+		}
+		return nil
+	})
+	sc.Step(`^o log do portal não contém o nome "([^"]*)", o e-mail "([^"]*)" nem o link enviado$`, func(nome, email string) error {
+		_, token, err := m.linkEnviado()
+		if err != nil {
+			return err
+		}
+		return m.logSemDados(nome, email, token)
+	})
+
 	// ---- domínio: estados do pedido ----
 	sc.Step(`^que existe um pedido de eliminação "([^"]*)"$`, func(s string) error {
 		p, err := entity.NovoPedidoEliminacao(id("pedido"), id("c-001"), m.clock.Agora().Add(-time.Hour))
@@ -161,8 +223,30 @@ func registrarPassosPortal(sc *godog.ScenarioContext, m *Mundo) {
 	})
 }
 
+// portalNoAr monta o portal ao lado do painel já no ar, como o omega-server faz (cmd/).
 func (m *Mundo) portalNoAr(base string) error {
 	m.portal.urlBase = base
+	chave := make([]byte, 32)
+	_, _ = rand.Read(chave)
+	c := m.uc()
+	portal, err := web.NovoPortal(web.DependenciasPortal{
+		ChaveSessao: chave, Finalidade: "segmentacao", VersaoTermo: "v1",
+		Solicitar: c.solicitarAcesso, Autenticar: c.autenticar, MeusDados: c.meusDados, Consentimento: c.consentimento,
+		ExportarDados: c.exportar, Eliminacao: c.pedirEliminacao,
+		Clock: m.clock, Log: slog.New(slog.NewTextHandler(&m.web.log, nil)),
+	})
+	if err != nil {
+		return err
+	}
+	mux := http.NewServeMux()
+	mux.Handle("/titular/", portal)
+	if m.web.handler != nil {
+		mux.Handle("/", m.web.handler)
+	}
+	m.web.handler = mux
+	if m.web.cookies == nil {
+		m.web.cookies = map[string]string{}
+	}
 	return nil
 }
 
@@ -181,6 +265,41 @@ func (m *Mundo) pediuLinks(n, email string) error {
 		}
 	}
 	return nil
+}
+
+func (m *Mundo) pedirLinkPeloPortal(email string) error {
+	if err := m.webGET("/titular/entrar", true); err != nil {
+		return err
+	}
+	return m.webPOST("/titular/entrar", url.Values{"email": {email}}, true)
+}
+
+// caminhoDoLink tira o endereço base: o httptest atende só o caminho e a query.
+func caminhoDoLink(link string) string {
+	u, err := url.Parse(link)
+	if err != nil {
+		return link
+	}
+	return u.RequestURI()
+}
+
+func (m *Mundo) entrarPeloLink() error {
+	link, token, err := m.linkEnviado()
+	if err != nil {
+		return err
+	}
+	if err := m.webGET(caminhoDoLink(link), true); err != nil {
+		return err
+	}
+	return m.webPOST("/titular/acesso", url.Values{"t": {token}}, true)
+}
+
+// confirmarNoPortal abre a confirmação (o CSRF da sessão vem da página) e confirma.
+func (m *Mundo) confirmarNoPortal(caminho string) error {
+	if err := m.webGET(caminho, true); err != nil {
+		return err
+	}
+	return m.webPOST(caminho, url.Values{}, true)
 }
 
 func (m *Mundo) mensagens() []entity.MensagemSimulada {
