@@ -54,6 +54,7 @@ type Mundo struct {
 	web                    estadoWeb
 	ops                    estadoOperadores
 	cfg                    estadoConfig // v1.6
+	rel                    estadoRelatorio
 
 	api estadoAPI
 }
@@ -110,6 +111,7 @@ type casos struct {
 	salvarSegmento *usecase.SalvarSegmentoUseCase // v1.6
 	prever         *usecase.PreverSegmentacaoUseCase
 	salvarProduto  *usecase.SalvarProdutoUseCase
+	gerarRelatorio *usecase.GerarRelatorioUseCase
 }
 
 func (m *Mundo) uc() casos {
@@ -140,6 +142,8 @@ func (m *Mundo) uc() casos {
 	c.salvarSegmento = usecase.NovoSalvarSegmentoUseCase(m.segmentos)
 	c.prever = usecase.NovoPreverSegmentacaoUseCase(m.segmentos, m.consentimentos, m.clientes, m.perfis)
 	c.salvarProduto = usecase.NovoSalvarProdutoUseCase(m.produtos)
+	c.gerarRelatorio = usecase.NovoGerarRelatorioUseCase(memoria.NovoRelatorioRepository(m.clientes, m.eventos, m.perfis,
+		m.recomendacoes, m.consentimentos), m.segmentos, m.clock, fusoRelatorio)
 	return c
 }
 

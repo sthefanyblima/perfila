@@ -9,6 +9,12 @@
     <a class="pf-nav__link" href="/painel/clientes" data-teste="menu-clientes"{{if eq .Nav "clientes"}} aria-current="page"{{end}}>Clientes</a>
   </div>
   {{- end}}
+  {{- if .Pode.relatorios}}
+  <div class="pf-nav__group">
+    <span class="pf-nav__heading">Análise</span>
+    <a class="pf-nav__link" href="/painel/relatorios" data-teste="menu-relatorios"{{if eq .Nav "relatorios"}} aria-current="page"{{end}}>Relatórios</a>
+  </div>
+  {{- end}}
   {{- if .Pode.configuracao}}
   <div class="pf-nav__group">
     <span class="pf-nav__heading">Configuração</span>

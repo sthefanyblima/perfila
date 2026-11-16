@@ -80,6 +80,7 @@ func TestContratoPostgres(t *testing.T) {
 			Produtos:       pg.NovoPgProdutoRepository(db),
 			Operadores:     pg.NovoPgOperadorRepository(db),
 			Auditoria:      pg.NovoPgAuditoriaRepository(db),
+			Relatorios:     pg.NovoPgRelatorioRepository(db),
 			AdicionarSegmento: func(t *testing.T, s entity.Segmento) {
 				if _, err := db.Exec(`INSERT INTO segmentos (id, nome, descricao, criterio, prioridade, ativo)
 					VALUES ($1, $2, $3, $4, $5, $6)`, s.ID, s.Nome, s.Descricao, s.Criterio, s.Prioridade, s.Ativo); err != nil {

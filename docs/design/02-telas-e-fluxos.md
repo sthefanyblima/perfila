@@ -2,7 +2,7 @@
 
 ## Mapa do painel
 
-Todas as telas ficam sob `/painel` no próprio `omega-server`, atrás do Nginx. A navegação lateral (`SideNav`) tem três grupos, e cada grupo só aparece para o papel que pode abri-lo (v1.5, RN-11): Atendimento vê Clientes e Configuração; Analista, só Configuração; Administrador, os três.
+Todas as telas ficam sob `/painel` no próprio `omega-server`, atrás do Nginx. A navegação lateral (`SideNav`) tem quatro grupos, e cada grupo só aparece para o papel que pode abri-lo (v1.5, RN-11): Atendimento vê Clientes e Configuração; Analista, Análise (v1.7) e Configuração; Administrador, os quatro.
 
 ```text
 /painel/entrar                         Entrar (sem sessão)
@@ -12,6 +12,9 @@ Clientes
   /painel/clientes/{id}                Ficha: visão geral
   /painel/clientes/{id}/eventos        Ficha: eventos (UC-01)
   /painel/clientes/{id}/consentimento  Ficha: consentimento (UC-08)
+Análise (v1.7, Q-46; Administrador e Analista)
+  /painel/relatorios                   Relatórios agregados (UC-05 e UC-07 parciais, RN-15)
+  /painel/relatorios.csv               O mesmo relatório em CSV
 Configuração (leitura para todos; edição para Administrador e Analista desde a v1.6)
   /painel/segmentos                    Segmentos e critérios (RN-06)
   /painel/segmentos/novo, /{id}        Formulário do segmento, testar critério (RN-14)
@@ -28,9 +31,7 @@ Rodapé (todos os papéis)
   /painel/minha-senha                  Trocar a própria senha; obrigatória depois de senha provisória (Q-40)
 ```
 
-Depois de Entrar, quem tem Clientes vai para a lista; o Analista vai para Segmentos. Uma página sem permissão mostra a tela de erro "Sem permissão" (403), e a tentativa fica na auditoria.
-
-Fase 2, fora deste escopo: `/titular` (portal do titular para ver e revogar o próprio consentimento, que exige autenticação do titular) e relatórios de segmento (UC-05 a UC-07).
+Fase 2, fora deste escopo: `/titular` (portal do titular para ver e revogar o próprio consentimento, que exige autenticação do titular) e o restante de UC-05 a UC-07 (campanhas, recortes por segmento, comparação entre períodos).
 
 ## Moldura de toda tela
 

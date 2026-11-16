@@ -44,7 +44,7 @@ const (
 	PermOperacao           Permissao = "operacao"
 	PermUsuarios           Permissao = "usuarios"
 	PermAuditoria          Permissao = "auditoria"
-	PermRelatorios         Permissao = "relatorios" // reservada para UC-05 a UC-07 (D-04): sem rota no MVP
+	PermRelatorios         Permissao = "relatorios" // v1.7: tela Relatórios e CSV agregado (UC-05 e UC-07 parciais, RN-15)
 	PermEliminacao         Permissao = "eliminacao" // reservada para a eliminação de dados (D-13): sem rota no MVP
 )
 

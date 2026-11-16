@@ -23,7 +23,7 @@ Desenvolvido com **Spec-Driven Development** (a especificação é a fonte da ve
 | Fechamento do escopo | 19/11 | daqui em diante, só correções |
 | Ensaio · evento final | 23/11 · 24/11 | roteiro em `docs/ROTEIRO_DEMONSTRACAO.md` |
 
-**273 cenários BDD** (269 no `make verify` + 4 de implantação), teste de arquitetura e suíte de contrato dos repositórios em memória e em PostgreSQL.
+**298 cenários BDD** (294 no `make verify` + 4 de implantação), teste de arquitetura e suíte de contrato dos repositórios em memória e em PostgreSQL.
 
 ## Arquitetura
 
@@ -42,7 +42,7 @@ Implantação (UML8): o **Nginx** (TLS, única porta de entrada) distribui para 
 ### Desenvolvimento (Go 1.22+)
 
 ```bash
-make verify   # gofmt, vet, testes com -race, 209 cenários BDD e teste de arquitetura
+make verify   # gofmt, vet, testes com -race, 294 cenários BDD e teste de arquitetura
 make demo     # fluxo do diagrama de sequência em memória, passo a passo
 make serve    # API e painel em modo memória: http://localhost:8080/painel (admin / dev-senha-admin)
 make demo-api # roteiro de curl contra o make serve (em outro terminal)
@@ -58,7 +58,7 @@ make implantar         # gera segredos (1ª vez) e sobe nginx + app1 + app2 + db
 make demo-implantacao  # roteiro da API pelo Nginx em HTTPS, gravando no PostgreSQL
 make bdd-implantacao   # 4 cenários @implantacao (inclui parar uma réplica e o painel pelo Nginx)
 make expirar           # administrador: expira recomendações vencidas
-make exemplos          # carrega os 14 clientes de exemplo (só com o banco sem clientes; nunca operadores)
+make exemplos          # carrega os 74 clientes de exemplo, 14 com história e 60 de volume (só com o banco sem clientes; nunca operadores)
 make derrubar          # derruba (os dados ficam no volume omega_db)
 ```
 
@@ -110,6 +110,7 @@ Interface web em `/painel`, servida pelo próprio `omega-server`, seguindo o des
 | Cadastrar cliente | UC-09; abre a ficha já com o selo "Não concedido" |
 | Ficha | selo de consentimento sempre visível; Visão geral (etapas do processamento, perfil, segmento com os critérios atendidos, recomendação), Eventos e Consentimento. Sem consentimento, nenhum dado de comportamento é lido |
 | Consentimento | registro atual e linha do tempo com cada concessão e revogação: finalidade, versão do termo e origem (API, painel com o operador, portal). Só inclusão; cliente sem movimentos mostra a linha pelas datas (Q-34) |
+| Relatórios | UC-05 e UC-07 parciais (Q-46): clientes, consentimento por estado e taxa de concessão, distribuição por segmento (clientes, ticket médio, score médio), recomendações ativas e expiradas, categorias mais compradas e evolução mensal de cadastros, eventos e revogações, nos últimos 6 ou 12 meses. Gráficos SVG desenhados no servidor, cada um com a tabela de dados, e exportação em CSV. Só números agregados: comportamento conta só quem tem consentimento válido, e grupos com menos de 5 clientes aparecem como "menos de 5" |
 | Segmentos | ativos por prioridade e inativos. Quem edita (Administrador e Analista) cria, edita, ativa e desativa: o critério é montado por linhas de campo, operador e valor, com o texto gravado visível; "Testar critério" usa três valores digitados. Salvar passa por uma **prévia** que só conta quantos clientes ativos com consentimento ficariam em cada segmento, pelo perfil salvo. O `padrao` não é desativado nem ganha critério; prioridade e nome não se repetem. Quem já foi segmentado muda no próximo processamento (Q-33, Q-42) |
 | Catálogo | produtos por categoria. Quem edita cria produtos e muda nome, categoria (gravada em minúsculas, com as existentes sugeridas) e preço (de 0 a 1.000.000); ativa e desativa com confirmação. Nada é excluído (Q-43) |
 | Operação | saúde do banco e expiração de recomendações vencidas |
@@ -122,27 +123,27 @@ Interface web em `/painel`, servida pelo próprio `omega-server`, seguindo o des
 | Papel | Alcança |
 |---|---|
 | Atendimento | clientes, consentimento, eventos e processamento; Segmentos e Catálogo só para leitura |
-| Analista | só Segmentos e Catálogo, com edição (v1.6), sem nenhum dado de cliente: a prévia mostra só contagens (relatórios ficam para depois, D-04) |
-| Administrador | tudo isso, mais Usuários, Auditoria e Operação |
+| Analista | Segmentos e Catálogo, com edição (v1.6), e os Relatórios agregados (v1.7, RN-15), sem nenhum dado de cliente: a prévia e os relatórios mostram só contagens |
+| Administrador | tudo isso, mais Relatórios, Usuários, Auditoria e Operação |
 
 Cada alteração de segmento ou produto e cada prévia ficam na Auditoria, com os nomes dos campos alterados, nunca os valores (Q-44).
 
 Operadores de exemplo, **só no `make serve`** (modo memória; senhas de desenvolvimento, nunca na implantação, Q-41): `admin` / `dev-senha-admin` (administrador), `atendimento` / `dev-senha-atendimento` e `analista` / `dev-senha-analista`.
 
-Demonstração (Q-30, Q-32): 7 segmentos (vip, premium, fiel, engajado, explorador, ocasional, padrao), catálogo de 7 categorias e 14 clientes com história ao longo de meses: Ana (premium, com recomendações expiradas), Bruno (engajado), Carla e Davi (ocasional; Davi sem produto elegível), Elisa (nunca concedeu), Fábio (revogou), Gabi (inativa, histórico só leitura), Heitor (vip), Isabela (fiel), João (explorador), Karina (concedeu v1 pela API, revogou e concedeu v2 pelo painel: histórico completo), Lucas (ainda não processado), Marina (só recomendação expirada) e Nina (padrão). No `make serve` eles entram sozinhos; na implantação, com `make exemplos`.
+Demonstração (Q-30, Q-32): 7 segmentos (vip, premium, fiel, engajado, explorador, ocasional, padrao), catálogo de 7 categorias e 14 clientes com história ao longo de meses: Ana (premium, com recomendações expiradas), Bruno (engajado), Carla e Davi (ocasional; Davi sem produto elegível), Elisa (nunca concedeu), Fábio (revogou), Gabi (inativa, histórico só leitura), Heitor (vip), Isabela (fiel), João (explorador), Karina (concedeu v1 pela API, revogou e concedeu v2 pelo painel: histórico completo), Lucas (ainda não processado), Marina (só recomendação expirada) e Nina (padrão). Para os relatórios terem grupos acima de 5, a carga soma 60 clientes de volume (`Cliente Volume 101` a `160`, `c-101@exemplo.test` em diante) com história gerada de forma determinística: compras em várias categorias, 6 sem consentimento e 6 que revogaram (Q-46). No `make serve` todos entram sozinhos; na implantação, com `make exemplos`.
 
 Sessão assinada sem estado (funciona com as duas réplicas) e conferida no banco a cada página, CSRF em todo envio, 5 tentativas de entrada por IP em 5 minutos, CSP `'self'`. Funciona sem JavaScript (formulários com redirecionamento e páginas de confirmação); com JavaScript, troca só a área do painel e usa diálogos nativos.
 
 ## LGPD
 
-Nenhum caso de uso que processa dado pessoal roda sem consentimento válido (C-03), e a revogação tem efeito imediato (RN-03). Os logs da aplicação e do Nginx não trazem nome, e-mail nem IP (C-09), e os testes usam só dados sintéticos. O checklist completo, com a evidência de cada item e o que ficou para depois do MVP, está em [`docs/CHECKLIST_LGPD.md`](docs/CHECKLIST_LGPD.md). Os requisitos são interpretação técnica da equipe, não parecer jurídico.
+Nenhum caso de uso que processa dado pessoal roda sem consentimento válido (C-03), e a revogação tem efeito imediato (RN-03). Os logs da aplicação e do Nginx não trazem nome, e-mail nem IP (C-09), e os testes usam só dados sintéticos. Os relatórios (RN-15) mostram só números agregados, sem identificar ninguém, e escondem grupos com menos de 5 clientes. O checklist completo, com a evidência de cada item e o que ficou para depois do MVP, está em [`docs/CHECKLIST_LGPD.md`](docs/CHECKLIST_LGPD.md). Os requisitos são interpretação técnica da equipe, não parecer jurídico.
 
 ## Mapa do repositório
 
 ```text
 CLAUDE.md                   constituição para o agente (C-01..C-12) e mapa de contexto
-OPEN_QUESTIONS.md           decisões Q-01..Q-41, com o porquê
-specs/                      spec.md (v1.5) · plan.md (roadmap) · tasks.md · bdd-rules.md
+OPEN_QUESTIONS.md           decisões Q-01..Q-46, com o porquê
+specs/                      spec.md (v1.7) · plan.md (roadmap) · tasks.md · bdd-rules.md
 docs/uml/                   UML1..UML8 em texto (Mermaid) + imagens originais e corrigidas (img/v1)
 docs/design/                design system Perfila Console (princípios, telas, textos, tokens, componentes)
 docs/                       checklist LGPD · roteiro de demonstração · relatório parcial · auditoria

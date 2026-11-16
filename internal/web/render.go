@@ -151,7 +151,7 @@ func (p *painel) render(w http.ResponseWriter, r *http.Request, status int, tela
 		pg.Papel, pg.Pode = rotulo(string(op.Papel)), map[string]bool{}
 		for _, perm := range []entity.Permissao{entity.PermClientes, entity.PermConsentimento, entity.PermEventos,
 			entity.PermProcessamento, entity.PermConfiguracao, entity.PermEditarConfiguracao, entity.PermOperacao,
-			entity.PermUsuarios, entity.PermAuditoria} {
+			entity.PermUsuarios, entity.PermAuditoria, entity.PermRelatorios} {
 			pg.Pode[string(perm)] = op.Papel.Pode(perm) && !op.TrocarSenha
 		}
 	}

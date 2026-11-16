@@ -102,7 +102,6 @@ Operadores no banco com papel (ADMINISTRADOR, ANALISTA, ATENDIMENTO), matriz de 
 | T-52 | Telas Usuários (criar, mudar papel, desativar, ativar, redefinir senha) e Minha senha | T-51 | cenários `@web` de usuários | ✅ 11 cenários `@web` novos (menu por papel, ação sem permissão, sessão encerrada, mudança de papel, auditoria das ações e leituras, auditoria sem dado pessoal); `TestAdministradorInicial` |
 | T-53 | Tela Auditoria (filtros e paginação) e subcomando `expurgar-auditoria` | T-51 | cenários `@web` da auditoria; `TestExpurgarAuditoria` | ✅ 11 cenários `@web` novos (menu por papel, ação sem permissão, sessão encerrada, mudança de papel, auditoria das ações e leituras, auditoria sem dado pessoal); `TestAdministradorInicial` |
 | T-54 | Exemplos (um operador por papel, só no modo memória), README, roteiro, checklist (L-12, L-23, L-28); fluxo no navegador | T-52, T-53 | `TestCarregarExemplos`; painel conferido | ✅ `TestOperadoresExemplo`; atendimento e analista só no modo memória; README, roteiro (passo 5c), checklist (L-12, L-23, L-28, L-29) e textos do design; fluxo conferido no navegador |
-
 ## Fechamento
 
 | Data | Marco |
@@ -125,3 +124,15 @@ Segmentos e produtos editados pelo painel, com prévia, proteções do `padrao` 
 | T-57 | Casos de uso `SalvarSegmento`, `PreverSegmentacao`, `SalvarProduto`; `ListarSegmentos.Todos` e `Consultar`, `ListarCatalogo.Consultar` e `Categorias`; permissão `editar_configuracao`; `RegistroAuditoria.Campos` e ações novas | T-56 | cenários `@aplicacao` e `@dominio` novos | ✅ 15 cenários e esquemas sem `@wip` (`segmentacao.feature` e `recomendacao.feature`); `TestRegistroAuditoriaCampos`, `TestPapelPode`; contrato `AuditoriaCampos` nos dois backends; cobertura de domínio + aplicação 85,7% |
 | T-58 | Painel: formulários de segmento (critério por linhas) e de produto, prévia e confirmação, testar critério, ativar e desativar, auditoria com os campos | T-57 | cenários `@web` novos | ✅ 11 cenários e esquemas `@web` sem `@wip`; prévia, salvar, critério inválido, `padrao` protegido, testar critério, criar e desativar produto e auditoria com os campos; fluxo de edição de segmento conferido no navegador |
 | T-59 | Exemplos, README, roteiro, checklist LGPD e textos do design; fluxo no navegador | T-58 | painel conferido; cobertura ≥ 80% | ✅ README (telas e papéis), roteiro (passo 5d), checklist L-30 e requisito futuro da Q-45, textos e telas do design; nenhum exemplo novo (segmentos e catálogo da migração 005 bastam); cobertura de domínio + aplicação 88,6% |
+
+## Relatórios agregados — Spec v1.7
+
+UC-05 e UC-07 em versão parcial: só números agregados, comportamento só com consentimento válido e grupos pequenos como "menos de 5" (Q-46, RN-15). Numeração a partir de T-60 para não colidir com as branches abertas.
+
+| ID | Tarefa | Depende de | Prova | Status |
+|---|---|---|---|---|
+| T-60 | Spec v1.7, Q-46, UML1 e UML7 em texto; `features/relatorios.feature` (`@wip` até a tarefa que a implementa) | T-46 | Spec, UML e feature revisados | ✅ 25 cenários executados (`@wip`) |
+| T-61 | `Contagem`, `Media`, `Percentual` e as funções de proteção; `RelatorioRepository` na memória e no PostgreSQL | T-60 | testes de tabela; contrato nos dois backends | ✅ `TestProteger*`; caso `Relatorio` do contrato verde na memória e no PostgreSQL |
+| T-62 | `GerarRelatorioUseCase` com período | T-61 | cenários `@dominio` e `@aplicacao` de `relatorios.feature` | ✅ 21 cenários (8 `@dominio`, 13 `@aplicacao`); `@wip` só nos 4 `@web` |
+| T-63 | Painel: tela Relatórios com indicadores, gráficos SVG e tabelas; CSV agregado | T-62 | cenários `@web` de `relatorios.feature`; `@wip` retirado | ✅ 4 cenários `@web` (25 no total da feature); `TestBarraOcultaNaoRevelaONumero`, `TestCelulaCSVSemFormula` |
+| T-64 | Clientes de volume nos exemplos; README, roteiro, checklist LGPD; fluxo no navegador | T-63 | `TestCarregarExemplos`; painel conferido | ✅ 60 clientes de volume; `TestRelatorioDosExemplos`; L-31 a L-35; tela e CSV conferidos no navegador |

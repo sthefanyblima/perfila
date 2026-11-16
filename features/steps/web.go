@@ -190,7 +190,7 @@ func (m *Mundo) painelNoAr(usuario, senha string) error {
 		SalvarSegmento:  c.salvarSegmento, PreverSegmentacao: c.prever, SalvarProduto: c.salvarProduto,
 		Cadastrar: c.cadastrar, Consentimento: c.consentimento, Coletar: c.coletar, Processar: c.processar,
 		ListarClientes: c.listarClientes, ConsultarCliente: c.consultarCliente, ConsultarResultado: c.consultarResultado,
-		ListarSegmentos: c.listarSegmentos, ListarCatalogo: c.listarCatalogo, Expirar: c.expirar,
+		ListarSegmentos: c.listarSegmentos, ListarCatalogo: c.listarCatalogo, Expirar: c.expirar, GerarRelatorio: c.gerarRelatorio,
 		MetaEventos: m.metaEventos, Clock: m.clock, Log: slog.New(slog.NewTextHandler(&m.web.log, nil)),
 	})
 	return err

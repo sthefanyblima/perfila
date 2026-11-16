@@ -1,0 +1,66 @@
+{{define "conteudo"}}{{with .Dados}}
+<header class="pf-header">
+  <ol class="pf-crumbs"><li>Análise</li><li aria-current="page">Relatórios</li></ol>
+  <div class="pf-header__row">
+    <div>
+      <h1 class="pf-header__title">Relatórios</h1>
+      <p class="pf-header__meta"><span>{{.Intervalo}}</span><span>Gerado em {{.GeradoEm}}</span></p>
+    </div>
+    <div class="pf-header__actions"><a class="pf-btn" href="/painel/relatorios.csv?periodo={{.Periodo}}" hx-boost="false" download data-teste="exportar-csv">{{icone "baixar"}} Exportar CSV</a></div>
+  </div>
+</header>
+
+<form class="pf-filters" method="get" action="/painel/relatorios" aria-label="Período do relatório">
+  <div class="pf-field pf-field--estreito">
+    <label class="pf-field__label" for="periodo">Período</label>
+    <select class="pf-select" id="periodo" name="periodo" data-filtrar>
+      {{range .Periodos}}<option value="{{.Valor}}"{{if .Atual}} selected{{end}}>{{.Rotulo}}</option>{{end}}
+    </select>
+  </div>
+  <div class="pf-filters__acoes"><button type="submit" class="pf-btn">Aplicar</button></div>
+</form>
+
+{{template "alerta" (alertaInfo "Só números agregados" "Nenhum cliente é identificado. Comportamento conta só quem tem consentimento válido, e grupos com menos de 5 clientes aparecem como \"menos de 5\".")}}
+
+<section class="pf-kpis" aria-label="Indicadores">
+  {{range .Indicadores}}
+  <div class="pf-kpi" data-teste="indicador-{{.Teste}}">
+    <span class="pf-label">{{.Rotulo}}</span>
+    <span class="pf-kpi__valor pf-num{{if .Valor.Oculta}} pf-kpi__valor--oculto{{end}}">{{.Valor.Texto}}</span>
+    <span class="pf-kpi__nota">{{.Nota}}</span>
+  </div>
+  {{end}}
+</section>
+
+<div class="pf-relatorio">
+{{range .Graficos}}{{$g := .}}
+<section class="pf-panel" aria-labelledby="titulo-{{.ID}}">
+  <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-{{.ID}}">{{.Titulo}}</h2></div>
+  <div class="pf-panel__body">
+    <p class="pf-small pf-muted">{{.Nota}}</p>
+    {{if .Vazio}}<p class="pf-muted">{{.Vazio}}</p>{{else}}
+    <svg class="pf-chart{{if .Grafico.Base}} pf-chart--colunas{{end}}" viewBox="0 0 {{.Grafico.Largura}} {{.Grafico.Altura}}" role="img" aria-labelledby="g-{{.ID}}" data-teste="grafico-{{.ID}}" focusable="false">
+      <title id="g-{{.ID}}">{{.Titulo}}. Os números estão na tabela {{if .Tabela.Linhas}}abaixo{{else}}Evolução mensal{{end}}.</title>
+      {{if .Grafico.Base}}<line class="pf-chart__base" x1="0" x2="{{.Grafico.Largura}}" y1="{{.Grafico.Base}}" y2="{{.Grafico.Base}}"/>{{end}}
+      {{range .Grafico.Barras}}{{if gt .L 0.0}}{{if gt .A 0.0}}<rect class="pf-chart__bar pf-chart__bar--{{.Tom}}{{if .Oculta}} pf-chart__bar--oculta{{end}}" x="{{.X}}" y="{{.Y}}" width="{{.L}}" height="{{.A}}" rx="2"/>{{end}}{{end}}
+      <text class="pf-chart__valor" x="{{.TX}}" y="{{.TY}}" text-anchor="{{.Ancora}}">{{.Valor}}</text>{{end}}
+      {{range .Grafico.Rotulos}}<text class="pf-chart__rotulo" x="{{.X}}" y="{{.Y}}" text-anchor="{{.Ancora}}">{{.Texto}}</text>{{end}}
+    </svg>
+    {{with .Grafico.Legenda}}<ul class="pf-chart__legenda">{{range .}}<li><span class="pf-chart__chave pf-chart__chave--{{.Tom}}" aria-hidden="true"></span>{{.Rotulo}}</li>{{end}}</ul>{{end}}
+    {{end}}
+    {{if .Tabela.Linhas}}
+    <div class="pf-tablewrap">
+      <table class="pf-table" data-teste="tabela-{{.ID}}">
+        <caption class="pf-sr">{{.Tabela.Titulo}}</caption>
+        <thead><tr>{{range $i, $c := .Tabela.Colunas}}<th scope="col"{{if $i}} class="pf-r"{{end}}>{{$c}}</th>{{end}}</tr></thead>
+        <tbody>
+        {{range .Tabela.Linhas}}<tr><th scope="row" class="pf-table__rotulo">{{.Rotulo}}</th>{{range .Valores}}<td class="pf-r pf-num{{if .Oculta}} pf-oculto{{end}}">{{.Texto}}</td>{{end}}</tr>{{end}}
+        </tbody>
+      </table>
+    </div>
+    {{end}}
+  </div>
+</section>
+{{end}}
+</div>
+{{end}}{{end}}

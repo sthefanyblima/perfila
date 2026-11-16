@@ -59,6 +59,16 @@ Interpretação técnica da equipe sobre a Lei 13.709/2018, **não é parecer ju
 | L-29 | Acesso só ao necessário para a função (art. 6º, III e VII) | Matriz de permissões no domínio (RN-11, Q-37): Atendimento opera clientes, consentimento, eventos e processamento; Analista vê só Segmentos e Catálogo, sem nenhum dado de cliente; Administrador cuida também de Usuários, Auditoria e Operação. O painel confere a permissão em cada rota (403 e registro `acesso_negado`) e não mostra no menu o que o papel não pode; os casos de uso de gestão conferem de novo | `TestPapelPode`; `painel.feature` ("Cada papel só abre o que pode", "O menu mostra só as telas do papel", "Sem permissão, a ação é recusada"); `usuarios.feature` (só o administrador gerencia operadores) | ✅ relatórios para o Analista (UC-05 a UC-07) e eliminação de dados ficam reservados na matriz, sem tela |
 | L-30 | Configuração de segmentos sem expor titulares (art. 6º, III) | A prévia de uma mudança de segmento (Q-42) começa pelos consentimentos concedidos, só lê o perfil salvo de clientes ativos com consentimento válido e devolve apenas contagens por segmento: nenhum nome, e-mail ou ID chega à tela do Analista. "Testar critério" usa só valores digitados. A auditoria das alterações guarda os nomes dos campos de uma lista fechada, nunca valores (Q-44) | cenários "A prévia conta só clientes ativos com consentimento válido, pelo perfil salvo" (`@aplicacao`) e "Salvar passa pela prévia, que mostra só contagens" (`@web`); contrato `AuditoriaCampos` e `CHECK` da coluna `campos` (migração 008) | ✅ |
 
+## 4c. Relatórios agregados (Spec RN-15, v1.7, Q-46)
+
+| # | Requisito | Como o Perfila atende | Evidência | |
+|---|---|---|---|---|
+| L-31 | Relatório não identifica ninguém | Só contagens, somas e médias: o `RelatorioRepository` nunca devolve linha de cliente, e a tela e o CSV não têm nome, e-mail nem ID | contrato `Relatorio` (memória e PostgreSQL); cenários "A tela Relatórios mostra… sem identificar ninguém" e "…exportado em CSV, sem identificadores" | ✅ |
+| L-32 | Comportamento só de quem consente | Segmento, médias, recomendações, categorias e eventos contam só clientes com consentimento CONCEDIDO no momento do relatório; revogados saem, inclusive o que gravaram antes (RN-03) | cenários "Revogados não entram nas métricas de comportamento" e "Clientes sem consentimento contam no cadastro e não no comportamento" | ✅ |
+| L-33 | Grupos pequenos não reidentificam | Grupo de 1 a 4 clientes aparece como "menos de 5"; médias de grupo pequeno ocultas; taxa de concessão oculta se depender de um grupo oculto; categorias com menos de 5 compradores somadas em "Outras", sem nome | `TestProteger*`; cenários `@dominio` e "Grupos pequenos ficam ocultos…"; `TestRelatorioDosExemplos` | ⚠️ supressão só primária: a diferença entre o total e as partes visíveis pode revelar o tamanho de um grupo oculto (nunca um atributo de comportamento, porque as médias também ficam ocultas) |
+| L-34 | Exportação sem vazamento | O CSV traz os mesmos valores protegidos da tela; célula que começa com `=`, `+`, `-` ou `@` ganha apóstrofo; o log registra só operador, ação e período | `TestCelulaCSVSemFormula`; cenário do CSV | ✅ |
+| L-35 | Quem pode ver | Só ANALISTA e ADMINISTRADOR veem os relatórios (permissão `relatorios`, RN-11); o ATENDIMENTO não tem o menu e recebe 403 na rota | Q-46 (8); `TestPapelPode` | ✅ |
+
 ## 5. Auditoria de logs (C-09)
 
 Todos os eventos de log do sistema, conferidos no código em 11/11/2026 (`grep` por chamadas de `slog` em `cmd/` e `internal/`):
@@ -72,7 +82,7 @@ Todos os eventos de log do sistema, conferidos no código em 11/11/2026 (`grep` 
 | `postgres_conectado` | `cmd/omega-server` | versões de migração aplicadas | Não. A URL do banco não é registrada |
 | `recomendacoes_expiradas` | subcomando `expirar-recomendacoes` | quantidade | Não |
 | `painel_http` | `web.registro` | método, caminho (só UUIDs), status | Não. Sem query string (termo de busca) |
-| `painel_acao` | handlers do painel | operador, ação, `clienteId` | Não. O operador é o login da equipe, não o titular |
+| `painel_acao` | handlers do painel | operador, ação, `clienteId`; nos relatórios (`ver_relatorio`, `exportar_relatorio`), operador, ação e período, sem nenhum número | Não. O operador é o login da equipe, não o titular |
 | `painel_erro_interno`, `painel_template` | painel (só falhas 500) | caminho, mensagem do erro | Não |
 | `painel_desligado` | `cmd/omega-server` | aviso fixo | Não |
 | `administrador_inicial_criado`, `operadores_exemplo_carregados` | `cmd/omega-server` (v1.5) | aviso fixo, quantidade | Não. Nem login nem senha |
