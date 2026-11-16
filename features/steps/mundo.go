@@ -33,6 +33,7 @@ type Mundo struct {
 	produtos       *memoria.ProdutoRepository
 	operadores     *memoria.OperadorRepository  // v1.5
 	auditoria      *memoria.AuditoriaRepository // v1.5
+	auditoriaFora  bool                         // v1.12: simula a gravação da auditoria fora do ar
 	hash           senha.Bcrypt
 	// portal do titular (v1.10)
 	tokens     *memoria.TokenAcessoRepository
@@ -177,7 +178,7 @@ func (m *Mundo) uc() casos {
 	c.listarCatalogo = usecase.NovoListarCatalogoUseCase(m.produtos)
 	c.autenticar = usecase.NovoAutenticarOperadorUseCase(m.operadores, m.hash)
 	c.operadores = usecase.NovoGerenciarOperadoresUseCase(m.operadores, m.hash, m.clock)
-	c.registrarAuditoria = usecase.NovoRegistrarAuditoriaUseCase(m.auditoria, m.clock)
+	c.registrarAuditoria = usecase.NovoRegistrarAuditoriaUseCase(auditoriaFalhavel{m.auditoria, &m.auditoriaFora}, m.clock)
 	c.listarAuditoria = usecase.NovoListarAuditoriaUseCase(m.auditoria)
 	c.expurgarAuditoria = usecase.NovoExpurgarAuditoriaUseCase(m.auditoria, m.clock, retencaoPadrao)
 	c.salvarSegmento = usecase.NovoSalvarSegmentoUseCase(m.segmentos)
@@ -214,3 +215,17 @@ func instante(s string) (time.Time, error) {
 }
 
 func quase(a, b float64) bool { return math.Abs(a-b) < 1e-9 }
+
+// auditoriaFalhavel deixa os cenários simularem a gravação da auditoria fora do ar: leitura sem
+// registro não é entregue, ação segue com a falha no log (RN-13, Q-68).
+type auditoriaFalhavel struct {
+	*memoria.AuditoriaRepository
+	fora *bool
+}
+
+func (a auditoriaFalhavel) Registrar(ctx context.Context, r entity.RegistroAuditoria) error {
+	if *a.fora {
+		return fmt.Errorf("auditoria fora do ar (simulada)")
+	}
+	return a.AuditoriaRepository.Registrar(ctx, r)
+}

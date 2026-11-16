@@ -136,5 +136,25 @@ func rotuloAcao(a entity.AcaoAuditoria) string {
 	case entity.AcaoTrocarSenha:
 		return "Trocar senha"
 	}
+	return rotuloAcaoConfiguracaoEPedidos(a)
+}
+
+// rotuloAcaoConfiguracaoEPedidos dá os rótulos das ações da v1.6 (segmentos e catálogo) e da v1.12
+// (direitos do titular, importação e públicos), como em 03-textos.md. Spec: RN-13, Q-44, Q-68.
+func rotuloAcaoConfiguracaoEPedidos(a entity.AcaoAuditoria) string {
+	rotulos := map[entity.AcaoAuditoria]string{
+		entity.AcaoCriarSegmento: "Criar segmento", entity.AcaoEditarSegmento: "Editar segmento",
+		entity.AcaoAtivarSegmento: "Ativar segmento", entity.AcaoDesativarSegmento: "Desativar segmento",
+		entity.AcaoPreverSegmentacao: "Prever segmentação", entity.AcaoCriarProduto: "Criar produto",
+		entity.AcaoEditarProduto: "Editar produto", entity.AcaoAtivarProduto: "Ativar produto",
+		entity.AcaoDesativarProduto: "Desativar produto", entity.AcaoCorrigirCadastro: "Corrigir cadastro",
+		entity.AcaoExportarDadosTitular: "Baixar dados do titular", entity.AcaoEliminarDadosTitular: "Eliminar dados do titular",
+		entity.AcaoAplicarRetencao: "Aplicar retenção", entity.AcaoImportarEventos: "Importar eventos",
+		entity.AcaoExportarPublico: "Gerar arquivo do público", entity.AcaoExportarRemocoesPublico: "Gerar arquivo de remoção",
+		entity.AcaoBaixarArquivoPublico: "Baixar arquivo do público",
+	}
+	if r, ok := rotulos[a]; ok {
+		return r
+	}
 	return string(a)
 }

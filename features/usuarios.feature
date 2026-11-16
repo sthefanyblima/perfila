@@ -159,7 +159,7 @@ Funcionalidade: Operadores, papéis e auditoria
 
   # ---- Pedidos do titular, importação e públicos na trilha (v1.12, Q-68) ----
 
-  @RN-13 @Q-68 @lgpd @wip
+  @RN-13 @Q-68 @lgpd
   Esquema do Cenário: Os pedidos do titular e os públicos ficam na trilha com o alvo
     Dado que existe o operador "admin" com o papel "ADMINISTRADOR" e a senha "senha-admin-123"
     E que existe o cliente "c-001" ativo
@@ -176,7 +176,7 @@ Funcionalidade: Operadores, papéis e auditoria
       | exportar_remocoes_publico | segmento | vip   | SUCESSO   |
       | baixar_arquivo_publico    | segmento | vip   | NEGADO    |
 
-  @RN-13 @RN-16 @RN-18 @Q-68 @wip
+  @RN-13 @RN-16 @RN-18 @Q-68
   Esquema do Cenário: A retenção e a importação ficam na trilha sem alvo
     Dado que existe o operador "admin" com o papel "ADMINISTRADOR" e a senha "senha-admin-123"
     Quando o painel registra a ação "<acao>" do operador "admin" sem alvo com o resultado "<resultado>"
@@ -188,7 +188,7 @@ Funcionalidade: Operadores, papéis e auditoria
       | importar_eventos | SUCESSO   |
       | importar_eventos | FALHA     |
 
-  @RN-13 @RN-20 @Q-68 @wip
+  @RN-13 @RN-20 @Q-68
   Cenário: Atender um pedido do portal não é uma ação à parte da eliminação
     Dado que existe o operador "admin" com o papel "ADMINISTRADOR" e a senha "senha-admin-123"
     E que existe o cliente "c-001" ativo

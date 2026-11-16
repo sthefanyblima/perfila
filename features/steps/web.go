@@ -171,6 +171,21 @@ func registrarPassosWeb(sc *godog.ScenarioContext, m *Mundo) {
 		return m.webPOST("/painel/operacao/expirar", url.Values{}, true)
 	})
 	sc.Step(`^o log do painel não contém "([^"]*)", "([^"]*)" nem "([^"]*)"$`, m.logSemDados)
+	// v1.12 (RN-13, Q-68): leitura sem registro não entrega arquivo; ação segue e loga a falha.
+	sc.Step(`^a resposta não é um arquivo anexo$`, func() error {
+		if d := m.api.resposta.Header().Get("Content-Disposition"); d != "" {
+			return fmt.Errorf("a resposta entregou um anexo: %q", d)
+		}
+		return nil
+	})
+	sc.Step(`^o log do painel registra a falha da auditoria "([^"]*)"$`, func(acao string) error {
+		for _, linha := range strings.Split(m.web.log.String(), "\n") {
+			if strings.Contains(linha, "msg=auditoria_falhou") && strings.Contains(linha, "acao="+acao) {
+				return nil
+			}
+		}
+		return fmt.Errorf("o log do painel não registra auditoria_falhou de %q: %s", acao, m.web.log.String())
+	})
 }
 
 // painelNoAr monta o painel com um ADMINISTRADOR (o operador do Contexto, Q-35).

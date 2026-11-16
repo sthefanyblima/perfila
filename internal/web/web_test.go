@@ -148,3 +148,29 @@ func TestTelasCarregam(t *testing.T) {
 		}
 	}
 }
+
+// Spec: RN-13 Q-68 — toda ação da trilha tem rótulo legível na tela Auditoria (03-textos.md).
+func TestRotuloAcaoCobreTodasAsAcoes(t *testing.T) {
+	vistos := map[string]entity.AcaoAuditoria{}
+	for _, a := range entity.AcoesAuditoria() {
+		r := rotuloAcao(a)
+		if r == "" || r == string(a) {
+			t.Errorf("ação %q sem rótulo", a)
+		}
+		if outra, ok := vistos[r]; ok {
+			t.Errorf("rótulo %q repetido em %q e %q", r, outra, a)
+		}
+		vistos[r] = a
+	}
+	casos := map[entity.AcaoAuditoria]string{
+		entity.AcaoCorrigirCadastro: "Corrigir cadastro", entity.AcaoExportarDadosTitular: "Baixar dados do titular",
+		entity.AcaoEliminarDadosTitular: "Eliminar dados do titular", entity.AcaoAplicarRetencao: "Aplicar retenção",
+		entity.AcaoImportarEventos: "Importar eventos", entity.AcaoExportarPublico: "Gerar arquivo do público",
+		entity.AcaoExportarRemocoesPublico: "Gerar arquivo de remoção", entity.AcaoBaixarArquivoPublico: "Baixar arquivo do público",
+	}
+	for a, esperado := range casos {
+		if r := rotuloAcao(a); r != esperado {
+			t.Errorf("rotuloAcao(%q) = %q, esperado %q", a, r, esperado)
+		}
+	}
+}

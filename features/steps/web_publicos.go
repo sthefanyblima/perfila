@@ -30,6 +30,9 @@ func registrarPassosPublicosWeb(sc *godog.ScenarioContext, m *Mundo) {
 		return m.webGET("/painel/publicos/exportar?segmento="+id("seg:"+seg).String(), true)
 	})
 	sc.Step(`^(?:que )?o operador (?:confirma gerar|gerou) o arquivo do público do segmento "([^"]*)"$`, m.gerarPeloPainel)
+	sc.Step(`^o operador confirma gerar o arquivo de remoção do segmento "([^"]*)"$`, func(seg string) error {
+		return m.gerarArquivoPeloPainel("remocoes", seg)
+	})
 	sc.Step(`^a página mostra que entram (\d+) e ficam de fora (\d+)$`, func(n, fora int) error {
 		if err := m.paginaTemMarcador(fmt.Sprintf(`data-teste="publico-entram" data-n="%d"`, n), true); err != nil {
 			return err
@@ -78,12 +81,15 @@ func (m *Mundo) confirmaFinalidade(acao, finalidade, cliente string) error {
 	return m.webPOST(base, url.Values{"finalidade": {finalidade}, "versaoTermo": {"v1"}}, true)
 }
 
-func (m *Mundo) gerarPeloPainel(seg string) error {
+func (m *Mundo) gerarPeloPainel(seg string) error { return m.gerarArquivoPeloPainel("exportar", seg) }
+
+// gerarArquivoPeloPainel confirma o arquivo de inclusão ("exportar") ou de remoção ("remocoes").
+func (m *Mundo) gerarArquivoPeloPainel(tipo, seg string) error {
 	sid := id("seg:" + seg).String()
-	if err := m.webGET("/painel/publicos/exportar?segmento="+sid, true); err != nil {
+	if err := m.webGET("/painel/publicos/"+tipo+"?segmento="+sid, true); err != nil {
 		return err
 	}
-	if err := m.webPOST("/painel/publicos/exportar", url.Values{"segmento": {sid}}, true); err != nil {
+	if err := m.webPOST("/painel/publicos/"+tipo, url.Values{"segmento": {sid}}, true); err != nil {
 		return err
 	}
 	s := reBaixar.FindStringSubmatch(m.web.pagina)

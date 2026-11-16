@@ -36,11 +36,22 @@ type formCadastro struct {
 	ErroNome, ErroEmail string
 }
 
-// direito registra o pedido atendido: operador, pedido e ID do cliente, nunca nome nem e-mail
-// (C-09). É a auditoria dos pedidos até a v1.5 entrar na main (Q-53).
+// direito registra o pedido atendido no log: operador, pedido e ID do cliente (ou a quantidade),
+// nunca nome nem e-mail (C-09, Q-53). Desde a v1.12 o pedido também vai para a trilha da RN-13
+// (auditarCliente); o log fica com as quantidades (Q-68).
 func (p *painel) direito(r *http.Request, pedido string, attrs ...slog.Attr) {
 	attrs = append([]slog.Attr{slog.String("operador", operadorDe(r)), slog.String("pedido", pedido)}, attrs...)
 	p.d.Log.LogAttrs(r.Context(), slog.LevelInfo, "direito_atendido", attrs...)
+}
+
+// auditarCliente grava na trilha a ação sobre o cliente da rota; sem ID válido, fica sem alvo.
+// Spec: RN-13, Q-68.
+func (p *painel) auditarCliente(r *http.Request, acao entity.AcaoAuditoria, id uuid.UUID, err error) error {
+	tipo := entity.AlvoCliente
+	if id == uuid.Nil {
+		tipo = entity.AlvoNenhum
+	}
+	return p.auditar(r, acao, tipo, id, err)
 }
 
 // GET /painel/clientes/{id}/direitos — vale com qualquer estado do consentimento.
@@ -76,7 +87,9 @@ func (p *painel) corrigirCadastro(w http.ResponseWriter, r *http.Request) {
 	id, _ := idDaRota(r)
 	var err error
 	if f.ErroNome == "" && f.ErroEmail == "" {
-		if _, err = p.d.AtualizarCadastro.Executar(r.Context(), id, f.Nome, f.Email); err == nil {
+		_, err = p.d.AtualizarCadastro.Executar(r.Context(), id, f.Nome, f.Email)
+		p.auditarCliente(r, entity.AcaoCorrigirCadastro, id, err) // ação: falha da trilha só vai ao log
+		if err == nil {
 			p.direito(r, "correcao", slog.String("clienteId", id.String()))
 			http.Redirect(w, r, fmt.Sprintf("/painel/clientes/%s/direitos?aviso=cadastro-corrigido", id), http.StatusSeeOther)
 			return
@@ -98,13 +111,18 @@ func (p *painel) corrigirCadastro(w http.ResponseWriter, r *http.Request) {
 }
 
 // GET /painel/clientes/{id}/dados — o arquivo JSON do titular, como anexo e sem cache (Q-49).
+// É leitura: sem o registro na trilha (RN-13, Q-68), nenhum arquivo sai.
 func (p *painel) baixarDados(w http.ResponseWriter, r *http.Request) {
 	id, ok := idDaRota(r)
 	if !ok {
+		p.auditarCliente(r, entity.AcaoExportarDadosTitular, uuid.Nil, errs.ErrClienteNaoEncontrado)
 		p.falha(w, r, errs.ErrClienteNaoEncontrado, "")
 		return
 	}
 	dados, err := p.d.ExportarDados.Executar(r.Context(), id)
+	if e := p.auditarCliente(r, entity.AcaoExportarDadosTitular, id, err); e != nil && err == nil {
+		err = e
+	}
 	if err != nil {
 		p.falha(w, r, err, "")
 		return
@@ -151,6 +169,7 @@ func (p *painel) eliminar(w http.ResponseWriter, r *http.Request) {
 	id, _ := idDaRota(r)
 	confirmacao := r.PostFormValue("confirmacao")
 	err := p.d.EliminarDados.Executar(r.Context(), id, confirmacao)
+	p.auditarCliente(r, entity.AcaoEliminarDadosTitular, id, err) // atende também o pedido do portal (RN-20)
 	if err == nil {
 		p.direito(r, "eliminacao", slog.String("clienteId", id.String()))
 		http.Redirect(w, r, fmt.Sprintf("/painel/clientes/%s?aviso=dados-eliminados", id), http.StatusSeeOther)
@@ -188,6 +207,7 @@ func (p *painel) confirmarRetencao(w http.ResponseWriter, r *http.Request) {
 // POST /painel/operacao/retencao — AplicarRetencao; o total vai no toast (PRG).
 func (p *painel) aplicarRetencao(w http.ResponseWriter, r *http.Request) {
 	n, err := p.d.AplicarRetencao.Executar(r.Context())
+	p.auditar(r, entity.AcaoAplicarRetencao, entity.AlvoNenhum, uuid.Nil, err) // a quantidade fica só no log
 	if err != nil {
 		p.falha(w, r, err, "")
 		return
