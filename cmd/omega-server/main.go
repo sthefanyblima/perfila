@@ -31,6 +31,7 @@ import (
 	"perfila/internal/domain/port"
 	"perfila/internal/domain/service"
 	"perfila/internal/infra/config"
+	"perfila/internal/infra/external"
 	"perfila/internal/infra/memoria"
 	"perfila/internal/infra/relogio"
 	"perfila/internal/infra/repository/pg"
@@ -190,10 +191,14 @@ type repositorios struct {
 	segmentos      port.SegmentoRepository
 	recomendacoes  port.RecomendacaoRepository
 	consentimentos port.ConsentimentoRepository
+	publicos       port.PublicoRepository // v1.11, RN-21
 	produtos       port.ProdutoRepository
 	operadores     port.OperadorRepository         // v1.5
 	auditoria      port.AuditoriaRepository        // v1.5
 	relatorios     port.RelatorioRepository        // v1.7: leitura agregada (RN-15)
+	tokens         port.TokenAcessoRepository      // portal do titular (v1.10)
+	pedidos        port.PedidoEliminacaoRepository // portal do titular (v1.10)
+	caixaSaida     port.CaixaSaidaSimulada         // NotificadorSimulado (Q-57)
 	saude          func(ctx context.Context) error // nil no modo memória (Q-19)
 	migracoes      string                          // versão do esquema, para a tela de Operação
 	fechar         func()
@@ -221,7 +226,13 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 		usecase.NovoGerarRecomendacaoUseCase(pre, repos.perfis, repos.segmentos,
 			service.NovoRecomendacaoService(repos.produtos, clock), repos.recomendacoes, clock, cfg.RecomendacaoValidadeDias, log))
 	cadastrar := usecase.NovoCadastrarClienteUseCase(repos.clientes, clock)
-	consentimento := usecase.NovoGerenciarConsentimentoUseCase(repos.clientes, repos.consentimentos, clock)
+	validador := service.NovoValidadorLGPD(repos.consentimentos)
+	propagar := usecase.NovoPropagarRevogacaoUseCase(repos.publicos, clock, log)
+	consentimento := usecase.NovoGerenciarConsentimentoUseCase(repos.clientes, repos.consentimentos, clock, propagar)
+	gerarPublico := usecase.NovoGerarPublicoUseCase(repos.clientes, repos.perfis, repos.segmentos, repos.publicos, validador)
+	exportarPublico := usecase.NovoExportarPublicoUseCase(gerarPublico, repos.publicos, external.DestinoArquivoCSV{},
+		clock, cfg.PublicosArquivoHoras, log)
+	relatorio := usecase.NovoRelatorioAgregadoSegmentosUseCase(repos.segmentos, repos.perfis, repos.clientes, validador)
 	expirar := usecase.NovoExpirarRecomendacoesUseCase(repos.recomendacoes, clock)
 	hash := senha.Bcrypt{}
 	operadores := usecase.NovoGerenciarOperadoresUseCase(repos.operadores, hash, clock)
@@ -243,11 +254,39 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 	}
 	mux := http.NewServeMux()
 	mux.Handle("/", api.NovoRouter(deps))
+	exportar := usecase.NovoExportarDadosTitularUseCase(repos.clientes, consentimento, repos.eventos, repos.perfis,
+		repos.segmentos, repos.recomendacoes, repos.produtos, clock)
+	meusDados := usecase.NovoConsultarMeusDadosUseCase(repos.clientes, consentimento, repos.pedidos)
+	var caixaSaida *usecase.ListarCaixaSaidaUseCase
+	if cfg.PortalLigado() { // portal do titular (v1.10, Q-55 a Q-60)
+		portal, err := web.NovoPortal(web.DependenciasPortal{
+			ChaveSessao: cfg.PortalChaveSessao, Finalidade: "segmentacao", VersaoTermo: cfg.PainelVersaoTermo,
+			Solicitar: usecase.NovoSolicitarAcessoTitularUseCase(repos.clientes, repos.tokens,
+				external.NovoNotificadorSimulado(repos.caixaSaida, clock), clock, cfg.PortalURLBase),
+			Autenticar:    usecase.NovoAutenticarTitularUseCase(repos.clientes, repos.tokens, clock),
+			MeusDados:     meusDados,
+			Consentimento: consentimento,
+			ExportarDados: exportar,
+			Eliminacao:    usecase.NovoPedirEliminacaoUseCase(repos.clientes, consentimento, repos.pedidos, clock),
+			Clock:         clock, Log: log,
+		})
+		if err != nil {
+			repos.fechar()
+			return aplicacao{}, err
+		}
+		mux.Handle("/titular/", portal)
+		mux.Handle("/titular", http.RedirectHandler("/titular/entrar", http.StatusSeeOther))
+		caixaSaida = usecase.NovoListarCaixaSaidaUseCase(repos.caixaSaida, clock)
+	} else {
+		log.Warn("portal_desligado", "detalhe", "defina PORTAL_URL_BASE e PORTAL_CHAVE_SESSAO para ligar o portal do titular (Q-60)")
+	}
 	if cfg.PainelLigado() {
 		painel, err := web.NovoRouter(web.Dependencias{
-			ChaveSessao: cfg.PainelChaveSessao,
-			Finalidade:  cfg.PainelFinalidade, VersaoTermo: cfg.PainelVersaoTermo,
-			Cadastrar: cadastrar, Consentimento: consentimento, Coletar: coletar, Processar: processar,
+			ChaveSessao:  cfg.PainelChaveSessao,
+			VersaoTermo:  cfg.PainelVersaoTermo,
+			GerarPublico: gerarPublico, ExportarPublico: exportarPublico, Relatorio: relatorio,
+			PublicosArquivoHoras: cfg.PublicosArquivoHoras,
+			Cadastrar:            cadastrar, Consentimento: consentimento, Coletar: coletar, Processar: processar,
 			ListarClientes:     usecase.NovoListarClientesUseCase(repos.clientes, repos.consentimentos, repos.perfis, repos.segmentos),
 			ConsultarCliente:   usecase.NovoConsultarClienteUseCase(repos.clientes, consentimento),
 			ConsultarResultado: usecase.NovoConsultarResultadoUseCase(pre, repos.eventos, repos.perfis, repos.segmentos, repos.recomendacoes, repos.produtos),
@@ -264,11 +303,13 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 			GerarRelatorio:     usecase.NovoGerarRelatorioUseCase(repos.relatorios, repos.segmentos, clock, fusoRelatorios()),
 			Importar:           importar,
 			AtualizarCadastro:  usecase.NovoAtualizarCadastroUseCase(repos.clientes),
-			ExportarDados: usecase.NovoExportarDadosTitularUseCase(repos.clientes, consentimento, repos.eventos, repos.perfis,
-				repos.segmentos, repos.recomendacoes, repos.produtos, clock),
+			ExportarDados:      exportar,
 			EliminarDados: usecase.NovoEliminarDadosTitularUseCase(repos.clientes, repos.consentimentos, repos.eventos,
-				repos.perfis, repos.recomendacoes, clock),
+				repos.perfis, repos.recomendacoes, repos.tokens, repos.pedidos, clock),
 			AplicarRetencao: retencao,
+			MeusDados:       meusDados,
+			Pedidos:         usecase.NovoListarPedidosEliminacaoUseCase(repos.pedidos, repos.clientes, consentimento),
+			CaixaSaida:      caixaSaida,
 			MetaEventos:     cfg.EngajamentoMetaEventos,
 			Clock:           clock, Log: log, Saude: repos.saude, Migracoes: repos.migracoes,
 		})
@@ -317,10 +358,14 @@ func repositoriosEmMemoria() repositorios {
 		segmentos:      segmentos,
 		recomendacoes:  recomendacoes,
 		consentimentos: consentimentos,
+		publicos:       memoria.NovoPublicoRepository(),
 		produtos:       produtos,
 		operadores:     memoria.NovoOperadorRepository(),
 		auditoria:      memoria.NovoAuditoriaRepository(),
 		relatorios:     memoria.NovoRelatorioRepository(clientes, eventos, perfis, recomendacoes, consentimentos),
+		tokens:         memoria.NovoTokenAcessoRepository(),
+		pedidos:        memoria.NovoPedidoEliminacaoRepository(),
+		caixaSaida:     memoria.NovaCaixaSaidaSimulada(),
 		fechar:         func() {},
 	}
 }
@@ -345,10 +390,14 @@ func repositoriosPostgres(ctx context.Context, url string, log *slog.Logger) (re
 		segmentos:      pg.NovoPgSegmentoRepository(db),
 		recomendacoes:  pg.NovoPgRecomendacaoRepository(db),
 		consentimentos: pg.NovoPgConsentimentoRepository(db),
+		publicos:       pg.NovoPgPublicoRepository(db),
 		produtos:       pg.NovoPgProdutoRepository(db),
 		operadores:     pg.NovoPgOperadorRepository(db),
 		auditoria:      pg.NovoPgAuditoriaRepository(db),
 		relatorios:     pg.NovoPgRelatorioRepository(db),
+		tokens:         pg.NovoPgTokenAcessoRepository(db),
+		pedidos:        pg.NovoPgPedidoEliminacaoRepository(db),
+		caixaSaida:     pg.NovaPgCaixaSaidaSimulada(db),
 		saude:          db.PingContext,
 		migracoes:      pg.UltimaMigracao(),
 		fechar:         func() { db.Close() },

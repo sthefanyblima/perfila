@@ -46,8 +46,22 @@ func (p *painel) direito(r *http.Request, pedido string, attrs ...slog.Attr) {
 // GET /painel/clientes/{id}/direitos — vale com qualquer estado do consentimento.
 func (p *painel) fichaDireitos(w http.ResponseWriter, r *http.Request) {
 	if d, ok := p.lerFicha(w, r, "direitos"); ok {
+		d.PedidoAberto = p.pedidoAberto(r, d)
 		p.renderFicha(w, r, http.StatusOK, d)
 	}
+}
+
+// pedidoAberto devolve o pedido de eliminação feito no portal que ainda espera a operação (Q-58).
+func (p *painel) pedidoAberto(r *http.Request, d dadosFicha) *entity.PedidoEliminacao {
+	if p.d.MeusDados == nil || d.Eliminado {
+		return nil
+	}
+	m, err := p.d.MeusDados.Executar(r.Context(), d.Cliente.ID)
+	if err != nil {
+		p.logarFalha(r, err)
+		return nil
+	}
+	return m.PedidoAberto
 }
 
 // POST /painel/clientes/{id}/cadastro — AtualizarCadastro; sucesso volta à aba (PRG).
@@ -95,18 +109,27 @@ func (p *painel) baixarDados(w http.ResponseWriter, r *http.Request) {
 		p.falha(w, r, err, "")
 		return
 	}
-	var buf bytes.Buffer
-	enc := json.NewEncoder(&buf)
-	enc.SetIndent("", "  ")
-	if err := enc.Encode(exportacao(dados)); err != nil {
+	if err := escreverExportacao(w, dados); err != nil {
 		p.falha(w, r, err, "")
 		return
 	}
 	p.direito(r, "exportacao", slog.String("clienteId", id.String()))
+}
+
+// escreverExportacao serializa antes de escrever (falha vira 500, nunca arquivo pela metade) e
+// entrega o anexo perfila-dados-{id}.json sem cache. Usada pelo painel e pelo portal (Q-49).
+func escreverExportacao(w http.ResponseWriter, dados usecase.DadosTitular) error {
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(exportacao(dados)); err != nil {
+		return err
+	}
 	h := w.Header()
 	h.Set("Content-Type", "application/json; charset=utf-8")
-	h.Set("Content-Disposition", fmt.Sprintf(`attachment; filename="perfila-dados-%s.json"`, id))
+	h.Set("Content-Disposition", fmt.Sprintf(`attachment; filename="perfila-dados-%s.json"`, dados.Cliente.ID))
 	_, _ = w.Write(buf.Bytes())
+	return nil
 }
 
 // GET /painel/clientes/{id}/eliminar — confirmação forte em página própria (RN-17).
@@ -176,16 +199,17 @@ func (p *painel) aplicarRetencao(w http.ResponseWriter, r *http.Request) {
 // ---- formato do arquivo exportado (versaoFormato "1"): campos em camelCase, como na API ----
 
 type exportacaoJSON struct {
-	VersaoFormato string             `json:"versaoFormato"`
-	GeradoEm      time.Time          `json:"geradoEm"`
-	Cliente       clienteJSON        `json:"cliente"`
-	Consentimento consentimentoJSON  `json:"consentimento"`
-	Historico     []movimentoJSON    `json:"historico"`
-	Eventos       []eventoJSON       `json:"eventos"`
-	Perfil        *perfilJSON        `json:"perfil"`
-	Segmento      *segmentoJSON      `json:"segmento"`
-	Recomendacoes []recomendacaoJSON `json:"recomendacoes"`
-	Produtos      []produtoJSON      `json:"produtos"`
+	VersaoFormato string              `json:"versaoFormato"`
+	GeradoEm      time.Time           `json:"geradoEm"`
+	Cliente       clienteJSON         `json:"cliente"`
+	Consentimento consentimentoJSON   `json:"consentimento"`
+	Finalidades   []consentimentoJSON `json:"finalidades"` // v1.11 (Q-61): uma por finalidade
+	Historico     []movimentoJSON     `json:"historico"`
+	Eventos       []eventoJSON        `json:"eventos"`
+	Perfil        *perfilJSON         `json:"perfil"`
+	Segmento      *segmentoJSON       `json:"segmento"`
+	Recomendacoes []recomendacaoJSON  `json:"recomendacoes"`
+	Produtos      []produtoJSON       `json:"produtos"`
 }
 
 type clienteJSON struct {
@@ -250,6 +274,17 @@ type produtoJSON struct {
 	Categoria string    `json:"categoria"`
 }
 
+// consentimentoParaJSON converte um registro de consentimento para o arquivo.
+func consentimentoParaJSON(c entity.ConsentimentoLGPD) consentimentoJSON {
+	j := consentimentoJSON{Status: string(c.Status), Finalidade: string(c.Finalidade), VersaoTermo: c.VersaoTermo,
+		DataRevogacao: c.DataRevogacao, DataAtualizacao: c.DataAtualizacao}
+	if !c.DataConsentimento.IsZero() {
+		t := c.DataConsentimento
+		j.DataConsentimento = &t
+	}
+	return j
+}
+
 // exportacao monta o arquivo. O operador do movimento fica de fora: é o login da equipe, não dado
 // do titular. Listas vazias saem como [] para o arquivo ter sempre as mesmas seções.
 func exportacao(d usecase.DadosTitular) exportacaoJSON {
@@ -257,12 +292,10 @@ func exportacao(d usecase.DadosTitular) exportacaoJSON {
 	e := exportacaoJSON{VersaoFormato: "1", GeradoEm: d.GeradoEm,
 		Cliente: clienteJSON{ID: d.Cliente.ID, Nome: d.Cliente.Nome, Email: d.Cliente.Email, DataCadastro: d.Cliente.DataCadastro,
 			Ativo: d.Cliente.Ativo, DataEliminacao: d.Cliente.DataEliminacao},
-		Consentimento: consentimentoJSON{Status: string(c.Status), Finalidade: c.Finalidade, VersaoTermo: c.VersaoTermo,
-			DataRevogacao: c.DataRevogacao, DataAtualizacao: c.DataAtualizacao},
+		Consentimento: consentimentoParaJSON(c), Finalidades: []consentimentoJSON{},
 		Historico: []movimentoJSON{}, Eventos: []eventoJSON{}, Recomendacoes: []recomendacaoJSON{}, Produtos: []produtoJSON{}}
-	if !c.DataConsentimento.IsZero() {
-		t := c.DataConsentimento
-		e.Consentimento.DataConsentimento = &t
+	for _, f := range d.Finalidades {
+		e.Finalidades = append(e.Finalidades, consentimentoParaJSON(f))
 	}
 	for _, m := range d.Historico {
 		e.Historico = append(e.Historico, movimentoJSON{Tipo: string(m.Tipo), Finalidade: m.Finalidade, VersaoTermo: m.VersaoTermo,

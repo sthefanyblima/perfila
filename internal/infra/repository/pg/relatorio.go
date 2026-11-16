@@ -22,13 +22,13 @@ type PgRelatorioRepository struct{ db *sql.DB }
 func NovoPgRelatorioRepository(db *sql.DB) *PgRelatorioRepository { return &PgRelatorioRepository{db} }
 
 // comConsentimento junta a tabela de alias "x" com o consentimento válido do mesmo cliente (RN-02).
-const comConsentimento = ` JOIN consentimentos_lgpd cl ON cl.cliente_id = x.cliente_id AND cl.status = 'CONCEDIDO'`
+const comConsentimento = ` JOIN consentimentos_lgpd cl ON cl.cliente_id = x.cliente_id AND cl.finalidade = 'segmentacao' AND cl.status = 'CONCEDIDO'`
 
 func (r *PgRelatorioRepository) ContarClientes(ctx context.Context) (port.ContagemClientes, error) {
 	var c port.ContagemClientes
 	err := r.db.QueryRowContext(ctx, `SELECT count(*), count(*) FILTER (WHERE c.ativo),
 		count(*) FILTER (WHERE cl.status = 'CONCEDIDO'), count(*) FILTER (WHERE cl.status = 'REVOGADO')
-		FROM clientes c LEFT JOIN consentimentos_lgpd cl ON cl.cliente_id = c.id`).
+		FROM clientes c LEFT JOIN consentimentos_lgpd cl ON cl.cliente_id = c.id AND cl.finalidade = 'segmentacao'`).
 		Scan(&c.Total, &c.Ativos, &c.Concedido, &c.Revogado)
 	if err != nil {
 		return port.ContagemClientes{}, fmt.Errorf("pg: contar clientes: %w", err)
@@ -119,7 +119,7 @@ func (r *PgRelatorioRepository) SerieMensal(ctx context.Context, limites []time.
 		m := port.ContagemMes{Inicio: utc(limites[i])}
 		err := r.db.QueryRowContext(ctx, `SELECT
 			(SELECT count(*) FROM clientes WHERE data_cadastro >= $1 AND data_cadastro < $2),
-			(SELECT count(*) FROM movimentos_consentimento WHERE tipo = 'REVOGACAO' AND data >= $1 AND data < $2),
+			(SELECT count(*) FROM movimentos_consentimento WHERE tipo = 'REVOGACAO' AND finalidade = 'segmentacao' AND data >= $1 AND data < $2),
 			(SELECT count(*) FROM eventos_comportamentais x`+comConsentimento+` WHERE x."timestamp" >= $1 AND x."timestamp" < $2),
 			(SELECT count(DISTINCT x.cliente_id) FROM eventos_comportamentais x`+comConsentimento+`
 				WHERE x."timestamp" >= $1 AND x."timestamp" < $2)`, utc(limites[i]), utc(limites[i+1])).

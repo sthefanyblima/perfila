@@ -19,6 +19,9 @@ type ClienteRepository interface {
 	BuscarPorID(ctx context.Context, id uuid.UUID) (entity.Cliente, error)
 	// Listar [ADIÇÃO] devolve a página pedida e o total que casa com a busca. Spec: 3.6, Q-23.
 	Listar(ctx context.Context, f FiltroClientes) ([]entity.Cliente, int, error)
+	// BuscarPorEmail [ADIÇÃO] v1.10 compara sem maiúsculas e sem espaços nas pontas; cadastro mais
+	// recente primeiro; vazio sem erro. Spec: RN-19, Q-59.
+	BuscarPorEmail(ctx context.Context, email string) ([]entity.Cliente, error)
 }
 
 // FiltroClientes [ADIÇÃO] seleciona e pagina clientes, do cadastro mais recente para o mais
@@ -44,6 +47,8 @@ type PerfilRepository interface {
 	BuscarPorCliente(ctx context.Context, clienteID uuid.UUID) (entity.PerfilCliente, error)
 	// RemoverPorCliente [ADIÇÃO] v1.9 apaga o perfil do cliente; devolve 0 ou 1. Spec: RN-17, Q-52.
 	RemoverPorCliente(ctx context.Context, clienteID uuid.UUID) (int, error)
+	// ListarPorSegmento [ADIÇÃO] v1.11: os perfis do segmento, em ordem de ClienteID. Spec: RN-21, RN-22.
+	ListarPorSegmento(ctx context.Context, segmentoID uuid.UUID) ([]entity.PerfilCliente, error)
 }
 
 // SegmentoRepository. ListarAtivos devolve em ordem crescente de Prioridade (RN-06).
@@ -64,12 +69,15 @@ type RecomendacaoRepository interface {
 	RemoverPorCliente(ctx context.Context, clienteID uuid.UUID) (int, error)
 }
 
-// ConsentimentoRepository. Salvar faz upsert por ClienteID, sem movimento (cargas e testes).
+// ConsentimentoRepository guarda um registro por (ClienteID, Finalidade) desde a v1.11 (Q-61).
+// Salvar faz upsert por (ClienteID, Finalidade), sem movimento (cargas e testes).
 // BuscarPorCliente devolve errs.ErrConsentimentoNaoEncontrado se não existir.
-// Spec: 3.6, RN-10, Q-34.
+// Spec: 3.6, RN-02, RN-10, Q-34, Q-61.
 type ConsentimentoRepository interface {
 	Salvar(ctx context.Context, c entity.ConsentimentoLGPD) error
-	BuscarPorCliente(ctx context.Context, clienteID uuid.UUID) (entity.ConsentimentoLGPD, error)
+	BuscarPorCliente(ctx context.Context, clienteID uuid.UUID, finalidade entity.Finalidade) (entity.ConsentimentoLGPD, error)
+	// ListarPorCliente [ADIÇÃO] v1.11: só os registros que existem, em ordem de Finalidade.
+	ListarPorCliente(ctx context.Context, clienteID uuid.UUID) ([]entity.ConsentimentoLGPD, error)
 	// Registrar [ADIÇÃO] v1.4: upsert do registro e inclusão do movimento numa operação atômica;
 	// ID de movimento repetido falha sem gravar nada.
 	Registrar(ctx context.Context, c entity.ConsentimentoLGPD, m entity.MovimentoConsentimento) error
@@ -145,6 +153,28 @@ type ContagemMes struct {
 	Eventos, ClientesEventos int
 }
 
+// PublicoRepository [ADIÇÃO] v1.11 guarda as exportações de públicos, o conteúdo dos arquivos
+// (até ArquivoExpiraEm) e os membros. Spec: 3.6, RN-21, Q-64.
+type PublicoRepository interface {
+	// RegistrarExportacao é atômica: insere a exportação e o conteúdo, insere os membros novos e
+	// atualiza os existentes; exportação repetida falha sem gravar nada.
+	RegistrarExportacao(ctx context.Context, e entity.ExportacaoPublico, conteudo []byte, membros []entity.MembroPublico) error
+	ListarExportacoes(ctx context.Context, segmentoID uuid.UUID) ([]entity.ExportacaoPublico, error) // Data decrescente
+	// BuscarArquivo devolve errs.ErrArquivoIndisponivel se não houver conteúdo.
+	BuscarArquivo(ctx context.Context, exportacaoID uuid.UUID) (entity.ExportacaoPublico, []byte, error)
+	ApagarArquivosVencidos(ctx context.Context, agora time.Time) (int, error)                                                       // ArquivoExpiraEm <= agora
+	ListarMembrosPorSegmento(ctx context.Context, segmentoID uuid.UUID, status entity.StatusMembro) ([]entity.MembroPublico, error) // por HashEmail
+	ListarMembrosPorCliente(ctx context.Context, clienteID uuid.UUID, status entity.StatusMembro) ([]entity.MembroPublico, error)   // por HashEmail
+	// AtualizarMembros grava estado e datas; ID inexistente falha sem gravar nada.
+	AtualizarMembros(ctx context.Context, ms []entity.MembroPublico) error
+}
+
+// DestinoPublicitarioGateway [ADIÇÃO] v1.11 entrega o lote a uma plataforma de anúncio. No MVP,
+// gera um arquivo CSV (infra/external); trocar por API não muda os casos de uso. Spec: RN-21, Q-62.
+type DestinoPublicitarioGateway interface {
+	Enviar(ctx context.Context, lote entity.LotePublico) (entity.ReciboEnvio, error)
+}
+
 // ConsentimentoGateway — MVP: implementação local sobre ConsentimentoRepository (fase Support).
 type ConsentimentoGateway interface {
 	Validar(ctx context.Context, clienteID uuid.UUID) (bool, error)
@@ -193,4 +223,37 @@ type FiltroAuditoria struct {
 type HashSenha interface {
 	Gerar(senha string) (string, error)
 	Conferir(hash, senha string) bool
+}
+
+// TokenAcessoRepository [ADIÇÃO] v1.10 guarda os links de uso único do portal (só o hash).
+// Spec: 3.6, RN-19, Q-56, Q-59.
+type TokenAcessoRepository interface {
+	Salvar(ctx context.Context, t entity.TokenAcessoTitular) error
+	// Consumir marca UsadoEm de forma atômica (vale entre réplicas); inexistente, vencido ou já
+	// usado: errs.ErrAcessoInvalido.
+	Consumir(ctx context.Context, hash string, agora time.Time) (entity.TokenAcessoTitular, error)
+	// ContarDesde conta os tokens do cliente com CriadoEm >= desde (limite por cadastro).
+	ContarDesde(ctx context.Context, clienteID uuid.UUID, desde time.Time) (int, error)
+	// RemoverPorCliente apaga os tokens do cliente e diz quantos. Spec: RN-17.
+	RemoverPorCliente(ctx context.Context, clienteID uuid.UUID) (int, error)
+}
+
+// PedidoEliminacaoRepository [ADIÇÃO] v1.10 guarda os pedidos feitos no portal. Spec: RN-20, Q-58.
+type PedidoEliminacaoRepository interface {
+	Salvar(ctx context.Context, p entity.PedidoEliminacao) error // insere ou atualiza por ID; um ABERTO por cliente
+	// BuscarAbertoPorCliente devolve errs.ErrPedidoNaoEncontrado sem pedido aberto.
+	BuscarAbertoPorCliente(ctx context.Context, clienteID uuid.UUID) (entity.PedidoEliminacao, error)
+	Listar(ctx context.Context) ([]entity.PedidoEliminacao, error) // ABERTO primeiro, depois DataPedido decrescente
+}
+
+// Notificador [ADIÇÃO] v1.10 avisa o titular; no MVP, NotificadorSimulado (Q-57).
+type Notificador interface {
+	EnviarLinkAcesso(ctx context.Context, para, link string, expiraEm, dataCadastro time.Time) error
+}
+
+// CaixaSaidaSimulada [ADIÇÃO] v1.10 guarda as mensagens do NotificadorSimulado. Spec: Q-57.
+type CaixaSaidaSimulada interface {
+	Guardar(ctx context.Context, m entity.MensagemSimulada) error
+	Listar(ctx context.Context, desde time.Time) ([]entity.MensagemSimulada, error) // EnviadaEm >= desde, mais recente primeiro
+	RemoverAte(ctx context.Context, limite time.Time) (int, error)                  // EnviadaEm < limite
 }

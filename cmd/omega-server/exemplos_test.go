@@ -74,12 +74,12 @@ func TestCarregarExemplos(t *testing.T) {
 			t.Error("Gabi deveria estar inativa")
 		}
 		// Datas diferentes: cadastro, concessão e revogação não caem no mesmo instante.
-		cons, _ := r.consentimentos.BuscarPorCliente(ctx, porEmail["c-006@exemplo.test"].ID)
+		cons, _ := r.consentimentos.BuscarPorCliente(ctx, porEmail["c-006@exemplo.test"].ID, entity.FinalidadeSegmentacao)
 		if cons.DataRevogacao == nil || !cons.DataConsentimento.Before(*cons.DataRevogacao) ||
 			!porEmail["c-006@exemplo.test"].DataCadastro.Before(cons.DataConsentimento) {
 			t.Errorf("Fábio: datas fora de ordem: %+v", cons)
 		}
-		karina, _ := r.consentimentos.BuscarPorCliente(ctx, porEmail["c-011@exemplo.test"].ID)
+		karina, _ := r.consentimentos.BuscarPorCliente(ctx, porEmail["c-011@exemplo.test"].ID, entity.FinalidadeSegmentacao)
 		if karina.VersaoTermo != "v2" || karina.DataRevogacao == nil || !karina.DataRevogacao.Before(karina.DataConsentimento) {
 			t.Errorf("Karina deveria ter concedido de novo, termo v2: %+v", karina)
 		}
@@ -93,8 +93,27 @@ func TestCarregarExemplos(t *testing.T) {
 		if strings.Join(resumo, "|") != strings.Join(quer, "|") {
 			t.Errorf("Karina: histórico %q, esperado %q", resumo, quer)
 		}
-		if fabio, _ := r.consentimentos.ListarMovimentos(ctx, porEmail["c-006@exemplo.test"].ID); len(fabio) != 2 || fabio[1].Origem != entity.OrigemSistema {
+		if fabio, _ := r.consentimentos.ListarMovimentos(ctx, porEmail["c-006@exemplo.test"].ID); len(fabio) != 2 || fabio[1].Origem != entity.OrigemPortal {
 			t.Errorf("Fábio: histórico %+v", fabio)
+		}
+		// Q-61: publicidade concedida para Ana, Bruno, Heitor e Isabela; Carla concedeu e revogou, e a
+		// segmentação dela não mudou; quem não concedeu fica sem registro (NAO_CONCEDIDO).
+		for email, quer := range map[string]entity.StatusConsentimento{
+			"c-001@exemplo.test": entity.StatusConcedido, "c-002@exemplo.test": entity.StatusConcedido,
+			"c-008@exemplo.test": entity.StatusConcedido, "c-009@exemplo.test": entity.StatusConcedido,
+			"c-003@exemplo.test": entity.StatusRevogado,
+		} {
+			c, err := r.consentimentos.BuscarPorCliente(ctx, porEmail[email].ID, entity.FinalidadePublicidadeTerceiros)
+			if err != nil || c.Status != quer {
+				t.Errorf("%s: publicidade %s (%v), esperado %s", email, c.Status, err, quer)
+			}
+		}
+		if _, err := r.consentimentos.BuscarPorCliente(ctx, porEmail["c-014@exemplo.test"].ID, entity.FinalidadePublicidadeTerceiros); err == nil {
+			t.Error("Nina não concedeu a publicidade")
+		}
+		// Portal do titular (Q-58): Fábio revogou pelo portal e tem um pedido de eliminação aberto.
+		if p, err := r.pedidos.BuscarAbertoPorCliente(ctx, porEmail["c-006@exemplo.test"].ID); err != nil || p.Status != entity.PedidoAberto {
+			t.Errorf("Fábio deveria ter um pedido de eliminação aberto: %+v (%v)", p, err)
 		}
 		// Histórico de recomendações: Ana tem expiradas e uma ativa; Marina, só expirada.
 		recs, _ := r.recomendacoes.ListarPorCliente(ctx, porEmail["c-001@exemplo.test"].ID)

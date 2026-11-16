@@ -45,7 +45,8 @@ const (
 	PermUsuarios           Permissao = "usuarios"
 	PermAuditoria          Permissao = "auditoria"
 	PermRelatorios         Permissao = "relatorios" // v1.7: tela Relatórios e CSV agregado (UC-05 e UC-07 parciais, RN-15)
-	PermEliminacao         Permissao = "eliminacao" // v1.9: eliminar dados do titular (RN-17)
+	PermEliminacao         Permissao = "eliminacao" // v1.9: eliminar dados do titular (RN-17); v1.10: Pedidos do titular
+	PermPublicos           Permissao = "publicos"   // v1.11: públicos para campanha e relatório por segmento (RN-21, RN-22, Q-66)
 )
 
 // Pode aplica a matriz da RN-11: função pura, sem estado. Papel fora do enumerado não pode nada.
@@ -55,7 +56,7 @@ func (p PapelOperador) Pode(perm Permissao) bool {
 	case PapelAdministrador:
 		switch perm {
 		case PermClientes, PermConsentimento, PermEventos, PermProcessamento, PermConfiguracao,
-			PermEditarConfiguracao, PermOperacao, PermUsuarios, PermAuditoria, PermRelatorios, PermEliminacao:
+			PermEditarConfiguracao, PermOperacao, PermUsuarios, PermAuditoria, PermRelatorios, PermEliminacao, PermPublicos:
 			return true
 		}
 	case PapelAtendimento:
@@ -65,7 +66,7 @@ func (p PapelOperador) Pode(perm Permissao) bool {
 		}
 	case PapelAnalista:
 		switch perm {
-		case PermConfiguracao, PermEditarConfiguracao, PermRelatorios:
+		case PermConfiguracao, PermEditarConfiguracao, PermRelatorios, PermPublicos:
 			return true
 		}
 	}

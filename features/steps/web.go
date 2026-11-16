@@ -30,6 +30,7 @@ type estadoWeb struct {
 	pagina   string
 	log      bytes.Buffer
 	cadastro string // caminho da ficha do último cliente cadastrado
+	download string // link do último arquivo de público gerado pelo painel (v1.11)
 }
 
 var (
@@ -184,7 +185,7 @@ func (m *Mundo) painelNoAr(usuario, senha string) error {
 	c := m.uc()
 	var err error
 	m.web.handler, err = web.NovoRouter(web.Dependencias{
-		ChaveSessao: chave, Finalidade: "segmentacao", VersaoTermo: "v1",
+		ChaveSessao: chave, VersaoTermo: "v1",
 		Autenticar: c.autenticar, Operadores: c.operadores, RegistrarAuditoria: c.registrarAuditoria,
 		ListarAuditoria: c.listarAuditoria,
 		SalvarSegmento:  c.salvarSegmento, PreverSegmentacao: c.prever, SalvarProduto: c.salvarProduto,
@@ -193,6 +194,8 @@ func (m *Mundo) painelNoAr(usuario, senha string) error {
 		ListarSegmentos: c.listarSegmentos, ListarCatalogo: c.listarCatalogo, Expirar: c.expirar, GerarRelatorio: c.gerarRelatorio,
 		Importar:          c.importar,
 		AtualizarCadastro: c.atualizarCadastro, ExportarDados: c.exportar, EliminarDados: c.eliminar, AplicarRetencao: c.retencao,
+		MeusDados: c.meusDados, Pedidos: c.listarPedidos, CaixaSaida: c.listarCaixa,
+		GerarPublico: c.gerarPublico, ExportarPublico: c.exportarPublico, Relatorio: c.relatorio, PublicosArquivoHoras: horasArquivo,
 		MetaEventos: m.metaEventos, Clock: m.clock, Log: slog.New(slog.NewTextHandler(&m.web.log, nil)),
 	})
 	return err

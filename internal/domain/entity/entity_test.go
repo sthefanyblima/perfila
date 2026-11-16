@@ -56,8 +56,8 @@ func TestAvaliarCriterio(t *testing.T) {
 func TestConsentimentoTransicoes(t *testing.T) {
 	estados := []StatusConsentimento{StatusNaoConcedido, StatusConcedido, StatusRevogado}
 	for _, e := range estados {
-		c := ConsentimentoLGPD{Status: e}
-		errC := c.Conceder("segmentacao", "v1", agoraTeste)
+		c := ConsentimentoLGPD{Status: e, Finalidade: FinalidadeSegmentacao}
+		errC := c.Conceder(FinalidadeSegmentacao, "v1", agoraTeste)
 		querOK := e != StatusConcedido
 		if (errC == nil) != querOK {
 			t.Errorf("Conceder a partir de %s: erro=%v", e, errC)

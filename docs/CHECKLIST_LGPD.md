@@ -1,6 +1,6 @@
 # Checklist LGPD e auditoria de logs (T-25)
 
-Perfila · Equipe Omega · 14/11/2026 · Spec v1.9 (com o painel web, seção 4b, o histórico do consentimento, Q-34, os perfis de acesso e a auditoria do painel, Q-35 a Q-41, os relatórios agregados, seção 4c, a importação de eventos, seção 4d, e os direitos do titular e a retenção, Q-48 a Q-53)
+Perfila · Equipe Omega · 14/11/2026 · Spec v1.11 (com o painel web, seção 4b, o histórico do consentimento, Q-34, os perfis de acesso e a auditoria do painel, Q-35 a Q-41, os relatórios agregados, seção 4c, a importação de eventos, seção 4d, os direitos do titular e a retenção, Q-48 a Q-53, e o portal do titular, seção 4a, e os públicos para campanha com consentimento por finalidade, seção 4e, Q-61 a Q-67)
 
 Interpretação técnica da equipe sobre a Lei 13.709/2018, **não é parecer jurídico** (CLAUDE.md, seção 4). Cada item aponta a evidência que o prova: um cenário BDD, um teste automático ou um arquivo de configuração. ✅ atendido no MVP · ⚠️ atendido com limitação · ⬜ fora do MVP (requisito futuro).
 
@@ -11,7 +11,7 @@ Interpretação técnica da equipe sobre a Lei 13.709/2018, **não é parecer ju
 | L-01 | Nenhum dado pessoal é processado sem consentimento válido | `Precondicoes.Verificar` em UC-01 a UC-04 e, em reforço, middleware LGPD na API (C-03, RN-01) | cenários `@lgpd` em `evento`, `perfilamento`, `segmentacao`, `recomendacao` e `api.feature`; `TestFluxoPontaAPonta` (403 antes do consentimento) | ✅ |
 | L-02 | Consentimento é livre e explícito: ausência de registro não vale como consentimento | Sem registro equivale a NAO_CONCEDIDO (D-02); cadastro (UC-09) não concede nada | `consentimento.feature` ("sem registro"), `cliente.feature` | ✅ |
 | L-03 | Revogação a qualquer momento, com efeito imediato | `Revogar` muda o estado; UC-01 a UC-04 passam a falhar na hora (RN-03) | `consentimento.feature`, `api.feature`; `TestFluxoPontaAPonta` (403 após revogar) | ✅ |
-| L-04 | Finalidade e versão do termo registradas | `Finalidade` e `VersaoTermo` obrigatórias em `Conceder` (guarda da 3.4.1) | `consentimento.feature` (guarda violada) | ⚠️ a finalidade é registrada, mas não filtra o uso dos dados (RN-02) |
+| L-04 | Finalidade e versão do termo registradas, e a finalidade filtra o uso | Desde a v1.11 (Q-61), um consentimento por (cliente, finalidade), com `Finalidade` enumerada (`segmentacao`, `publicidade_terceiros`) e `VersaoTermo` obrigatória. UC-01 a UC-04 exigem `segmentacao` (RN-01); o público de campanha exige as duas (RN-21). Registros anteriores passaram a valer só para `segmentacao` (migração 011) | `publicos.feature` ("Só a publicidade não libera o uso dos dados de comportamento", "Cada finalidade tem o seu próprio estado", finalidade fora do enumerado); `consentimento.feature`; `TestMigracaoFinalidades` | ✅ |
 | L-05 | Prova de quando o titular consentiu e revogou | `DataConsentimento`, `DataRevogacao` (mantida após nova concessão, Q-01) e `DataAtualizacao` em UTC | `consentimento.feature`; contrato `Consentimento` nos dois backends | ✅ |
 | L-06 | Troca de termo deixa histórico explícito | Conceder sobre CONCEDIDO é `transicao_invalida`; é preciso revogar e conceder de novo (Q-06). Desde a v1.4 (Q-34, RN-10), cada concessão e revogação grava um `MovimentoConsentimento` com finalidade, versão do termo, data e origem (API, painel com o login do operador, portal), na mesma transação do registro; a tabela é só de inclusão (o banco recusa `UPDATE` e `DELETE`). A migração 006 reconstruiu, com origem `migracao`, só o que as datas antigas provavam | `consentimento.feature` e `painel.feature` (`@RN-10`), `api.feature` (409); contrato `MovimentoConsentimento` nos dois backends; `TestMigracaoReconstroiMovimentos`; `TestConsentimentoPelaAPIRegistraOrigem` | ✅ Clientes anteriores à 006: a versão do termo de concessões antigas, já sobrescritas, não pôde ser recuperada |
 
@@ -39,10 +39,19 @@ Interpretação técnica da equipe sobre a Lei 13.709/2018, **não é parecer ju
 
 | # | Direito | Situação | |
 |---|---|---|---|
-| L-17 | Confirmação e consulta do consentimento | `GET /v1/clientes/{id}/consentimento` | ✅ |
-| L-18 | Revogação | `POST /v1/clientes/{id}/consentimento/revogacao` | ✅ |
+| L-17 | Confirmação e consulta do consentimento | `GET /v1/clientes/{id}/consentimento`; desde a v1.10, o próprio titular vê o estado e o histórico em **Meus dados**, no portal (Q-55) | ✅ |
+| L-18 | Revogação | `POST /v1/clientes/{id}/consentimento/revogacao`; desde a v1.10, o próprio titular retira a autorização no portal, com efeito imediato e movimento com origem `portal` (`portal.feature`, "Retirar a autorização pelo portal tem efeito imediato e entra no histórico") | ✅ |
 | L-19 | Acesso, correção, portabilidade e eliminação dos dados | Desde a v1.9 (Q-48 a Q-50), na aba Direitos do titular do painel, com qualquer estado do consentimento: correção de nome e e-mail; exportação em JSON (`versaoFormato` "1") de cadastro, consentimento, histórico, eventos, perfil, segmento e recomendações; eliminação (RN-17) que apaga o comportamento, anonimiza o cadastro (`DataEliminacao`, migração 009) e mantém o consentimento e os movimentos como prova (art. 16, I). Com consentimento concedido, a eliminação pede a revogação antes; a confirmação é o nome digitado. Evidência: `direitos.feature` (`@Q-48`, `@Q-49`, `@RN-17`), contrato `DireitosDoTitular`, `TestClienteAnonimizar`, `TestExportacaoFormato`, `TestMigracaoEliminacaoExigeAnonimizado` | ⚠️ só pelo painel, por meio da pessoa operadora; rotas da API e o portal do titular ficam para a fase 2 (Q-53). Restrição da eliminação ao papel ADMINISTRADOR quando a v1.5 entrar na main |
 | L-20 | Retenção e eliminação após revogação | RN-18 (Q-51): o comportamento de quem está REVOGADO há `RETENCAO_DIAS_REVOGADO` dias ou mais (padrão 180) é apagado pelo subcomando `aplicar-retencao` e pelo botão da Operação; cadastro, consentimento e histórico ficam; quem concedeu de novo não é atingido. Evidência: `direitos.feature` (`@RN-18`, limites de 179, 180 e 181 dias), contrato `RevogadosAte`, `TestCarregarExemplos` (Olga atingida, Fábio não) | ⚠️ a retenção não roda sozinha: o administrador a agenda (cron do servidor) ou aciona pelo painel |
+
+### 4a. Portal do titular (Spec 3.7.2, v1.10)
+
+| # | Requisito | Como o Perfila atende | Evidência | |
+|---|---|---|---|---|
+| L-40 | O titular exerce os direitos sem intermediário | Portal `/titular`: ver cadastro, estado e histórico da autorização; retirar e autorizar de novo com o termo vigente; baixar os próprios dados (o mesmo JSON da portabilidade); pedir a eliminação, que a operação atende no painel com a confirmação forte da RN-17 (Q-55, Q-58, RN-20) | `portal.feature` (`@web` e `@aplicacao`); pedido no painel em "Pedidos do titular" | ✅ |
+| L-41 | Identificar o titular sem revelar quem é cliente | Link de uso único por e-mail, 30 minutos, só o SHA-256 guardado, consumido por POST (abrir o link não o gasta); a resposta ao pedido é sempre a mesma; 3 links por cadastro por hora (no banco) e 10 pedidos por IP em 15 minutos; endereço do link vindo da configuração, nunca do `Host` (Q-56, RN-19) | `portal.feature` (resposta igual, limites 59/60/61 minutos, uso único, validade 29/30/31 minutos, link adulterado); contrato `TokenAcesso` nos dois backends | ⚠️ o pedido com e-mail cadastrado grava o token e leva um pouco mais de tempo; o limite por IP é por réplica |
+| L-42 | Sessão do titular separada da operação | Cookie `perfila_titular` com caminho, chave (`PORTAL_CHAVE_SESSAO`) e validade (30 minutos) próprios; nenhuma rota recebe ID de cliente; cliente eliminado perde a sessão na requisição seguinte (Q-55) | `portal.feature` ("A sessão do portal não abre o painel", "A sessão do painel não abre o portal", "Pelo link, o titular vê só os próprios dados", sessão de 30 minutos); `TestCarregarPortal` (chave diferente da do painel) | ✅ |
+| L-43 | O link de acesso não vaza | Nunca vai para o log (o portal não registra a query string); a caixa de saída simulada guarda o destinatário mascarado, apaga mensagens de mais de 24 horas e só aparece no painel (Q-57) | "Os logs do portal não contêm nome, e-mail nem o link"; "A caixa de saída simulada mostra o destinatário mascarado"; `TestNotificadorSimulado` | ⚠️ não há envio real de e-mail no MVP; a caixa simulada é vista pela pessoa operadora única até os papéis da v1.5 a restringirem a ADMINISTRADOR |
 
 ## 4b. Painel web do operador (Spec 3.7.1, v1.3)
 
@@ -78,6 +87,19 @@ Interpretação técnica da equipe sobre a Lei 13.709/2018, **não é parecer ju
 | L-38 | Auditoria do lote sem dado pessoal | Log `painel_acao` com operador, `importar_eventos` e as quantidades; na API, `importacao_eventos` só com as quantidades. Nenhum ID de cliente nem conteúdo do arquivo | cenário "A auditoria do lote registra o operador e as quantidades, sem dado pessoal" | ✅ (tabela de auditoria quando o PR de usuários entrar) |
 | L-39 | Reenvio não duplica dados | Duplicado (cliente, tipo, instante e valor) é ignorado e contado à parte | cenários "Reenviar o mesmo arquivo não grava nada de novo" e de duplicados | ✅ |
 
+## 4e. Públicos para campanha (Spec v1.11, RN-21, RN-22, Q-61 a Q-67)
+
+| # | Requisito | Como o Perfila atende | Evidência | |
+|---|---|---|---|---|
+| L-44 | Compartilhar com terceiros exige consentimento específico (art. 7º §5º, art. 8º §4º) | Finalidade própria `publicidade_terceiros`, concedida e revogada à parte, com confirmação que diz o efeito; só entra no público quem tem ela **e** a `segmentacao`, está ativo e está no segmento | `publicos.feature` ("Só entra no público quem concedeu as duas finalidades", inativo e revogado ficam de fora); `publicos_painel.feature` (conceder pelo painel) | ✅ |
+| L-45 | Mínimo de dados no que sai do sistema (art. 6º, III) | O arquivo leva só o SHA-256 do e-mail normalizado e o nome do segmento; nunca nome, e-mail em claro, ID, eventos, valores nem perfil. O hash pseudonimiza, não anonimiza: o arquivo continua sendo dado pessoal e é tratado como tal | cenário "O arquivo leva só o e-mail em hash e o nome do segmento"; `TestHashEmail`; `TestDestinoCSV` | ✅ |
+| L-46 | A revogação chega a quem recebeu os dados (art. 18 §6º) | Revogar `publicidade_terceiros` ou `segmentacao` deixa o cliente com remoção pendente em todos os públicos exportados; o arquivo de remoção do segmento tira ele. Quem deixa de se qualificar também fica pendente na exportação seguinte | cenários "Revogar qualquer finalidade tira o cliente do público exportado", "O arquivo de remoção leva quem revogou", "Quem mudou de segmento fica pendente"; `@web` "Revogar a publicidade pelo painel deixa a remoção pendente" | ⚠️ a propagação não fica na mesma transação da revogação; uma falha vai para o log (`remocao_propagada_falhou`) e é corrigida pela exportação seguinte do segmento. A remoção na plataforma depende de a equipe subir o arquivo |
+| L-47 | Registro de cada compartilhamento, sem dado pessoal | `ExportacaoPublico` com data, operador, segmento, tipo, destino, quantidade, nome e SHA-256 do arquivo; log `publico_exportado` só com IDs e números | cenário "A exportação fica registrada sem dado pessoal"; `@web` "Os logs do painel ao exportar não contêm dado pessoal" | ✅ |
+| L-48 | Retenção do arquivo gerado | O conteúdo fica 24 h no banco (`PUBLICOS_ARQUIVO_HORAS`) para ser baixado; depois não é entregue (410) e é apagado na próxima exportação ou download. Registro e membros ficam como prova | cenários "Depois do prazo o arquivo não é mais entregue" (`@aplicacao` e `@web`); contrato `Publico` (retenção) | ⚠️ sem rotina agendada de expurgo: o apagamento acontece na próxima exportação ou download; a eliminação dos membros segue a política de retenção ainda fora do MVP (D-13, L-20). Quem baixa o arquivo deve apagá-lo depois de subir na plataforma |
+| L-49 | Relatório sem reidentificação | Agregado por segmento sem identificador, contando só quem tem `segmentacao`; grupo com menos de 5 aparece como "menos de 5", sem ticket nem categoria, e não há linha de total | cenários "O agregado esconde grupos com menos de 5 clientes", "O CSV do agregado não tem identificador"; `@web` do relatório | ✅ |
+| L-50 | Transferência internacional (art. 33) e contrato com a plataforma (art. 39) | O sistema não envia nada a terceiros: o destino do MVP é um arquivo que a equipe sobe. Antes de uma integração por API (o port `DestinoPublicitarioGateway` já permite), é preciso o contrato com a plataforma (papéis de controlador e operador) e a base para a transferência internacional (cláusulas-padrão da ANPD) | Q-67 | ⬜ pendência documentada; não bloqueia o MVP de arquivo |
+| L-51 | Quem pode exportar | Só `ANALISTA` e `ADMINISTRADOR` (permissão `publicos`, RN-11), com o login no log `publico_exportado` | Q-66; `TestPapelPode` | ⚠️ sem perfis de acesso nesta entrega |
+
 ## 5. Auditoria de logs (C-09)
 
 Todos os eventos de log do sistema, conferidos no código em 11/11/2026 (`grep` por chamadas de `slog` em `cmd/` e `internal/`):
@@ -95,11 +117,17 @@ Todos os eventos de log do sistema, conferidos no código em 11/11/2026 (`grep` 
 | `painel_http` | `web.registro` | método, caminho (só UUIDs), status | Não. Sem query string (termo de busca) |
 | `painel_acao` | handlers do painel | operador, ação, `clienteId`; nos relatórios (`ver_relatorio`, `exportar_relatorio`), operador, ação e período, sem nenhum número; em `importar_eventos`, só as quantidades (sem `clienteId`) | Não. O operador é o login da equipe, não o titular |
 | `importacao_eventos` | `api.importarLote` | gravado, aceitas, duplicadas, rejeitadas | Não |
-| `painel_erro_interno`, `painel_template` | painel (só falhas 500) | caminho, mensagem do erro | Não |
+| `painel_erro_interno`, `web_template` | painel e portal (só falhas 500) | caminho, mensagem do erro | Não |
+| `portal_http` | `web.portal.registro` (v1.10) | método, caminho, status | Não. Sem query string: o token do link nunca é registrado |
+| `portal_acao` | handlers do portal (v1.10) | ação e `clienteId` da sessão; `link_pedido` sem nenhum dos dois | Não. Nunca nome, e-mail, token nem link |
+| `portal_erro_interno` | portal (só falhas 500) | caminho, mensagem do erro | Não |
+| `portal_desligado` | `cmd/omega-server` | aviso fixo | Não |
 | `painel_desligado` | `cmd/omega-server` | aviso fixo | Não |
 | `administrador_inicial_criado`, `operadores_exemplo_carregados` | `cmd/omega-server` (v1.5) | aviso fixo, quantidade | Não. Nem login nem senha |
 | `auditoria_expurgada` | subcomando `expurgar-auditoria` | quantidade, retenção | Não |
 | `auditoria_falhou` | painel (falha ao gravar a auditoria) | ação, mensagem do erro | Não. Os erros citam só IDs |
+| `publico_exportado` (v1.11) | `ExportarPublicoUseCase` | operador, tipo, `segmentoId`, `exportacaoId`, quantidade, SHA-256 do arquivo | Não. Nem e-mail nem hash de e-mail |
+| `remocao_propagada`, `remocao_propagada_falhou` (v1.11) | `PropagarRevogacaoUseCase` | `clienteId`, quantidade ou mensagem do erro | Não |
 | acesso do Nginx | `deploy/nginx/nginx.conf` (`log_format omega`) | horário, método, caminho sem query string, status, tempo, réplica, id da requisição | Não. **Sem IP do cliente** (IP é dado pessoal, Q-14) |
 | PostgreSQL | configuração padrão da imagem | erros, sem texto de parâmetros | Não |
 
@@ -109,9 +137,11 @@ Todos os eventos de log do sistema, conferidos no código em 11/11/2026 (`grep` 
 
 ## 6. Requisitos futuros (pós-MVP)
 
-1. Direitos do titular pela API e pelo portal do titular, sem depender da pessoa operadora (L-19; a v1.9 os atende pelo painel). Agendar a retenção (L-20) no servidor.
-2. Filtrar o uso dos dados pela finalidade consentida (L-04). O histórico de versões do termo (L-06) entrou na v1.4; falta expô-lo ao titular (portal, fase 2).
+1. Direitos do titular pela API (o portal da v1.10 já atende acesso, portabilidade, revogação e o pedido de eliminação; a correção pelo titular continua só no painel). Agendar a retenção (L-20) no servidor.
+2. O filtro por finalidade (L-04) entrou na v1.11. O histórico de versões do termo (L-06) entrou na v1.4 e, desde a v1.10, o titular o vê no portal (só a `segmentacao`: a publicidade fica com o painel e a API).
 3. Autenticação por sistema na API (JWT/OIDC) no lugar do token único (L-12). No painel, usuários e papéis entraram na v1.5 (L-23, L-29); falta segundo fator e limite de tentativas compartilhado entre as réplicas.
+8. Públicos (L-46, L-48, L-50): expurgo agendado do arquivo e dos membros removidos, contrato com a plataforma e base de transferência internacional antes de qualquer integração por API.
 4. Certificado emitido por uma autoridade, cifra do volume do banco e TLS interno (L-10, L-16).
 5. Prazo de retenção dos logs definido junto com a política de dados. A auditoria do painel já tem prazo (180 dias, L-28).
 6. Reprocessar todos os clientes depois de mudar um critério (Q-45): trata dado de todos os titulares de uma vez e precisa de confirmação, execução em segundo plano e auditoria próprias.
+7. Envio real do link de acesso (SMTP ou serviço de e-mail) como outra implementação do port `Notificador`. A caixa de saída simulada já ficou restrita a ADMINISTRADOR (permissão `operacao`, L-43).

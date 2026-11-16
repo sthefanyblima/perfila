@@ -30,7 +30,8 @@ type exemplos struct {
 // passo é uma ação na linha do tempo de um cliente, "dias" antes de agora.
 type passo struct {
 	dias      float64
-	acao      string // cadastrar, conceder, compra, navegar, processar, revogar, expirar, desativar
+	acao      string            // cadastrar, conceder, compra, navegar, processar, revogar, expirar, desativar, pedir-eliminacao
+	fin       entity.Finalidade // conceder e revogar: vazio = segmentacao (v1.11, Q-61)
 	categoria string
 	valor     float64
 	termo     string
@@ -102,30 +103,50 @@ func rev(d float64) passo        { return passo{dias: d, acao: "revogar"} }
 func exp(d float64) passo        { return passo{dias: d, acao: "expirar"} }
 func desat(d float64) passo      { return passo{dias: d, acao: "desativar"} }
 
+// pub e revPub concedem e revogam a finalidade publicidade_terceiros (v1.11, Q-61, RN-21).
+func pub(d float64, termo string) passo {
+	return passo{dias: d, acao: "conceder", termo: termo, fin: entity.FinalidadePublicidadeTerceiros}
+}
+func revPub(d float64) passo {
+	return passo{dias: d, acao: "revogar", fin: entity.FinalidadePublicidadeTerceiros}
+}
+
+// finalidade do passo; sem ela, segmentacao.
+func (p passo) finalidade() entity.Finalidade {
+	if p.fin == "" {
+		return entity.FinalidadeSegmentacao
+	}
+	return p.fin
+}
+
+// pedirElim é o pedido de eliminação feito pelo titular no portal (v1.10, RN-20).
+func pedirElim(d float64) passo { return passo{dias: d, acao: "pedir-eliminacao"} }
+
 func (e exemplos) lista() []exemplo {
 	meta := float64(e.metaEventos)
 	engajado := int(math.Ceil(0.8 * meta))   // 80% da meta em 30 dias: engajado
 	explorador := int(math.Ceil(0.5 * meta)) // 50% da meta, sem compras: explorador
 	nomeados := []exemplo{
 		{"Ana Sintética", "c-001@exemplo.test", []passo{ // premium, com histórico de recomendações
-			cad(150), conc(148, "v1"), comp(140, "livros", 520), nav(139, 2), proc(139),
+			cad(150), conc(148, "v1"), pub(147, "v1").pelo(entity.OrigemPainel), comp(140, "livros", 520), nav(139, 2), proc(139),
 			comp(100, "livros", 610), comp(60, "livros", 700), proc(59), comp(20, "livros", 640), comp(5, "livros", 550), nav(4, 3), proc(4)}},
 		{"Bruno Sintético", "c-002@exemplo.test", []passo{ // engajado
-			cad(90), conc(89, "v1"), comp(80, "games", 200), proc(79), nav(25, engajado), proc(2)}},
-		{"Carla Sintética", "c-003@exemplo.test", []passo{ // ocasional
-			cad(45), conc(44, "v1"), comp(30, "eletronicos", 350), nav(29, 2), proc(1)}},
+			cad(90), conc(89, "v1"), pub(60, "v1").pelo(entity.OrigemAPI), comp(80, "games", 200), proc(79), nav(25, engajado), proc(2)}},
+		{"Carla Sintética", "c-003@exemplo.test", []passo{ // ocasional; concedeu e revogou a publicidade (v1.11)
+			cad(45), conc(44, "v1"), pub(43, "v1"), comp(30, "eletronicos", 350), nav(29, 2), revPub(10).pelo(entity.OrigemPainel), proc(1)}},
 		{"Davi Sintético", "c-004@exemplo.test", []passo{ // ocasional, sem produto elegível (moveis)
 			cad(40), conc(39, "v1"), comp(12, "moveis", 120), proc(11)}},
 		{"Elisa Sintética", "c-005@exemplo.test", []passo{cad(12)}}, // nunca concedeu
-		{"Fábio Sintético", "c-006@exemplo.test", []passo{ // revogado: dados guardados e bloqueados
-			cad(200), conc(198, "v1"), comp(190, "livros", 90), comp(150, "livros", 60), proc(149), exp(110), rev(45)}},
+		{"Fábio Sintético", "c-006@exemplo.test", []passo{ // revogou pelo portal e pediu a eliminação (Q-58): dados guardados e bloqueados
+			cad(200), conc(198, "v1"), comp(190, "livros", 90), comp(150, "livros", 60), proc(149), exp(110),
+			rev(45).pelo(entity.OrigemPortal), pedirElim(44)}},
 		{"Gabi Sintética", "c-007@exemplo.test", []passo{ // inativa com consentimento: histórico só leitura
 			cad(300), conc(299, "v1"), comp(280, "games", 150), comp(250, "games", 320), proc(249), exp(200), desat(180)}},
 		{"Heitor Sintético", "c-008@exemplo.test", []passo{ // vip
-			cad(130), conc(129, "v1"), comp(120, "eletronicos", 1200), comp(90, "eletronicos", 1500), proc(89),
+			cad(130), conc(129, "v1"), pub(128, "v1"), comp(120, "eletronicos", 1200), comp(90, "eletronicos", 1500), proc(89),
 			comp(60, "eletronicos", 980), comp(25, "eletronicos", 1100), comp(8, "eletronicos", 1300), proc(7)}},
 		{"Isabela Sintética", "c-009@exemplo.test", []passo{ // fiel
-			cad(110), conc(109, "v1"), comp(100, "moda", 90), comp(80, "moda", 140), comp(55, "moda", 210),
+			cad(110), conc(109, "v1"), pub(100, "v1"), comp(100, "moda", 90), comp(80, "moda", 140), comp(55, "moda", 210),
 			proc(54), comp(35, "moda", 120), comp(15, "moda", 160), comp(3, "moda", 75), proc(2)}},
 		{"João Sintético", "c-010@exemplo.test", []passo{ // explorador: navega, não compra
 			cad(20), conc(19, "v1"), nav(18, explorador), proc(1)}},
@@ -155,7 +176,7 @@ func (e exemplos) casos(c port.Clock) (cad *usecase.CadastrarClienteUseCase, con
 		usecase.NovoSegmentarClienteUseCase(pre, r.perfis, service.NovoSegmentacaoService(r.segmentos)),
 		usecase.NovoGerarRecomendacaoUseCase(pre, r.perfis, r.segmentos, service.NovoRecomendacaoService(r.produtos, c),
 			r.recomendacoes, c, e.validadeDias, nil))
-	return usecase.NovoCadastrarClienteUseCase(r.clientes, c), usecase.NovoGerenciarConsentimentoUseCase(r.clientes, r.consentimentos, c),
+	return usecase.NovoCadastrarClienteUseCase(r.clientes, c), usecase.NovoGerenciarConsentimentoUseCase(r.clientes, r.consentimentos, c, usecase.NovoPropagarRevogacaoUseCase(r.publicos, c, nil)),
 		col, proc, usecase.NovoExpirarRecomendacoesUseCase(r.recomendacoes, c)
 }
 
@@ -199,7 +220,7 @@ func (e exemplos) executar(ctx context.Context, p passo, ex exemplo, id *uuid.UU
 		*id = c.ID
 		return e.repos.clientes.Salvar(ctx, c)
 	case "conceder":
-		return consentimento.Conceder(p.contexto(ctx), *id, "segmentacao", p.termo)
+		return consentimento.Conceder(p.contexto(ctx), *id, p.finalidade(), p.termo)
 	case "compra":
 		return evento(entity.TipoCompra, p.valor, p.categoria, carga.Agora())
 	case "navegar":
@@ -223,9 +244,12 @@ func (e exemplos) executar(ctx context.Context, p passo, ex exemplo, id *uuid.UU
 		_, err := processar.Executar(ctx, *id)
 		return err
 	case "revogar":
-		return consentimento.Revogar(p.contexto(ctx), *id)
+		return consentimento.Revogar(p.contexto(ctx), *id, p.finalidade())
 	case "expirar":
 		_, err := expirar.Executar(ctx)
+		return err
+	case "pedir-eliminacao":
+		_, err := usecase.NovoPedirEliminacaoUseCase(e.repos.clientes, consentimento, e.repos.pedidos, carga).Executar(ctx, *id)
 		return err
 	case "desativar":
 		c, err := e.repos.clientes.BuscarPorID(ctx, *id)

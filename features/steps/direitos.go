@@ -129,12 +129,12 @@ func (m *Mundo) temComportamentoDesde(c, data string) error {
 	m.segmentos.Adicionar(entity.Segmento{ID: id("seg:padrao"), Nome: "padrao", Prioridade: 99, Ativo: true})
 	return m.emData(data, func() error {
 		uc := m.uc()
-		cons, err := uc.consentimento.Consultar(m.ctx, id(c))
+		cons, err := uc.consentimento.Consultar(m.ctx, id(c), entity.FinalidadeSegmentacao)
 		if err != nil {
 			return err
 		}
 		if cons.Status != entity.StatusConcedido {
-			if err := uc.consentimento.Conceder(m.ctx, id(c), "segmentacao", "v1"); err != nil {
+			if err := uc.consentimento.Conceder(m.ctx, id(c), entity.FinalidadeSegmentacao, "v1"); err != nil {
 				return err
 			}
 		}
@@ -149,8 +149,22 @@ func (m *Mundo) temComportamentoDesde(c, data string) error {
 	})
 }
 
+// revogouEm revoga na data informada; quem ainda não tinha concedido concede antes, no mesmo
+// instante (revogar pressupõe a concessão): o histórico fica com os dois movimentos.
 func (m *Mundo) revogouEm(c, data string) error {
-	return m.emData(data, func() error { return m.uc().consentimento.Revogar(m.ctx, id(c)) })
+	return m.emData(data, func() error {
+		uc := m.uc()
+		cons, err := uc.consentimento.Consultar(m.ctx, id(c), entity.FinalidadeSegmentacao)
+		if err != nil {
+			return err
+		}
+		if cons.Status != entity.StatusConcedido {
+			if err := uc.consentimento.Conceder(m.ctx, id(c), entity.FinalidadeSegmentacao, "v1"); err != nil {
+				return err
+			}
+		}
+		return uc.consentimento.Revogar(m.ctx, id(c), entity.FinalidadeSegmentacao)
+	})
 }
 
 func (m *Mundo) foiEliminado(c string) error {
@@ -183,9 +197,9 @@ func (m *Mundo) tentaAcao(acao, c string) error {
 	case "corrigir o cadastro":
 		_, m.err = uc.atualizarCadastro.Executar(m.ctx, cid, "Nome Novo Sintético", "novo@exemplo.test")
 	case "conceder o consentimento":
-		m.err = uc.consentimento.Conceder(m.ctx, cid, "segmentacao", "v1")
+		m.err = uc.consentimento.Conceder(m.ctx, cid, entity.FinalidadeSegmentacao, "v1")
 	case "revogar o consentimento":
-		m.err = uc.consentimento.Revogar(m.ctx, cid)
+		m.err = uc.consentimento.Revogar(m.ctx, cid, entity.FinalidadeSegmentacao)
 	case "registrar um evento":
 		_, m.err = uc.coletar.Registrar(m.ctx, entity.EventoComportamental{ClienteID: cid, Tipo: entity.TipoNavegacao,
 			Origem: "web", Timestamp: m.clock.Agora()})

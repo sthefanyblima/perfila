@@ -31,14 +31,14 @@ func NovoRelatorioRepository(clientes *ClienteRepository, eventos *EventoReposit
 		recomendacoes: recomendacoes, consentimentos: consentimentos}
 }
 
-// validos devolve os clientes com consentimento CONCEDIDO (RN-02).
+// validos devolve os clientes com o consentimento de segmentacao CONCEDIDO (RN-02; v1.11, Q-61).
 func (r *RelatorioRepository) validos() map[uuid.UUID]bool {
 	r.consentimentos.mu.RLock()
 	defer r.consentimentos.mu.RUnlock()
 	v := map[uuid.UUID]bool{}
-	for id, c := range r.consentimentos.dados {
-		if c.Status == entity.StatusConcedido {
-			v[id] = true
+	for k, c := range r.consentimentos.dados {
+		if k.finalidade == entity.FinalidadeSegmentacao && c.Status == entity.StatusConcedido {
+			v[k.cliente] = true
 		}
 	}
 	return v
@@ -47,8 +47,10 @@ func (r *RelatorioRepository) validos() map[uuid.UUID]bool {
 func (r *RelatorioRepository) ContarClientes(_ context.Context) (port.ContagemClientes, error) {
 	r.consentimentos.mu.RLock()
 	estados := map[uuid.UUID]entity.StatusConsentimento{}
-	for id, c := range r.consentimentos.dados {
-		estados[id] = c.Status
+	for k, c := range r.consentimentos.dados {
+		if k.finalidade == entity.FinalidadeSegmentacao {
+			estados[k.cliente] = c.Status
+		}
 	}
 	r.consentimentos.mu.RUnlock()
 	r.clientes.mu.RLock()
@@ -211,7 +213,7 @@ func (r *RelatorioRepository) SerieMensal(_ context.Context, limites []time.Time
 	r.consentimentos.mu.RLock()
 	for _, movs := range r.consentimentos.movimentos {
 		for _, m := range movs {
-			if i := indice(m.Data); m.Tipo == entity.MovimentoRevogacao && i >= 0 {
+			if i := indice(m.Data); m.Tipo == entity.MovimentoRevogacao && m.FinalidadeEfetiva() == entity.FinalidadeSegmentacao && i >= 0 {
 				out[i].Revogacoes++
 			}
 		}

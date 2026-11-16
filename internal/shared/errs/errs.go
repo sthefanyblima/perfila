@@ -25,6 +25,9 @@ var (
 	ErrPerfilNaoEncontrado        = &Erro{"perfil_nao_encontrado", "perfil ausente ou ainda sem segmento"}
 	ErrSemProdutoElegivel         = &Erro{"sem_produto_elegivel", "nenhum produto elegível para recomendação"}
 	ErrConsentimentoNaoEncontrado = &Erro{"consentimento_nao_encontrado", "registro de consentimento inexistente"}
+	ErrArquivoIndisponivel        = &Erro{"arquivo_indisponivel", "arquivo de público inexistente, apagado ou vencido"} // v1.11, Q-64
+	ErrAcessoInvalido             = &Erro{"acesso_invalido", "link de acesso inexistente, vencido ou já usado"}         // v1.10 RN-19
+	ErrPedidoNaoEncontrado        = &Erro{"pedido_nao_encontrado", "nenhum pedido de eliminação aberto"}                // v1.10, uso interno
 
 	// Operadores do painel (v1.5, Spec 3.5, RN-11, RN-12).
 	ErrCredenciaisInvalidas  = &Erro{"nao_autenticado", "login ou senha incorretos, ou operador inativo"}

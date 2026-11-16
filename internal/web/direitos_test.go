@@ -17,7 +17,7 @@ import (
 func TestExportacaoFormato(t *testing.T) {
 	agora := time.Date(2026, 11, 13, 12, 0, 0, 0, time.UTC)
 	cli := entity.Cliente{ID: uuid.New(), Nome: "Ana Sintética", Email: "c-001@exemplo.test", DataCadastro: agora, Ativo: true}
-	cons := entity.NovoConsentimento(uuid.New(), cli.ID, agora)
+	cons := entity.NovoConsentimento(uuid.New(), cli.ID, entity.FinalidadeSegmentacao, agora)
 	vazio, err := json.Marshal(exportacao(usecase.DadosTitular{GeradoEm: agora, Cliente: cli, Consentimento: cons}))
 	if err != nil {
 		t.Fatal(err)

@@ -23,7 +23,6 @@ import (
 // Dependencias reúne o que o painel precisa; montada só na raiz de composição (C-08).
 type Dependencias struct {
 	ChaveSessao []byte // PAINEL_CHAVE_SESSAO (32 bytes)
-	Finalidade  string // PAINEL_FINALIDADE (Q-25)
 	VersaoTermo string // PAINEL_VERSAO_TERMO (Q-25)
 
 	Cadastrar          *usecase.CadastrarClienteUseCase
@@ -50,7 +49,18 @@ type Dependencias struct {
 	ExportarDados     *usecase.ExportarDadosTitularUseCase
 	EliminarDados     *usecase.EliminarDadosTitularUseCase
 	AplicarRetencao   *usecase.AplicarRetencaoUseCase
-	MetaEventos       int // ENGAJAMENTO_META_EVENTOS, para explicar o score
+	// Portal do titular (v1.10, Q-57, Q-58): pedidos e caixa de saída simulada. CaixaSaida nil =
+	// portal desligado, e a tela some da navegação.
+	MeusDados   *usecase.ConsultarMeusDadosUseCase
+	Pedidos     *usecase.ListarPedidosEliminacaoUseCase
+	CaixaSaida  *usecase.ListarCaixaSaidaUseCase
+	MetaEventos int // ENGAJAMENTO_META_EVENTOS, para explicar o score
+
+	// Públicos para campanha (v1.11, UC-06 parcial, RN-21, RN-22).
+	GerarPublico         *usecase.GerarPublicoUseCase
+	ExportarPublico      *usecase.ExportarPublicoUseCase
+	Relatorio            *usecase.RelatorioAgregadoSegmentosUseCase
+	PublicosArquivoHoras int // PUBLICOS_ARQUIVO_HORAS, para o texto da confirmação (Q-64)
 
 	Clock port.Clock
 	Log   *slog.Logger
@@ -86,7 +96,7 @@ func NovoRouter(d Dependencias) (http.Handler, error) {
 		http.Redirect(w, r, inicio(operadorAtual(r)), http.StatusSeeOther)
 	}))
 	for _, rotas := range []func(*http.ServeMux, func(entity.Permissao, http.HandlerFunc) http.Handler){
-		p.rotasClientes, p.rotasFicha, p.rotasDireitos, p.rotasConfiguracao, p.rotasUsuarios, p.rotasAuditoria, p.rotasRelatorios, p.rotasImportacao,
+		p.rotasClientes, p.rotasFicha, p.rotasDireitos, p.rotasConfiguracao, p.rotasUsuarios, p.rotasAuditoria, p.rotasRelatorios, p.rotasImportacao, p.rotasPedidos, p.rotasPublicos,
 	} {
 		rotas(mux, sessao)
 	}
@@ -149,7 +159,10 @@ func (s *statusWriter) WriteHeader(code int) {
 }
 
 // cabecalhos aplica os cabeçalhos de segurança da Spec 3.7.1 a toda resposta do painel.
-func (p *painel) cabecalhos(next http.Handler) http.Handler {
+func (p *painel) cabecalhos(next http.Handler) http.Handler { return cabecalhosSeguranca(next) }
+
+// cabecalhosSeguranca vale para o painel e para o portal do titular (3.7.1, 3.7.2).
+func cabecalhosSeguranca(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()
 		h.Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; "+

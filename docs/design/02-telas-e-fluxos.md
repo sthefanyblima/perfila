@@ -17,6 +17,9 @@ Clientes
 Análise (v1.7, Q-46; Administrador e Analista)
   /painel/relatorios                   Relatórios agregados (UC-05 e UC-07 parciais, RN-15)
   /painel/relatorios.csv               O mesmo relatório em CSV
+Campanhas (v1.11, UC-06 parcial; Administrador e Analista)
+  /painel/publicos                     Públicos: segmento, contagem, gerar e baixar, histórico, remoções (RN-21)
+  /painel/publicos/relatorio           Relatório agregado por segmento (RN-22)
 Configuração (leitura para todos; edição para Administrador e Analista desde a v1.6)
   /painel/segmentos                    Segmentos e critérios (RN-06)
   /painel/segmentos/novo, /{id}        Formulário do segmento, testar critério (RN-14)
@@ -26,6 +29,7 @@ Configuração (leitura para todos; edição para Administrador e Analista desde
   /painel/catalogo/novo, /{id}         Formulário do produto; desativar com confirmação (Q-43)
 Administração (só Administrador, v1.5)
   /painel/operacao                     Saúde do sistema e expiração de recomendações (RN-08)
+  /painel/operacao/caixa-saida         Caixa de saída (simulada), com o portal ligado (v1.10)
   /painel/usuarios                     Operadores: criar, papel, desativar, ativar, redefinir senha (Q-35)
   /painel/usuarios/{id}                Um operador: papel, situação e senha provisória
   /painel/auditoria                    Trilha do painel, com filtros por operador, ação e período (Q-39)
@@ -33,7 +37,9 @@ Rodapé (todos os papéis)
   /painel/minha-senha                  Trocar a própria senha; obrigatória depois de senha provisória (Q-40)
 ```
 
-Fase 2, fora deste escopo: `/titular` (portal do titular para ver e revogar o próprio consentimento, que exige autenticação do titular) e o restante de UC-05 a UC-07 (campanhas, recortes por segmento, comparação entre períodos).
+No grupo Clientes, desde a v1.10: `/painel/pedidos`, os pedidos de eliminação feitos pelo portal do titular (só Administrador, permissão `eliminacao`). A caixa de saída simulada também é só do Administrador (`operacao`).
+
+O portal do titular (`/titular`, v1.10) tem mapa e moldura próprios (seção Portal do titular, abaixo). O restante de UC-05 a UC-07 (campanhas, recortes por segmento, comparação entre períodos) continua fora deste escopo.
 
 ## Moldura de toda tela
 
@@ -90,6 +96,23 @@ Três passos na mesma tela, sem guardar o arquivo no servidor:
 
 Arquivo recusado inteiro (vazio, grande, cabeçalho errado, codificação) volta ao passo 1 com um `Alert` crítico que diz o motivo e como corrigir.
 
+- **Consentimento por finalidade (v1.11, Q-61):** a aba mostra dois `ConsentRecord`, um embaixo do outro: **Segmentação** ("perfil, segmento e recomendação, uso interno") e **Publicidade com terceiros** ("entrar nos públicos enviados a plataformas de anúncio"). Cada um tem o seu `StatusTag`, termo, datas, a ação (Conceder ou Revogar, que leva `?finalidade=`) e a sua linha do tempo. No cabeçalho da ficha, o `ConsentRecord` compacto continua sendo o da Segmentação; ao lado, uma etiqueta `neutral` pequena "Publicidade: Concedido/Não concedido/Revogado". Conceder a publicidade sem a segmentação é permitido, mas o registro mostra a nota "Sem a Segmentação, este cliente não entra em nenhum público."
+
+### Públicos (v1.11, RN-21)
+
+- `PageHeader` "Públicos", com a trilha Campanhas › Públicos e, à direita, o link "Relatório agregado".
+- Nota no topo (`Alert` info): "Entra no público quem está no segmento, está ativo e concedeu Segmentação e Publicidade com terceiros. O arquivo leva só o e-mail em hash (SHA-256), que ainda é dado pessoal."
+- Seletor de segmento (lista dos ativos, por prioridade) com "Ver público". Com um segmento escolhido:
+  - Painel **Público** (`KeyValue`): "Entram" (número grande), "Ficam de fora" (com a explicação "sem a finalidade, inativos ou sem consentimento") e o botão primário **Gerar arquivo** (desabilitado com zero, com o motivo "Nenhum cliente entra neste público").
+  - Painel **Remoções pendentes**: quantos clientes saíram (revogaram ou deixaram de se qualificar) e ainda estão no público da plataforma, com o botão **Gerar arquivo de remoção** (secundário; desabilitado com zero).
+  - Painel **Histórico** (`DataTable`): Data, Tipo (Inclusão/Remoção), Operador, Clientes, Hash do arquivo (12 primeiros caracteres, completo no `title`) e Arquivo ("Baixar" enquanto disponível; "Expirado" depois do prazo).
+- Logo depois de gerar, a tela volta com um `Alert` ok: "Arquivo gerado com {n} clientes. Disponível para baixar até {data}." e o botão "Baixar arquivo".
+- Vazio sem segmentos com clientes: `EmptyState` "Nenhum cliente processado ainda".
+
+### Relatório agregado (v1.11, RN-22)
+
+`DataTable` por segmento: Segmento, Clientes, Ticket médio (R$), Categoria mais comum. Grupo com menos de 5: a linha mostra "menos de 5" em Clientes e "—" nos outros campos, com a nota "Grupos com menos de 5 clientes não são detalhados, para ninguém ser identificado." Ação "Baixar CSV". Nenhum nome, e-mail ou ID aparece.
+
 ### Segmentos
 
 `DataTable` com Prioridade, Nome, Descrição e Critério (`CriterionChips`), ordenada por prioridade, e um painel "Inativos" abaixo. O segmento `padrao` aparece com a etiqueta "Critério vazio: casa sempre". Quem só lê vê a nota "Somente leitura".
@@ -108,6 +131,36 @@ Desde a v1.6 (Q-43), quem edita vê "Novo produto" e o nome de cada produto vira
 - Painel **Expirar recomendações vencidas**: o texto explica a regra ("Recomendações ativas com validade vencida passam a Expirada."); o botão "Expirar agora" abre um diálogo de confirmação; o resultado aparece em toast: "3 recomendações expiradas" ou "Nenhuma recomendação vencida".
 - Painel **Retenção após a revogação** (v1.9, RN-18): o texto explica a regra com o prazo configurado; o botão "Aplicar retenção" (danger) abre a confirmação; o resultado aparece em toast: "Retenção aplicada a 2 clientes" ou "Nenhum cliente com a retenção vencida".
 
+### Pedidos do titular (v1.10)
+
+`DataTable` com **Cliente** (nome e `UuidTag`), **Pedido em**, **Situação** (`StatusTag`: Aberto em warn, Atendido em ok) e **Consentimento** (estado atual). Abertos primeiro. A linha leva à aba Direitos do titular da ficha, onde fica o aviso "O titular pediu a eliminação pelo portal em {data}." e a eliminação de sempre. Vazio: "Nenhum pedido do titular."
+
+### Caixa de saída (simulada) (v1.10)
+
+Nota no topo: "Simulação para a demonstração: nenhum e-mail sai do sistema. Mensagens com mais de 24 horas são apagadas." Lista das mensagens, da mais recente para a mais antiga: **Para** (mascarado), **Assunto**, **Enviada em** e o texto com o link. Vazio: "Nenhuma mensagem nas últimas 24 horas."
+
+## Portal do titular (v1.10, Q-55 a Q-58)
+
+Para a pessoa titular dos dados, não para a operação. Sem barra lateral: uma coluna única (`size-measure`), cabeçalho com a marca **Perfila** em destaque e, com sessão, "Sair" à direita. Linguagem do dia a dia: "autorização" no lugar de "consentimento" nas ações, sem siglas nem números de regra.
+
+```text
+/titular/entrar        Pedir o link de acesso (e-mail)
+/titular/acesso?t=     Abrir o link: botão "Entrar no portal"
+/titular/meus-dados    Cadastro, autorização, histórico e pedidos
+/titular/revogar       Confirmar: retirar a autorização
+/titular/conceder      Confirmar: autorizar de novo com o termo vigente
+/titular/dados         Baixar meus dados (JSON)
+/titular/eliminacao    Confirmar: pedir a eliminação
+```
+
+- **Entrar:** título "Acesse seus dados", o campo **E-mail** e o botão "Enviar link de acesso". Depois de enviar, sempre o mesmo `Alert` info: "Se o e-mail estiver cadastrado, enviamos um link de acesso. Ele vale por 30 minutos e só pode ser usado uma vez." Nada indica se o e-mail existe.
+- **Abrir o link:** "Entrar no portal" (primário). Link inválido: `Alert` crítico "Este link não vale mais. Peça um novo." com "Pedir novo link".
+- **Meus dados:** três painéis.
+  - **Seus dados de cadastro**: nome, e-mail e data do cadastro.
+  - **Sua autorização**: `StatusTag` do consentimento, finalidade em palavras ("segmentação: entender seu comportamento de compra para recomendar produtos"), termo e datas; uma só ação: "Retirar autorização" (danger) com Concedido, ou "Autorizar de novo" (primário) com Não concedido ou Revogado. Abaixo, a linha do tempo, igual à da ficha.
+  - **Seus direitos**: "Baixar meus dados (JSON)" e "Pedir eliminação" (danger). Com Concedido, no lugar do botão, o `Alert` atenção "Para pedir a eliminação, retire a autorização antes."; com pedido aberto, o `Alert` info "Você pediu a eliminação em {data}. A equipe vai atender o pedido." e nenhuma ação de autorizar.
+- **Confirmações:** página própria (ou `<dialog>` com JavaScript), com o efeito escrito; em retirar e em pedir eliminação, o foco inicial fica em Cancelar.
+
 ## Fluxos principais
 
 ### A. Primeiro atendimento (cadastro → consentimento → eventos → processamento)
@@ -118,6 +171,10 @@ Desde a v1.6 (Q-43), quem edita vê "Novo produto" e o nome de cada produto vira
 4. O selo vira **Concedido**; o toast diz "Consentimento concedido"; os painéis aparecem vazios ("ainda não processado").
 5. Aba **Eventos** → registrar 3 compras e 1 navegação; cada uma entra no topo da linha do tempo, com o toast "Evento registrado".
 6. Visão geral → **Processar agora** → o `PipelineTrace` marca as 4 etapas como concluídas e os painéis mostram perfil, segmento e recomendação.
+
+### F. Público para campanha (v1.11)
+
+Ficha → Consentimento → Conceder em "Publicidade com terceiros" → Públicos → escolher o segmento → Gerar arquivo → confirmar → Baixar arquivo. Se o titular revogar depois: Ficha → Revogar a publicidade → Públicos mostra "1 remoção pendente" → Gerar arquivo de remoção → Baixar.
 
 ### B. Revogação
 
@@ -145,6 +202,14 @@ Qualquer ação com a sessão vencida volta para **Entrar**, com o aviso "Sua se
 2. Aba **Direitos do titular** → **Baixar dados (JSON)**, se o titular também pediu uma cópia antes de eliminar.
 3. **Eliminar dados** → a confirmação explica o efeito e pede o nome do cliente → digitar o nome → **Eliminar dados**.
 4. A ficha mostra o selo **Eliminado** e o aviso com a data; o toast diz "Dados eliminados". A busca pelo nome antigo não encontra mais o cliente.
+
+### G. Titular retira a autorização sozinho (v1.10)
+
+1. `/titular/entrar` → e-mail → "Enviar link de acesso" → a mensagem de sempre.
+2. Na demonstração, a operação abre **Operação › Caixa de saída (simulada)** e copia o link; na vida real, o titular abre o e-mail.
+3. O link mostra "Entrar no portal" → **Meus dados**.
+4. **Retirar autorização** → a confirmação diz o efeito → **Retirar autorização**. O selo vira **Revogado**; a linha do tempo mostra "Revogação, por você, no portal". No painel, a ficha mostra o mesmo movimento "pelo portal do titular".
+5. **Pedir eliminação** → confirmação → o pedido aparece em **Clientes › Pedidos do titular**; a operação segue o fluxo F.
 
 ## Estados obrigatórios em toda tela
 

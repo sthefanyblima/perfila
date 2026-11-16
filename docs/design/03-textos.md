@@ -12,7 +12,12 @@
 | `EXPIRADA` | Expirada | neutral, círculo vazado |
 | cliente `Ativo = false` | Inativo | neutral, círculo vazado |
 | cliente com `DataEliminacao` (v1.9) | Eliminado | critical, círculo com barra |
+| pedido `ABERTO` (v1.10) | Aberto | warn, triângulo |
+| pedido `ATENDIDO` (v1.10) | Atendido | ok, círculo com visto |
 | tipo `compra` / `navegacao` / `interacao` | Compra / Navegação / Interação | — |
+| finalidade `segmentacao` / `publicidade_terceiros` (v1.11) | Segmentação / Publicidade com terceiros | — |
+| exportação `INCLUSAO` / `REMOCAO` (v1.11) | Inclusão / Remoção | neutral / warn |
+| membro `REMOCAO_PENDENTE` (v1.11) | Remoção pendente | warn, triângulo |
 
 ## Códigos de erro da API → mensagem
 
@@ -31,7 +36,12 @@ O código estável (`errs.Codigo`) define a mensagem; o texto técnico do servid
 | `dados_invalidos` | Formulários | Mensagem por campo (abaixo). |
 | `perfil_nao_encontrado` | Visão geral | Este cliente ainda não foi processado. Use "Processar agora". |
 | `sem_produto_elegivel` | Recomendação (não é erro) | Nenhum produto ativo na categoria preferida ({categoria}). |
+| `arquivo_indisponivel` (v1.11) | Públicos, download | Este arquivo não está mais disponível: ele fica guardado por {horas} horas. Gere um novo, se precisar. |
+| `dados_invalidos` (gerar público) (v1.11) | Públicos | Nenhum cliente entra neste público. Nada foi gerado. |
+| `dados_invalidos` (gerar remoção) (v1.11) | Públicos | Não há remoção pendente neste segmento. Nada foi gerado. |
 | `erro_interno` | Qualquer | Algo falhou do nosso lado. As etapas concluídas antes da falha ficaram salvas. Tente de novo; se continuar, informe o código {X-Request-ID} à equipe técnica. |
+| `acesso_invalido` (v1.10) | Portal: abrir o link | Este link não vale mais. Peça um novo. |
+| `transicao_invalida` (pedir eliminação, v1.10) | Portal | Para pedir a eliminação, retire a autorização antes. |
 | 503 `indisponivel` | Qualquer | O banco de dados não está respondendo. Nada foi alterado. Tente de novo em instantes. |
 | `sem_permissao` | Qualquer (403) | Seu perfil de acesso não permite abrir esta página. Se precisar dela, fale com quem administra o painel. |
 | `login_em_uso` | Criar operador | Já existe um operador com esse login. Logins não se repetem, nem de operadores desativados. |
@@ -106,6 +116,10 @@ Arquivo recusado inteiro:
 | Conceder | Conceder consentimento | A partir de agora, os eventos deste cliente podem ser usados para perfil, segmento e recomendação, com a finalidade "{finalidade}" e o termo {versão}. | Conceder (primário) · Cancelar |
 | Revogar | Revogar consentimento | O processamento dos dados deste cliente para imediatamente. Os dados já registrados continuam guardados. Você pode conceder de novo depois. | Revogar consentimento (danger) · Cancelar (foco inicial) |
 | Importar eventos | (sem diálogo: a prévia já é a confirmação) | {n} eventos prontos para importar. Linhas duplicadas e com erro ficam de fora. | Importar {n} eventos (primário) · Enviar outro arquivo |
+| Conceder publicidade (v1.11) | Conceder publicidade com terceiros | A partir de agora, este cliente pode entrar nos públicos enviados a plataformas de anúncio, só pelo e-mail em hash, com o termo {versão}. A Segmentação não muda. | Conceder (primário) · Cancelar |
+| Revogar publicidade (v1.11) | Revogar publicidade com terceiros | O cliente sai dos próximos públicos e fica pendente de remoção nos que já foram gerados. A Segmentação não muda. | Revogar publicidade (danger) · Cancelar (foco inicial) |
+| Gerar público (v1.11) | Gerar arquivo do público | Vai ser gerado um arquivo com {n} clientes do segmento {segmento}, para subir na plataforma de anúncios. Ele leva só o e-mail em hash (SHA-256), que continua sendo dado pessoal, e fica disponível por {horas} horas. A exportação fica registrada com o seu login. | Gerar arquivo (primário) · Cancelar |
+| Gerar remoção (v1.11) | Gerar arquivo de remoção | Vai ser gerado um arquivo com {n} clientes que precisam sair do público {segmento} na plataforma de anúncios. Suba o arquivo como remoção de público. | Gerar arquivo de remoção (primário) · Cancelar |
 | Expirar | Expirar recomendações vencidas | Recomendações ativas com validade até agora passam a Expirada e deixam de ser exibidas. | Expirar agora (primário) · Cancelar |
 | Desativar operador | Desativar {login} | O acesso ao painel acaba agora, inclusive nas sessões abertas. Você pode ativar de novo depois. | Desativar (danger) · Cancelar (foco inicial) |
 | Salvar segmento (v1.6) | Prévia de {nome} | A prévia considera {n} clientes ativos com consentimento válido. Quem já foi segmentado muda só no próximo processamento. | Salvar alterações (primário) · Voltar ao formulário |
@@ -116,7 +130,7 @@ Arquivo recusado inteiro:
 
 ## Toasts
 
-"Cliente cadastrado" · "Consentimento concedido" · "Consentimento revogado" · "Evento registrado" · "Processamento concluído" · "Processamento concluído sem recomendação" · "{n} recomendações expiradas" / "Nenhuma recomendação vencida" · "ID copiado" · "Operador criado" · "Papel alterado" · "Operador desativado" · "Operador ativado" · "Senha provisória definida" · "Senha trocada" (v1.5) · "Segmento salvo. Os clientes mudam de segmento no próximo processamento." · "Segmento ativado" · "Segmento desativado" · "Produto salvo" · "Produto ativado" · "Produto desativado" · "Nada mudou" (v1.6) · (v1.9) "Cadastro corrigido" · "Dados eliminados" · "Retenção aplicada a {n} clientes" / "Retenção aplicada a 1 cliente" / "Nenhum cliente com a retenção vencida".
+"Cliente cadastrado" · "Consentimento concedido" · "Consentimento revogado" · "Arquivo gerado" (v1.11) · "Evento registrado" · "Processamento concluído" · "Processamento concluído sem recomendação" · "{n} recomendações expiradas" / "Nenhuma recomendação vencida" · "ID copiado" · "Operador criado" · "Papel alterado" · "Operador desativado" · "Operador ativado" · "Senha provisória definida" · "Senha trocada" (v1.5) · "Segmento salvo. Os clientes mudam de segmento no próximo processamento." · "Segmento ativado" · "Segmento desativado" · "Produto salvo" · "Produto ativado" · "Produto desativado" · "Nada mudou" (v1.6) · (v1.9) "Cadastro corrigido" · "Dados eliminados" · "Retenção aplicada a {n} clientes" / "Retenção aplicada a 1 cliente" / "Nenhum cliente com a retenção vencida".
 
 ## Direitos do titular (v1.9)
 
@@ -127,6 +141,38 @@ Arquivo recusado inteiro:
 | Eliminação | Apaga eventos, perfil e recomendações e anonimiza o cadastro. O histórico do consentimento fica guardado como prova. Não pode ser desfeito. Quem não é administrador vê, no lugar do botão: "Só o administrador elimina dados." (RN-11) |
 | Cliente eliminado | Dados eliminados em {data}. O cadastro foi anonimizado; resta o histórico do consentimento, guardado como prova. |
 | Retenção (Operação) | Apaga eventos, perfil e recomendações de quem revogou o consentimento há {N} dias ou mais. Cadastro e histórico do consentimento ficam. É o mesmo efeito do comando `aplicar-retencao`. |
+
+## Portal do titular (v1.10)
+
+Fala com a própria pessoa, em segunda pessoa e sem jargão: "autorização" nas ações, "consentimento" só no nome do estado.
+
+| Onde | Texto |
+| --- | --- |
+| Entrar (título) | Acesse seus dados |
+| Entrar (explicação) | Informe o e-mail do seu cadastro. Enviamos um link que vale por 30 minutos e só pode ser usado uma vez. |
+| E-mail vazio ou sem arroba | Informe o e-mail do seu cadastro. |
+| Depois de enviar (sempre igual) | Se o e-mail estiver cadastrado, enviamos um link de acesso. Ele vale por 30 minutos e só pode ser usado uma vez. |
+| Muitas tentativas | Muitas tentativas. Aguarde 15 minutos. |
+| Abrir o link | Para entrar, use o botão abaixo. O link vale uma vez só. · Entrar no portal |
+| Sessão terminou | Sua sessão terminou. Peça um novo link para continuar. |
+| Finalidade `segmentacao` | segmentação: entender seu comportamento de compra para recomendar produtos |
+| Origem `portal` na linha do tempo | por você, no portal |
+| Com Concedido, sem eliminar | Para pedir a eliminação, retire a autorização antes. |
+| Pedido aberto | Você pediu a eliminação em {data}. A equipe vai atender o pedido. |
+| Baixar dados | Uma cópia de tudo o que o Perfila guarda sobre você, num arquivo JSON. |
+| Pedir eliminação (painel) | Peça para apagarmos seus dados de comportamento e anonimizarmos seu cadastro. O registro das suas autorizações fica guardado como prova. |
+
+| Ação | Título | Corpo | Botões |
+| --- | --- | --- | --- |
+| Retirar autorização | Retirar sua autorização | A partir de agora, seus dados de comportamento deixam de ser usados. Os dados já registrados continuam guardados até você pedir a eliminação ou até o prazo de retenção. Você pode autorizar de novo depois. | Retirar autorização (danger) · Cancelar (foco inicial) |
+| Autorizar de novo | Autorizar o uso dos seus dados | Você autoriza o uso dos seus dados de comportamento para {finalidade em palavras}, conforme o termo {versão}. Você pode retirar a autorização quando quiser. | Autorizar (primário) · Cancelar |
+| Pedir eliminação | Pedir a eliminação dos seus dados | A equipe vai apagar seus eventos, seu perfil e suas recomendações e anonimizar seu cadastro. O registro das suas autorizações fica guardado como prova, sem seu nome nem seu e-mail. Depois de atendido, não pode ser desfeito. | Pedir eliminação (danger) · Cancelar (foco inicial) |
+
+Toasts do portal: "Autorização retirada" · "Autorização registrada" · "Pedido de eliminação registrado".
+
+Mensagem da caixa de saída simulada: assunto "Seu link de acesso ao Perfila"; texto "Olá. Recebemos um pedido de acesso aos dados do cadastro feito em {data do cadastro}. Use o link abaixo até {hora de expiração}; ele só pode ser usado uma vez. Se não foi você, ignore esta mensagem. {link}" (o link por último, sem pontuação depois dele)
+
+No painel: "O titular pediu a eliminação pelo portal em {data}." (aba Direitos do titular) · "Nenhum pedido do titular." · "Nenhuma mensagem nas últimas 24 horas." · "Simulação para a demonstração: nenhum e-mail sai do sistema. Mensagens com mais de 24 horas são apagadas."
 
 ## Formatos
 

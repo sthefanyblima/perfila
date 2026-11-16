@@ -13,6 +13,7 @@ import (
 	"perfila/internal/application/usecase"
 	"perfila/internal/domain/entity"
 	"perfila/internal/domain/service"
+	"perfila/internal/infra/external"
 	"perfila/internal/infra/memoria"
 	"perfila/internal/infra/relogio"
 	"perfila/internal/infra/senha"
@@ -33,6 +34,11 @@ type Mundo struct {
 	operadores     *memoria.OperadorRepository  // v1.5
 	auditoria      *memoria.AuditoriaRepository // v1.5
 	hash           senha.Bcrypt
+	// portal do titular (v1.10)
+	tokens     *memoria.TokenAcessoRepository
+	pedidos    *memoria.PedidoEliminacaoRepository
+	caixaSaida *memoria.CaixaSaidaSimulada
+	publicos   *memoria.PublicoRepository // v1.11, RN-21
 
 	metaEventos  int
 	validadeDias int
@@ -57,14 +63,18 @@ type Mundo struct {
 	rel                    estadoRelatorio
 	importacao             estadoImportacao
 	direitos               estadoDireitos
+	portal                 estadoPortal
 
 	api estadoAPI
+
+	pub estadoPublicos // v1.11, RN-21
 }
 
 // Padrões da Spec 3.8.
 const (
 	metaPadrao     = 30
 	validadePadrao = 30
+	horasArquivo   = 24 // PUBLICOS_ARQUIVO_HORAS (Q-64)
 )
 
 func novoMundo() *Mundo {
@@ -82,6 +92,10 @@ func novoMundo() *Mundo {
 		auditoria:      memoria.NovoAuditoriaRepository(),
 		hash:           senha.NovoBcrypt(4), // custo mínimo do bcrypt: cenários rápidos
 		ops:            estadoOperadores{sessoes: map[string]time.Time{}},
+		tokens:         memoria.NovoTokenAcessoRepository(),
+		pedidos:        memoria.NovoPedidoEliminacaoRepository(),
+		caixaSaida:     memoria.NovaCaixaSaidaSimulada(),
+		publicos:       memoria.NovoPublicoRepository(),
 		metaEventos:    metaPadrao,
 		validadeDias:   validadePadrao,
 		direitos:       estadoDireitos{prazoDias: prazoRetencaoPadrao},
@@ -121,15 +135,33 @@ type casos struct {
 	exportar          *usecase.ExportarDadosTitularUseCase
 	eliminar          *usecase.EliminarDadosTitularUseCase
 	retencao          *usecase.AplicarRetencaoUseCase
+
+	// portal do titular (v1.10)
+	solicitarAcesso   *usecase.SolicitarAcessoTitularUseCase
+	autenticarTitular *usecase.AutenticarTitularUseCase
+	meusDados         *usecase.ConsultarMeusDadosUseCase
+	pedirEliminacao   *usecase.PedirEliminacaoUseCase
+	listarPedidos     *usecase.ListarPedidosEliminacaoUseCase
+	listarCaixa       *usecase.ListarCaixaSaidaUseCase
+	gerarPublico      *usecase.GerarPublicoUseCase
+	exportarPublico   *usecase.ExportarPublicoUseCase
+	relatorio         *usecase.RelatorioAgregadoSegmentosUseCase
 }
 
 func (m *Mundo) uc() casos {
-	pre := usecase.NovasPrecondicoes(m.clientes, service.NovoValidadorLGPD(m.consentimentos))
+	validador := service.NovoValidadorLGPD(m.consentimentos)
+	pre := usecase.NovasPrecondicoes(m.clientes, validador)
 	coletar := usecase.NovoColetarDadosUseCase(pre, m.eventos, m.clock)
+	gerar := usecase.NovoGerarPublicoUseCase(m.clientes, m.perfis, m.segmentos, m.publicos, validador)
 	c := casos{
-		cadastrar:     usecase.NovoCadastrarClienteUseCase(m.clientes, m.clock),
-		consentimento: usecase.NovoGerenciarConsentimentoUseCase(m.clientes, m.consentimentos, m.clock),
-		coletar:       coletar,
+		cadastrar: usecase.NovoCadastrarClienteUseCase(m.clientes, m.clock),
+		consentimento: usecase.NovoGerenciarConsentimentoUseCase(m.clientes, m.consentimentos, m.clock,
+			usecase.NovoPropagarRevogacaoUseCase(m.publicos, m.clock, m.pub.logger())),
+		gerarPublico: gerar,
+		exportarPublico: usecase.NovoExportarPublicoUseCase(gerar, m.publicos, external.DestinoArquivoCSV{}, m.clock,
+			horasArquivo, m.pub.logger()),
+		relatorio: usecase.NovoRelatorioAgregadoSegmentosUseCase(m.segmentos, m.perfis, m.clientes, validador),
+		coletar:   coletar,
 		gerarPerfil: usecase.NovoGerarPerfilUseCase(pre, coletar,
 			service.NovoPerfilamentoService(m.clock, m.metaEventos), m.perfis),
 		segmentar: usecase.NovoSegmentarClienteUseCase(pre, m.perfis, service.NovoSegmentacaoService(m.segmentos)),
@@ -157,8 +189,16 @@ func (m *Mundo) uc() casos {
 	c.atualizarCadastro = usecase.NovoAtualizarCadastroUseCase(m.clientes)
 	c.exportar = usecase.NovoExportarDadosTitularUseCase(m.clientes, c.consentimento, m.eventos, m.perfis, m.segmentos,
 		m.recomendacoes, m.produtos, m.clock)
-	c.eliminar = usecase.NovoEliminarDadosTitularUseCase(m.clientes, m.consentimentos, m.eventos, m.perfis, m.recomendacoes, m.clock)
+	c.eliminar = usecase.NovoEliminarDadosTitularUseCase(m.clientes, m.consentimentos, m.eventos, m.perfis, m.recomendacoes,
+		m.tokens, m.pedidos, m.clock)
 	c.retencao = usecase.NovoAplicarRetencaoUseCase(m.consentimentos, m.eventos, m.perfis, m.recomendacoes, m.clock, m.direitos.prazoDias)
+	c.solicitarAcesso = usecase.NovoSolicitarAcessoTitularUseCase(m.clientes, m.tokens,
+		external.NovoNotificadorSimulado(m.caixaSaida, m.clock), m.clock, m.portal.urlBase)
+	c.autenticarTitular = usecase.NovoAutenticarTitularUseCase(m.clientes, m.tokens, m.clock)
+	c.meusDados = usecase.NovoConsultarMeusDadosUseCase(m.clientes, c.consentimento, m.pedidos)
+	c.pedirEliminacao = usecase.NovoPedirEliminacaoUseCase(m.clientes, c.consentimento, m.pedidos, m.clock)
+	c.listarPedidos = usecase.NovoListarPedidosEliminacaoUseCase(m.pedidos, m.clientes, c.consentimento)
+	c.listarCaixa = usecase.NovoListarCaixaSaidaUseCase(m.caixaSaida, m.clock)
 	return c
 }
 

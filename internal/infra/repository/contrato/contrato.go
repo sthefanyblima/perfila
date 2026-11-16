@@ -1,4 +1,4 @@
-// Package contrato define a suíte de contrato dos nove ports de repositório e, desde a v1.7, o de relatórios: o comportamento
+// Package contrato define a suíte de contrato dos nove ports de repositório, desde a v1.7 o de relatórios e, desde a v1.10, os três do portal: o comportamento
 // observável que toda implementação (fakes em memória e PostgreSQL) precisa ter para que os
 // casos de uso funcionem igual nos dois backends. Usado apenas por testes.
 //
@@ -33,6 +33,11 @@ type Repositorios struct {
 	Operadores     port.OperadorRepository  // v1.5
 	Auditoria      port.AuditoriaRepository // v1.5
 	Relatorios     port.RelatorioRepository // v1.7: lê os mesmos dados dos outros nove (RN-15)
+	// portal do titular (v1.10)
+	Tokens     port.TokenAcessoRepository
+	Pedidos    port.PedidoEliminacaoRepository
+	CaixaSaida port.CaixaSaidaSimulada
+	Publicos   port.PublicoRepository // v1.11, RN-21
 
 	AdicionarSegmento func(t *testing.T, s entity.Segmento)
 	AdicionarProduto  func(t *testing.T, p entity.Produto)
@@ -67,6 +72,12 @@ func Executar(t *testing.T, nova Fabrica) {
 		{"Relatorio", testarRelatorio},
 		{"DireitosDoTitular", testarDireitos},
 		{"RevogadosAte", testarRevogadosAte},
+		{"BuscarPorEmail", testarBuscarPorEmail},
+		{"TokenAcesso", testarTokens},
+		{"PedidoEliminacao", testarPedidos},
+		{"CaixaSaidaSimulada", testarCaixaSaida},
+		{"PerfilPorSegmento", testarPerfisPorSegmento},
+		{"Publico", testarPublico},
 	}
 	for _, c := range casos {
 		t.Run(c.nome, func(t *testing.T) { c.fn(t, nova(t)) })
@@ -304,35 +315,53 @@ func porIDRec(rs []entity.RecomendacaoProduto) []entity.RecomendacaoProduto {
 func testarConsentimento(t *testing.T, r Repositorios) {
 	ctx := context.Background()
 	c := cliente(t, r)
-	_, err := r.Consentimentos.BuscarPorCliente(ctx, c.ID)
+	seg, pub := entity.FinalidadeSegmentacao, entity.FinalidadePublicidadeTerceiros
+	_, err := r.Consentimentos.BuscarPorCliente(ctx, c.ID, seg)
 	erroEsperado(t, err, errs.ErrConsentimentoNaoEncontrado)
+	lista, err := r.Consentimentos.ListarPorCliente(ctx, c.ID)
+	ok(t, err)
+	igual(t, "sem registros", lista, []entity.ConsentimentoLGPD{})
 
-	cons := entity.NovoConsentimento(uuid.New(), c.ID, agora)
+	cons := entity.NovoConsentimento(uuid.New(), c.ID, seg, agora)
 	ok(t, r.Consentimentos.Salvar(ctx, cons))
-	obtido, err := r.Consentimentos.BuscarPorCliente(ctx, c.ID)
+	obtido, err := r.Consentimentos.BuscarPorCliente(ctx, c.ID, seg)
 	ok(t, err)
 	igual(t, "NAO_CONCEDIDO", obtido, cons)
 
-	ok(t, cons.Conceder("segmentacao", "v1", agora.Add(time.Minute)))
+	ok(t, cons.Conceder(seg, "v1", agora.Add(time.Minute)))
 	ok(t, cons.Revogar(agora.Add(2*time.Minute)))
-	ok(t, cons.Conceder("segmentacao", "v2", agora.Add(3*time.Minute)))
+	ok(t, cons.Conceder(seg, "v2", agora.Add(3*time.Minute)))
 	original := cons.ID
-	cons.ID = uuid.New() // upsert por ClienteID preserva o ID original
+	cons.ID = uuid.New() // upsert por (ClienteID, Finalidade) preserva o ID original
 	ok(t, r.Consentimentos.Salvar(ctx, cons))
-	obtido, err = r.Consentimentos.BuscarPorCliente(ctx, c.ID)
+	obtido, err = r.Consentimentos.BuscarPorCliente(ctx, c.ID, seg)
 	ok(t, err)
 	cons.ID = original
 	igual(t, "CONCEDIDO após revogação", obtido, cons)
 	movs, err := r.Consentimentos.ListarMovimentos(ctx, c.ID)
 	ok(t, err)
 	igual(t, "Salvar não gera movimento", movs, []entity.MovimentoConsentimento{})
+
+	// Q-61: a outra finalidade é outro registro, independente.
+	_, err = r.Consentimentos.BuscarPorCliente(ctx, c.ID, pub)
+	erroEsperado(t, err, errs.ErrConsentimentoNaoEncontrado)
+	publicidade := entity.NovoConsentimento(uuid.New(), c.ID, pub, agora)
+	ok(t, publicidade.Conceder(pub, "v1", agora.Add(4*time.Minute)))
+	ok(t, r.Consentimentos.Salvar(ctx, publicidade))
+	obtido, err = r.Consentimentos.BuscarPorCliente(ctx, c.ID, seg)
+	ok(t, err)
+	igual(t, "segmentação intacta", obtido, cons)
+	lista, err = r.Consentimentos.ListarPorCliente(ctx, c.ID)
+	ok(t, err)
+	igual(t, "os dois registros, por finalidade", lista, []entity.ConsentimentoLGPD{publicidade, cons})
 }
 
 // Spec: RN-10, Q-34 — registro e movimento gravados juntos; histórico em ordem cronológica.
 func testarMovimentos(t *testing.T, r Repositorios) {
 	ctx := context.Background()
 	c, outro := cliente(t, r), cliente(t, r)
-	cons := entity.NovoConsentimento(uuid.New(), c.ID, agora)
+	seg := entity.FinalidadeSegmentacao
+	cons := entity.NovoConsentimento(uuid.New(), c.ID, seg, agora)
 	var esperados []entity.MovimentoConsentimento
 	registrar := func(tipo entity.TipoMovimento, origem entity.OrigemMovimento, operador string) {
 		t.Helper()
@@ -341,14 +370,14 @@ func testarMovimentos(t *testing.T, r Repositorios) {
 		ok(t, r.Consentimentos.Registrar(ctx, cons, m))
 		esperados = append(esperados, m)
 	}
-	ok(t, cons.Conceder("segmentacao", "v1", agora.Add(time.Minute)))
+	ok(t, cons.Conceder(seg, "v1", agora.Add(time.Minute)))
 	registrar(entity.MovimentoConcessao, entity.OrigemAPI, "")
 	ok(t, cons.Revogar(agora.Add(2*time.Minute)))
 	registrar(entity.MovimentoRevogacao, entity.OrigemPainel, "op-01")
-	ok(t, cons.Conceder("segmentacao", "v2", agora.Add(2*time.Minute))) // mesma data: vale a ordem de gravação
+	ok(t, cons.Conceder(seg, "v2", agora.Add(2*time.Minute))) // mesma data: vale a ordem de gravação
 	registrar(entity.MovimentoConcessao, entity.OrigemPortal, "")
 
-	obtido, err := r.Consentimentos.BuscarPorCliente(ctx, c.ID)
+	obtido, err := r.Consentimentos.BuscarPorCliente(ctx, c.ID, seg)
 	ok(t, err)
 	igual(t, "registro gravado por Registrar", obtido, cons)
 	movs, err := r.Consentimentos.ListarMovimentos(ctx, c.ID)
@@ -366,7 +395,7 @@ func testarMovimentos(t *testing.T, r Repositorios) {
 	if err := r.Consentimentos.Registrar(ctx, cons, repetido); err == nil {
 		t.Fatal("Registrar com ID de movimento repetido deveria falhar")
 	}
-	obtido, err = r.Consentimentos.BuscarPorCliente(ctx, c.ID)
+	obtido, err = r.Consentimentos.BuscarPorCliente(ctx, c.ID, seg)
 	ok(t, err)
 	igual(t, "registro depois da falha", obtido, antes)
 	movs, err = r.Consentimentos.ListarMovimentos(ctx, c.ID)
@@ -422,7 +451,7 @@ func testarDireitos(t *testing.T, r Repositorios) {
 		ok(t, r.Recomendacoes.Salvar(ctx, entity.RecomendacaoProduto{ID: uuid.New(), ClienteID: id, ProdutoID: prod.ID,
 			Motivo: "segmento:padrao;categoria:livros", Status: entity.StatusAtiva, DataGeracao: agora}))
 	}
-	cons := entity.NovoConsentimento(uuid.New(), c.ID, agora)
+	cons := entity.NovoConsentimento(uuid.New(), c.ID, entity.FinalidadeSegmentacao, agora)
 	ok(t, cons.Conceder("segmentacao", "v1", agora))
 	mov, err := entity.NovoMovimento(uuid.New(), cons, entity.MovimentoConcessao, entity.OrigemSistema, "")
 	ok(t, err)
@@ -478,7 +507,7 @@ func testarRevogadosAte(t *testing.T, r Repositorios) {
 	limite := agora.AddDate(0, 0, -180)
 	gravar := func(revogacoes []time.Time, concederDepois bool) uuid.UUID {
 		c := cliente(t, r)
-		cons := entity.NovoConsentimento(uuid.New(), c.ID, agora.AddDate(-1, 0, 0))
+		cons := entity.NovoConsentimento(uuid.New(), c.ID, entity.FinalidadeSegmentacao, agora.AddDate(-1, 0, 0))
 		for _, quando := range revogacoes {
 			ok(t, cons.Conceder("segmentacao", "v1", quando.Add(-time.Hour)))
 			ok(t, cons.Revogar(quando))

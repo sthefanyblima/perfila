@@ -28,6 +28,7 @@ var (
 	_ port.RecomendacaoRepository  = (*RecomendacaoRepository)(nil)
 	_ port.ConsentimentoRepository = (*ConsentimentoRepository)(nil)
 	_ port.ProdutoRepository       = (*ProdutoRepository)(nil)
+	_ port.PublicoRepository       = (*PublicoRepository)(nil)
 )
 
 // ---------- Cliente ----------
@@ -201,6 +202,20 @@ func (r *PerfilRepository) BuscarPorCliente(_ context.Context, clienteID uuid.UU
 		return entity.PerfilCliente{}, errs.ErrPerfilNaoEncontrado
 	}
 	return p, nil
+}
+
+// ListarPorSegmento devolve os perfis do segmento, em ordem de ClienteID. Spec: 3.6, RN-21, RN-22.
+func (r *PerfilRepository) ListarPorSegmento(_ context.Context, segmentoID uuid.UUID) ([]entity.PerfilCliente, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	out := []entity.PerfilCliente{}
+	for _, p := range r.dados {
+		if p.SegmentoID != nil && *p.SegmentoID == segmentoID {
+			out = append(out, p)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].ClienteID.String() < out[j].ClienteID.String() })
+	return out, nil
 }
 
 // Total devolve o número de perfis gravados (apoio a testes).
@@ -400,13 +415,18 @@ func (r *RecomendacaoRepository) Todas() []entity.RecomendacaoProduto {
 
 type ConsentimentoRepository struct {
 	mu         sync.RWMutex
-	dados      map[uuid.UUID]entity.ConsentimentoLGPD        // chave: ClienteID
-	movimentos map[uuid.UUID][]entity.MovimentoConsentimento // chave: ClienteID; ordem de gravação
+	dados      map[chaveConsentimento]entity.ConsentimentoLGPD // chave: (ClienteID, Finalidade), Q-61
+	movimentos map[uuid.UUID][]entity.MovimentoConsentimento   // chave: ClienteID; ordem de gravação
 	idsMov     map[uuid.UUID]bool
 }
 
+type chaveConsentimento struct {
+	cliente    uuid.UUID
+	finalidade entity.Finalidade
+}
+
 func NovoConsentimentoRepository() *ConsentimentoRepository {
-	return &ConsentimentoRepository{dados: map[uuid.UUID]entity.ConsentimentoLGPD{},
+	return &ConsentimentoRepository{dados: map[chaveConsentimento]entity.ConsentimentoLGPD{},
 		movimentos: map[uuid.UUID][]entity.MovimentoConsentimento{}, idsMov: map[uuid.UUID]bool{}}
 }
 
@@ -418,10 +438,11 @@ func (r *ConsentimentoRepository) Salvar(_ context.Context, c entity.Consentimen
 }
 
 func (r *ConsentimentoRepository) salvar(c entity.ConsentimentoLGPD) {
-	if atual, ok := r.dados[c.ClienteID]; ok {
+	k := chaveConsentimento{c.ClienteID, c.Finalidade}
+	if atual, ok := r.dados[k]; ok {
 		c.ID = atual.ID
 	}
-	r.dados[c.ClienteID] = c
+	r.dados[k] = c
 }
 
 // Registrar grava registro e movimento juntos, sob a mesma trava; nada muda se falhar. Spec: RN-10.
@@ -448,23 +469,38 @@ func (r *ConsentimentoRepository) ListarMovimentos(_ context.Context, clienteID 
 	return out, nil
 }
 
-func (r *ConsentimentoRepository) BuscarPorCliente(_ context.Context, clienteID uuid.UUID) (entity.ConsentimentoLGPD, error) {
+func (r *ConsentimentoRepository) BuscarPorCliente(_ context.Context, clienteID uuid.UUID, finalidade entity.Finalidade) (entity.ConsentimentoLGPD, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	c, ok := r.dados[clienteID]
+	c, ok := r.dados[chaveConsentimento{clienteID, finalidade}]
 	if !ok {
 		return entity.ConsentimentoLGPD{}, errs.ErrConsentimentoNaoEncontrado
 	}
 	return c, nil
 }
 
-// ListarConcedidos devolve os registros com Status CONCEDIDO, por ClienteID. Spec: 3.6, Q-42.
+// ListarPorCliente devolve os registros existentes, em ordem de Finalidade. Spec: 3.6, Q-61.
+func (r *ConsentimentoRepository) ListarPorCliente(_ context.Context, clienteID uuid.UUID) ([]entity.ConsentimentoLGPD, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	out := []entity.ConsentimentoLGPD{}
+	for k, c := range r.dados {
+		if k.cliente == clienteID {
+			out = append(out, c)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Finalidade < out[j].Finalidade })
+	return out, nil
+}
+
+// ListarConcedidos devolve os registros de segmentacao com Status CONCEDIDO, por ClienteID.
+// Spec: 3.6, Q-42, Q-61.
 func (r *ConsentimentoRepository) ListarConcedidos(_ context.Context) ([]entity.ConsentimentoLGPD, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	out := []entity.ConsentimentoLGPD{}
-	for _, c := range r.dados {
-		if c.Status == entity.StatusConcedido {
+	for k, c := range r.dados {
+		if k.finalidade == entity.FinalidadeSegmentacao && c.Status == entity.StatusConcedido {
 			out = append(out, c)
 		}
 	}
@@ -472,14 +508,14 @@ func (r *ConsentimentoRepository) ListarConcedidos(_ context.Context) ([]entity.
 	return out, nil
 }
 
-// ListarRevogadosAte devolve os clientes REVOGADO com DataRevogacao <= limite, da revogação mais
+// ListarRevogadosAte devolve os clientes com a segmentacao REVOGADO e DataRevogacao <= limite, da revogação mais
 // antiga para a mais recente (desempate por ID). Spec: RN-18, Q-51.
 func (r *ConsentimentoRepository) ListarRevogadosAte(_ context.Context, limite time.Time) ([]uuid.UUID, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	vencidos := []entity.ConsentimentoLGPD{}
-	for _, c := range r.dados {
-		if c.Status == entity.StatusRevogado && c.DataRevogacao != nil && !c.DataRevogacao.After(limite) {
+	for k, c := range r.dados {
+		if k.finalidade == entity.FinalidadeSegmentacao && c.Status == entity.StatusRevogado && c.DataRevogacao != nil && !c.DataRevogacao.After(limite) {
 			vencidos = append(vencidos, c)
 		}
 	}
@@ -497,11 +533,11 @@ func (r *ConsentimentoRepository) ListarRevogadosAte(_ context.Context, limite t
 	return out, nil
 }
 
-// Remover apaga o registro (apoio a testes: estado NAO_CONCEDIDO sem registro).
-func (r *ConsentimentoRepository) Remover(clienteID uuid.UUID) {
+// Remover apaga o registro de uma finalidade (apoio a testes: NAO_CONCEDIDO sem registro).
+func (r *ConsentimentoRepository) Remover(clienteID uuid.UUID, finalidade entity.Finalidade) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	delete(r.dados, clienteID)
+	delete(r.dados, chaveConsentimento{clienteID, finalidade})
 }
 
 // ---------- Produto ----------

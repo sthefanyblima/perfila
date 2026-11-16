@@ -6,9 +6,11 @@ package config
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -28,11 +30,20 @@ type Config struct {
 	PainelUsuario     string
 	PainelSenhaHash   string // bcrypt do administrador inicial; exigida só sem operador gravado (Q-35)
 	PainelChaveSessao []byte // 32 bytes (64 dígitos hexadecimais); vazia = painel desligado
-	PainelFinalidade  string
-	PainelVersaoTermo string
+	PainelVersaoTermo string // PAINEL_FINALIDADE deixou de existir na v1.11 (Q-61): é ignorada
 
 	AuditoriaRetencaoDias int // RN-13, Q-39
+
+	// Portal do titular (Spec 3.8, v1.10, Q-60).
+	PortalURLBase     string // endereço público usado no link; vazia = portal desligado
+	PortalChaveSessao []byte // 32 bytes, diferente da do painel; vazia = portal desligado
+
+	// Públicos para campanha (v1.11, Q-64).
+	PublicosArquivoHoras int // por quanto tempo o arquivo pode ser baixado, de 1 a 168
 }
+
+// PortalLigado informa se o portal /titular deve ser montado (Q-60).
+func (c Config) PortalLigado() bool { return c.PortalURLBase != "" && len(c.PortalChaveSessao) > 0 }
 
 // PainelLigado informa se o painel /painel deve ser montado: a chave de sessão o liga (Q-29, Q-35).
 func (c Config) PainelLigado() bool { return len(c.PainelChaveSessao) > 0 }
@@ -79,11 +90,16 @@ func Carregar(path string, getenv func(string) string) (Config, error) {
 		AuditoriaRetencaoDias:    inteiro("AUDITORIA_RETENCAO_DIAS", 180, 1),
 		RetencaoDiasRevogado:     inteiro("RETENCAO_DIAS_REVOGADO", 180, 1),
 		LogLevel:                 strings.ToLower(valor("LOG_LEVEL")),
+		PublicosArquivoHoras:     inteiro("PUBLICOS_ARQUIVO_HORAS", 24, 1),
+	}
+	if c.PublicosArquivoHoras > 168 {
+		problemas = append(problemas, fmt.Sprintf("PUBLICOS_ARQUIVO_HORAS deve ser no máximo 168 (recebido %d)", c.PublicosArquivoHoras))
 	}
 	if c.LogLevel == "" {
 		c.LogLevel = "info"
 	}
 	problemas = append(problemas, c.lerPainel(valor)...)
+	problemas = append(problemas, c.lerPortal(valor)...)
 	if c.AuthToken == "" {
 		problemas = append(problemas, "AUTH_TOKEN é obrigatória")
 	}
@@ -109,7 +125,6 @@ func (c *Config) lerPainel(valor func(string) string) []string {
 		return p
 	}
 	c.PainelUsuario = padrao("PAINEL_USUARIO", "operador")
-	c.PainelFinalidade = padrao("PAINEL_FINALIDADE", "segmentacao")
 	c.PainelVersaoTermo = padrao("PAINEL_VERSAO_TERMO", "v1")
 	c.PainelSenhaHash = valor("PAINEL_SENHA_HASH")
 	chave := valor("PAINEL_CHAVE_SESSAO")
@@ -127,6 +142,31 @@ func (c *Config) lerPainel(valor func(string) string) []string {
 	if c.PainelSenhaHash != "" && !strings.HasPrefix(c.PainelSenhaHash, "$2") {
 		problemas = append(problemas, "PAINEL_SENHA_HASH deve ser um hash bcrypt (gere com: omega-server hash-senha)")
 	}
+	return problemas
+}
+
+// lerPortal lê PORTAL_*: endereço e chave andam juntos (Q-60); o endereço é http(s), sem barra no
+// fim; a chave tem 32 bytes em hexadecimal e não pode ser a do painel. Valores fora das mensagens.
+func (c *Config) lerPortal(valor func(string) string) []string {
+	base, chave := strings.TrimSpace(valor("PORTAL_URL_BASE")), valor("PORTAL_CHAVE_SESSAO")
+	if (base == "") != (chave == "") {
+		return []string{"PORTAL_URL_BASE e PORTAL_CHAVE_SESSAO devem ser definidas juntas (ou nenhuma, portal desligado)"}
+	}
+	if base == "" {
+		return nil
+	}
+	var problemas []string
+	if u, err := url.Parse(base); err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" ||
+		strings.HasSuffix(base, "/") || u.RawQuery != "" || u.Fragment != "" {
+		problemas = append(problemas, "PORTAL_URL_BASE deve ser um endereço http(s) sem barra no fim (por exemplo https://localhost:8443)")
+	}
+	b, err := hex.DecodeString(chave)
+	if err != nil || len(b) != 32 {
+		problemas = append(problemas, "PORTAL_CHAVE_SESSAO deve ter 64 dígitos hexadecimais (32 bytes)")
+	} else if bytes.Equal(b, c.PainelChaveSessao) {
+		problemas = append(problemas, "PORTAL_CHAVE_SESSAO deve ser diferente de PAINEL_CHAVE_SESSAO")
+	}
+	c.PortalURLBase, c.PortalChaveSessao = base, b
 	return problemas
 }
 

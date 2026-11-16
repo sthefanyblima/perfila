@@ -14,11 +14,11 @@ import (
 // Spec: RN-11 Q-37 — a matriz de permissões, linha por linha.
 func TestPapelPode(t *testing.T) {
 	todas := []Permissao{PermClientes, PermConsentimento, PermEventos, PermProcessamento, PermConfiguracao,
-		PermEditarConfiguracao, PermOperacao, PermUsuarios, PermAuditoria, PermRelatorios, PermEliminacao}
+		PermEditarConfiguracao, PermOperacao, PermUsuarios, PermAuditoria, PermRelatorios, PermEliminacao, PermPublicos}
 	matriz := map[PapelOperador][]Permissao{
 		PapelAdministrador:     todas,
 		PapelAtendimento:       {PermClientes, PermConsentimento, PermEventos, PermProcessamento, PermConfiguracao},
-		PapelAnalista:          {PermConfiguracao, PermEditarConfiguracao, PermRelatorios},
+		PapelAnalista:          {PermConfiguracao, PermEditarConfiguracao, PermRelatorios, PermPublicos},
 		PapelOperador("CHEFE"): nil,
 	}
 	for papel, permitidas := range matriz {

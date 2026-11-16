@@ -10,12 +10,22 @@
     {{- if .Pode.eventos}}
     <a class="pf-nav__link" href="/painel/eventos/importar" data-teste="menu-importar"{{if eq .Nav "importar"}} aria-current="page"{{end}}>Importar eventos</a>
     {{- end}}
+    {{- if .Pode.eliminacao}}
+    <a class="pf-nav__link" href="/painel/pedidos" data-teste="menu-pedidos"{{if eq .Nav "pedidos"}} aria-current="page"{{end}}>Pedidos do titular</a>
+    {{- end}}
   </div>
   {{- end}}
   {{- if .Pode.relatorios}}
   <div class="pf-nav__group">
     <span class="pf-nav__heading">Análise</span>
     <a class="pf-nav__link" href="/painel/relatorios" data-teste="menu-relatorios"{{if eq .Nav "relatorios"}} aria-current="page"{{end}}>Relatórios</a>
+  </div>
+  {{- end}}
+  {{- if .Pode.publicos}}
+  <div class="pf-nav__group">
+    <span class="pf-nav__heading">Campanhas</span>
+    <a class="pf-nav__link" href="/painel/publicos" data-teste="menu-publicos"{{if eq .Nav "publicos"}} aria-current="page"{{end}}>Públicos</a>
+    <a class="pf-nav__link" href="/painel/publicos/relatorio" data-teste="menu-relatorio-segmento"{{if eq .Nav "relatorio"}} aria-current="page"{{end}}>Relatório agregado</a>
   </div>
   {{- end}}
   {{- if .Pode.configuracao}}
@@ -30,6 +40,9 @@
     <span class="pf-nav__heading">Administração</span>
     {{- if .Pode.operacao}}
     <a class="pf-nav__link" href="/painel/operacao" data-teste="menu-operacao"{{if eq .Nav "operacao"}} aria-current="page"{{end}}>Saúde e expiração</a>
+    {{- if and .Pode.operacao .Portal}}
+    <a class="pf-nav__link" href="/painel/operacao/caixa-saida" data-teste="menu-caixa"{{if eq .Nav "caixa"}} aria-current="page"{{end}}>Caixa de saída (simulada)</a>
+    {{- end}}
     {{- end}}
     {{- if .Pode.usuarios}}
     <a class="pf-nav__link" href="/painel/usuarios" data-teste="menu-usuarios"{{if eq .Nav "usuarios"}} aria-current="page"{{end}}>Usuários</a>
@@ -84,6 +97,7 @@
         <span>{{.Cliente.Email}}</span>
         <span>Cadastro em {{data .Cliente.DataCadastro}}</span>
         {{if .Cliente.Ativo}}<span>Ativo</span>{{else}}{{template "tag" "INATIVO"}}{{end}}
+        <span class="pf-tag pf-tag--neutral" data-teste="selo-publicidade" data-estado="{{estado .Publicidade.Status}}">Publicidade: {{rotulo (estado .Publicidade.Status)}}</span>
       </div>
     </div>
     <div id="selo-consentimento" class="pf-consent pf-consent--compact pf-consent--{{.EstadoSelo}}" data-teste="selo" data-estado="{{.EstadoSelo}}">
@@ -131,32 +145,43 @@
 {{define "form-consentimento"}}
 <form method="post" action="/painel/clientes/{{.D.Cliente.ID}}/consentimento/{{.Acao}}">
   {{template "csrf" .CSRF}}
+  <input type="hidden" name="finalidade" value="{{if .Dialogo}}segmentacao{{else}}{{.D.Concessao.Finalidade}}{{end}}">
   <div class="pf-dialog__body">
-    {{if eq .Acao "revogar"}}
+    {{if and (not .Dialogo) .D.EhPublicidade}}
+      {{if eq .Acao "revogar"}}
+      <h2 class="pf-dialog__title" id="titulo-confirmar">Revogar publicidade com terceiros</h2>
+      {{with .D.ErroConfirmar}}{{template "alerta" .}}{{end}}
+      <p>O cliente sai dos próximos públicos e fica pendente de remoção nos que já foram gerados. A Segmentação não muda.</p>
+      {{else}}
+      <h2 class="pf-dialog__title" id="titulo-confirmar">Conceder publicidade com terceiros</h2>
+      {{with .D.ErroConfirmar}}{{template "alerta" .}}{{end}}
+      <p>A partir de agora, este cliente pode entrar nos públicos enviados a plataformas de anúncio, só pelo e-mail em hash, com o termo abaixo. A Segmentação não muda.</p>
+      {{template "campo-termo" .}}
+      {{end}}
+    {{else if eq .Acao "revogar"}}
       <h2 class="pf-dialog__title" id="{{if .Dialogo}}dlg-revogar-titulo{{else}}titulo-confirmar{{end}}">Revogar consentimento</h2>
       {{with .D.ErroConfirmar}}{{template "alerta" .}}{{end}}
       <p>O processamento dos dados deste cliente para imediatamente. Os dados já registrados continuam guardados. Você pode conceder de novo depois.</p>
     {{else}}
       <h2 class="pf-dialog__title" id="{{if .Dialogo}}dlg-conceder-titulo{{else}}titulo-confirmar{{end}}">Conceder consentimento</h2>
       {{with .D.ErroConfirmar}}{{template "alerta" .}}{{end}}
-      <p>A partir de agora, os eventos deste cliente podem ser usados para perfil, segmento e recomendação, com a finalidade e o termo abaixo.</p>
-      <div class="pf-field">
-        <label class="pf-field__label" for="{{.Prefixo}}finalidade">Finalidade</label>
-        <input class="pf-input" id="{{.Prefixo}}finalidade" name="finalidade" value="{{.D.Concessao.Finalidade}}" required{{if .D.Concessao.ErroFinalidade}} aria-invalid="true" aria-describedby="{{.Prefixo}}finalidade-erro"{{end}}>
-        {{with .D.Concessao.ErroFinalidade}}<span class="pf-field__error" id="{{$.Prefixo}}finalidade-erro" aria-live="assertive">{{icone "barra"}}{{.}}</span>{{end}}
-      </div>
-      <div class="pf-field">
-        <label class="pf-field__label" for="{{.Prefixo}}versao">Versão do termo</label>
-        <input class="pf-input pf-input--mono" id="{{.Prefixo}}versao" name="versaoTermo" value="{{.D.Concessao.VersaoTermo}}" required{{if .D.Concessao.ErroVersao}} aria-invalid="true" aria-describedby="{{.Prefixo}}versao-erro"{{end}}>
-        {{with .D.Concessao.ErroVersao}}<span class="pf-field__error" id="{{$.Prefixo}}versao-erro" aria-live="assertive">{{icone "barra"}}{{.}}</span>{{end}}
-      </div>
+      <p>A partir de agora, os eventos deste cliente podem ser usados para perfil, segmento e recomendação, com a finalidade "Segmentação" e o termo abaixo.</p>
+      {{template "campo-termo" .}}
     {{end}}
   </div>
   <div class="pf-dialog__foot">
     {{if .Dialogo}}<button type="button" class="pf-btn" data-fechar-dialogo{{if eq .Acao "revogar"}} data-foco-inicial{{end}}>Cancelar</button>
     {{else}}<a class="pf-btn" href="/painel/clientes/{{.D.Cliente.ID}}/consentimento">Cancelar</a>{{end}}
-    {{if eq .Acao "revogar"}}<button type="submit" class="pf-btn pf-btn--danger-solid">Revogar consentimento</button>
+    {{if eq .Acao "revogar"}}<button type="submit" class="pf-btn pf-btn--danger-solid">{{if and (not .Dialogo) .D.EhPublicidade}}Revogar publicidade{{else}}Revogar consentimento{{end}}</button>
     {{else}}<button type="submit" class="pf-btn pf-btn--primary">Conceder</button>{{end}}
   </div>
 </form>
+{{end}}
+
+{{define "campo-termo"}}
+      <div class="pf-field">
+        <label class="pf-field__label" for="{{.Prefixo}}versao">Versão do termo</label>
+        <input class="pf-input pf-input--mono" id="{{.Prefixo}}versao" name="versaoTermo" value="{{.D.Concessao.VersaoTermo}}" required{{if .D.Concessao.ErroVersao}} aria-invalid="true" aria-describedby="{{.Prefixo}}versao-erro"{{end}}>
+        {{with .D.Concessao.ErroVersao}}<span class="pf-field__error" id="{{$.Prefixo}}versao-erro" aria-live="assertive">{{icone "barra"}}{{.}}</span>{{end}}
+      </div>
 {{end}}

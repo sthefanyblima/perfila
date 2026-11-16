@@ -1,0 +1,22 @@
+{{define "conteudo"}}{{with .Dados}}
+<section class="pf-panel pf-portal__cartao" aria-labelledby="titulo-acesso">
+  <div class="pf-panel__body pf-form">
+  {{if .Invalido}}
+    <h1 id="titulo-acesso" class="pf-header__title">Link inválido</h1>
+    <div class="pf-alert pf-alert--critical" role="alert" data-teste="aviso-link-invalido">
+      <span class="pf-alert__badge" aria-hidden="true">{{icone "barra"}}</span>
+      <div><p class="pf-alert__title">Este link não vale mais. Peça um novo.</p><p class="pf-alert__text">Cada link vale por 30 minutos e só pode ser usado uma vez.</p></div>
+      <a class="pf-btn pf-btn--sm pf-alert__acao" href="/titular/entrar">Pedir novo link</a>
+    </div>
+  {{else}}
+    <h1 id="titulo-acesso" class="pf-header__title">Entrar no portal</h1>
+    <p>Para entrar, use o botão abaixo. O link vale uma vez só.</p>
+    <form method="post" action="/titular/acesso" hx-boost="false" data-teste="confirmar-entrar-portal">
+      <input type="hidden" name="_csrf" value="{{.Token}}">
+      <input type="hidden" name="t" value="{{.Link}}">
+      <button type="submit" class="pf-btn pf-btn--primary" autofocus>Entrar no portal</button>
+    </form>
+  {{end}}
+  </div>
+</section>
+{{end}}{{end}}

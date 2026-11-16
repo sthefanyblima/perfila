@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="referrer" content="same-origin">
+<meta name="htmx-config" content='{"includeIndicatorStyles":false,"allowEval":false,"allowScriptTags":false,"historyCacheSize":0,"responseHandling":[{"code":"204","swap":false},{"code":"[2345]..","swap":true}]}'>
+<title>{{.Titulo}} · Perfila</title>
+<link rel="stylesheet" href="{{estatico "perfila.css"}}">
+<script src="{{estatico "htmx-2.0.3.min.js"}}" defer></script>
+<script src="{{estatico "painel.js"}}" defer></script>
+</head>
+<body class="pf pf-portal"{{if .CSRF}} hx-headers='{"X-CSRF-Token": "{{.CSRF}}"}'{{end}} hx-boost="true" hx-target="#app" hx-select="#app" hx-swap="outerHTML show:window:top">
+<a class="pf-skip" href="#principal">Pular para o conteúdo</a>
+<div id="app" class="pf-portal__app">
+  <header class="pf-portal__topo">
+    <a class="pf-portal__marca" href="/titular">Perfila</a>
+    <span class="pf-portal__sub">Seus dados e suas autorizações</span>
+    {{if .CSRF}}
+    <form class="pf-portal__sair" method="post" action="/titular/sair" hx-boost="false">
+      <input type="hidden" name="_csrf" value="{{.CSRF}}">
+      <button type="submit" class="pf-btn pf-btn--quiet pf-btn--sm">{{icone "sair"}} Sair</button>
+    </form>
+    {{end}}
+  </header>
+  <main id="principal" class="pf-portal__main" tabindex="-1">
+    {{template "conteudo" .}}
+  </main>
+  <footer class="pf-portal__rodape">Interpretação técnica da LGPD pela equipe Perfila. Dúvidas sobre os seus dados: fale com o atendimento.</footer>
+  <div class="pf-toasts" role="status" aria-live="polite">
+    {{- if .Aviso}}
+    <div class="pf-toast" data-teste="toast">{{icone "ok"}}<span>{{.Aviso}}</span><button type="button" class="pf-toast__close" aria-label="Fechar aviso">{{icone "fechar"}}</button></div>
+    {{- end}}
+  </div>
+</div>
+</body>
+</html>

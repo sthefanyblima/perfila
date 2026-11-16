@@ -65,7 +65,7 @@ func TestCarregarArquivo(t *testing.T) {
 func TestCarregarPainel(t *testing.T) {
 	chave := strings.Repeat("ab", 32)
 	c, err := Carregar("", env(map[string]string{"AUTH_TOKEN": "t"}))
-	if err != nil || c.PainelLigado() || c.PainelUsuario != "operador" || c.PainelFinalidade != "segmentacao" || c.PainelVersaoTermo != "v1" ||
+	if err != nil || c.PainelLigado() || c.PainelUsuario != "operador" || c.PainelVersaoTermo != "v1" ||
 		c.AuditoriaRetencaoDias != 180 {
 		t.Fatalf("padrões do painel: %+v (%v)", c, err)
 	}
@@ -91,5 +91,37 @@ func TestCarregarPainel(t *testing.T) {
 		if err == nil || !strings.Contains(err.Error(), "PAINEL_") || strings.Contains(err.Error(), "senha-em-claro") {
 			t.Errorf("%v: esperava erro de PAINEL_* sem o valor, obtido %v", e, err)
 		}
+	}
+}
+
+// Spec: 3.8, Q-60 — endereço e chave do portal andam juntos; chave própria; valores fora do erro.
+func TestCarregarPortal(t *testing.T) {
+	chave, outra := strings.Repeat("ab", 32), strings.Repeat("cd", 32)
+	c, err := Carregar("", env(map[string]string{"AUTH_TOKEN": "t"}))
+	if err != nil || c.PortalLigado() {
+		t.Fatalf("portal desligado por padrão: %+v (%v)", c, err)
+	}
+	c, err = Carregar("", env(map[string]string{"AUTH_TOKEN": "t", "PORTAL_URL_BASE": "https://localhost:8443", "PORTAL_CHAVE_SESSAO": chave}))
+	if err != nil || !c.PortalLigado() || c.PortalURLBase != "https://localhost:8443" || len(c.PortalChaveSessao) != 32 {
+		t.Fatalf("portal ligado: %+v (%v)", c, err)
+	}
+	casos := []map[string]string{
+		{"AUTH_TOKEN": "t", "PORTAL_URL_BASE": "https://localhost:8443"},
+		{"AUTH_TOKEN": "t", "PORTAL_CHAVE_SESSAO": chave},
+		{"AUTH_TOKEN": "t", "PORTAL_URL_BASE": "https://localhost:8443/", "PORTAL_CHAVE_SESSAO": chave},
+		{"AUTH_TOKEN": "t", "PORTAL_URL_BASE": "ftp://exemplo.test", "PORTAL_CHAVE_SESSAO": chave},
+		{"AUTH_TOKEN": "t", "PORTAL_URL_BASE": "https://localhost:8443", "PORTAL_CHAVE_SESSAO": "segredo-curto"},
+		{"AUTH_TOKEN": "t", "PORTAL_URL_BASE": "https://localhost:8443", "PORTAL_CHAVE_SESSAO": chave,
+			"PAINEL_SENHA_HASH": "$2a$10$x", "PAINEL_CHAVE_SESSAO": chave},
+	}
+	for _, e := range casos {
+		_, err := Carregar("", env(e))
+		if err == nil || !strings.Contains(err.Error(), "PORTAL_") || strings.Contains(err.Error(), "segredo-curto") || strings.Contains(err.Error(), chave) {
+			t.Errorf("%v: esperava erro de PORTAL_* sem o valor, obtido %v", e, err)
+		}
+	}
+	if _, err := Carregar("", env(map[string]string{"AUTH_TOKEN": "t", "PORTAL_URL_BASE": "https://localhost:8443", "PORTAL_CHAVE_SESSAO": outra,
+		"PAINEL_SENHA_HASH": "$2a$10$x", "PAINEL_CHAVE_SESSAO": chave})); err != nil {
+		t.Errorf("chaves diferentes deveriam valer: %v", err)
 	}
 }

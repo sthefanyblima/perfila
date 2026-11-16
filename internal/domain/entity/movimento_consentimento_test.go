@@ -13,8 +13,8 @@ import (
 // Spec: 3.2 RN-10 Q-34 — o movimento copia finalidade, termo e data do consentimento.
 func TestNovoMovimento(t *testing.T) {
 	agora := time.Date(2026, 3, 10, 12, 0, 0, 0, time.FixedZone("BRT", -3*3600))
-	c := NovoConsentimento(uuid.New(), uuid.New(), agora)
-	if err := c.Conceder("segmentacao", "v1", agora); err != nil {
+	c := NovoConsentimento(uuid.New(), uuid.New(), FinalidadeSegmentacao, agora)
+	if err := c.Conceder(FinalidadeSegmentacao, "v1", agora); err != nil {
 		t.Fatal(err)
 	}
 	casos := []struct {

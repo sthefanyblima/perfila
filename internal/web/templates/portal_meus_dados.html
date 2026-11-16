@@ -1,0 +1,67 @@
+{{define "conteudo"}}{{with .Dados}}
+<header class="pf-header">
+  <h1 class="pf-header__title">Olá, {{.Cliente.Nome}}</h1>
+  <p class="pf-header__meta">Aqui você vê o que guardamos sobre você e decide como seus dados podem ser usados.</p>
+</header>
+{{with .Erro}}{{template "alerta" .}}{{end}}
+<div class="pf-stack">
+  <section class="pf-panel" aria-labelledby="titulo-cadastro" data-teste="painel-cadastro">
+    <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-cadastro">Seus dados de cadastro</h2></div>
+    <div class="pf-panel__body">
+      <dl class="pf-kv">
+        <dt>Nome</dt><dd>{{.Cliente.Nome}}</dd>
+        <dt>E-mail</dt><dd>{{.Cliente.Email}}</dd>
+        <dt>Cadastro em</dt><dd class="pf-num">{{data .Cliente.DataCadastro}}</dd>
+      </dl>
+    </div>
+  </section>
+
+  <section class="pf-panel" aria-labelledby="titulo-autorizacao" data-teste="painel-autorizacao">
+    <div class="pf-panel__head">
+      <h2 class="pf-panel__title" id="titulo-autorizacao">Sua autorização</h2>
+      <span data-teste="selo" data-estado="{{estado .Consentimento.Status}}">{{template "tag" (estado .Consentimento.Status)}}</span>
+    </div>
+    <div class="pf-panel__body pf-form">
+      {{if .Concedido}}
+      <p>Você autorizou o uso dos seus dados de comportamento para {{.FinalidadeAtual}}, conforme o termo {{.Consentimento.VersaoTermo}}, em {{dataHora .Consentimento.DataConsentimento}}.</p>
+      <div><a class="pf-btn pf-btn--danger" href="/titular/revogar" data-teste="acao-revogar">Retirar autorização</a></div>
+      {{else}}
+      <p>{{if eq (estado .Consentimento.Status) "REVOGADO"}}Você retirou a autorização em {{dataHoraPtr .Consentimento.DataRevogacao}}. Seus dados de comportamento não são usados.{{else}}Não há autorização registrada. Seus dados de comportamento não são usados.{{end}}</p>
+      {{if .PodeConceder}}<div><a class="pf-btn pf-btn--primary" href="/titular/conceder" data-teste="acao-conceder">Autorizar de novo</a></div>{{end}}
+      {{end}}
+      <h3 class="pf-label">Histórico</h3>
+      <ol class="pf-marcos" data-teste="linha-consentimento">
+        {{range .Linha}}
+        <li class="pf-marco pf-marco--{{.Icone}}" data-teste="marco">
+          <span class="pf-marco__ico" aria-hidden="true">{{icone .Icone}}</span>
+          <div><strong>{{.Titulo}}</strong><br><span class="pf-muted pf-small">{{.Detalhe}}</span></div>
+          <span class="pf-marco__data pf-num">{{dataHora .Data}}</span>
+        </li>
+        {{end}}
+      </ol>
+    </div>
+  </section>
+
+  <section class="pf-panel" aria-labelledby="titulo-direitos" data-teste="painel-direitos">
+    <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-direitos">Seus direitos</h2></div>
+    <div class="pf-panel__body pf-form">
+      <p>Uma cópia de tudo o que o Perfila guarda sobre você, num arquivo JSON.</p>
+      <div><a class="pf-btn" href="/titular/dados" download hx-boost="false" data-teste="acao-baixar-dados">Baixar meus dados (JSON)</a></div>
+      <p>Peça para apagarmos seus dados de comportamento e anonimizarmos seu cadastro. O registro das suas autorizações fica guardado como prova.</p>
+      {{if .PedidoAberto}}
+      <div class="pf-alert pf-alert--info" data-teste="aviso-pedido-aberto">
+        <span class="pf-alert__badge" aria-hidden="true">{{icone "info"}}</span>
+        <div><p class="pf-alert__title">Pedido registrado</p><p class="pf-alert__text">Você pediu a eliminação em {{data .PedidoAberto.DataPedido}}. A equipe vai atender o pedido.</p></div>
+      </div>
+      {{else if .Concedido}}
+      <div class="pf-alert pf-alert--warn" data-teste="aviso-retirar-antes">
+        <span class="pf-alert__badge" aria-hidden="true">{{icone "atencao"}}</span>
+        <div><p class="pf-alert__title">Autorização concedida</p><p class="pf-alert__text">Para pedir a eliminação, retire a autorização antes.</p></div>
+      </div>
+      {{else}}
+      <div><a class="pf-btn pf-btn--danger" href="/titular/eliminacao" data-teste="acao-pedir-eliminacao">Pedir eliminação</a></div>
+      {{end}}
+    </div>
+  </section>
+</div>
+{{end}}{{end}}

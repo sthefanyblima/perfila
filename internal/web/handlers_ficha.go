@@ -38,22 +38,25 @@ type formEvento struct {
 	Erros                                  map[string]string
 }
 
+// formConsentimento: a finalidade vem do botão (campo oculto, Q-61); só o termo é editável.
 type formConsentimento struct {
-	Finalidade, VersaoTermo    string
-	ErroFinalidade, ErroVersao string
+	Finalidade, VersaoTermo string
+	ErroVersao              string
 }
 
 // dadosFicha alimenta as três abas da ficha (docs/design/02-telas-e-fluxos.md, Ficha do cliente).
 type dadosFicha struct {
-	Aba           string
-	PermEliminar  bool // papel com a permissão eliminacao (RN-11): só ele vê o botão Eliminar dados
-	Cliente       entity.Cliente
-	Consentimento entity.ConsentimentoLGPD
-	Movimentos    []entity.MovimentoConsentimento // ordem cronológica (RN-10); vazio = linha pelas datas
-	Valido        bool                            // consentimento CONCEDIDO: comportamento pode ser lido (inativo: só leitura, Q-31)
-	Bloqueio      *alerta                         // sem consentimento: nada de comportamento é lido
-	Inativo       *alerta                         // cadastro inativo com consentimento: histórico só para leitura
-	Falha         *alerta                         // processamento ou registro que acabou de falhar
+	Aba            string
+	PermEliminar   bool // papel com a permissão eliminacao (RN-11): só ele vê o botão Eliminar dados
+	Cliente        entity.Cliente
+	Consentimento  entity.ConsentimentoLGPD
+	Movimentos     []entity.MovimentoConsentimento // da segmentacao, ordem cronológica (RN-10); vazio = linha pelas datas
+	Publicidade    entity.ConsentimentoLGPD        // v1.11 (Q-61): o registro de publicidade_terceiros
+	MovPublicidade []entity.MovimentoConsentimento // v1.11: os movimentos de publicidade_terceiros
+	Valido         bool                            // consentimento CONCEDIDO: comportamento pode ser lido (inativo: só leitura, Q-31)
+	Bloqueio       *alerta                         // sem consentimento: nada de comportamento é lido
+	Inativo        *alerta                         // cadastro inativo com consentimento: histórico só para leitura
+	Falha          *alerta                         // processamento ou registro que acabou de falhar
 
 	Resultado     *usecase.ResultadoCliente
 	Processado    bool
@@ -75,6 +78,8 @@ type dadosFicha struct {
 	Eliminado  bool // cadastro anonimizado: só a prova do consentimento é mostrada (RN-17)
 	Cadastro   formCadastro
 	Eliminacao formEliminacao
+
+	PedidoAberto *entity.PedidoEliminacao // pedido feito no portal, à espera da operação (v1.10, Q-58)
 }
 
 // EstadoSelo é o estado do selo do cabeçalho: o do consentimento ou, eliminado, ELIMINADO.
@@ -91,6 +96,25 @@ func (d dadosFicha) PodeEliminar() bool {
 }
 
 func (d dadosFicha) PodeConceder() bool { return d.Consentimento.Status != entity.StatusConcedido }
+
+// EhPublicidade: a confirmação aberta é da finalidade publicidade_terceiros (v1.11, Q-61).
+func (d dadosFicha) EhPublicidade() bool {
+	return d.Concessao.Finalidade == string(entity.FinalidadePublicidadeTerceiros)
+}
+
+// LinhaPublicidade: os movimentos de publicidade_terceiros, do mais recente para o mais antigo.
+func (d dadosFicha) LinhaPublicidade() []marco {
+	ms := make([]marco, 0, len(d.MovPublicidade))
+	for i := len(d.MovPublicidade) - 1; i >= 0; i-- {
+		m := d.MovPublicidade[i]
+		mc := marco{Data: m.Data, Titulo: "Publicidade revogada", Icone: "barra", Detalhe: detalheMovimento(m, textoOrigem)}
+		if m.Tipo == entity.MovimentoConcessao {
+			mc.Titulo, mc.Icone = "Publicidade concedida", "ok"
+		}
+		ms = append(ms, mc)
+	}
+	return ms
+}
 
 // PodeAgir: processar e registrar eventos exigem RN-01 completa (consentimento e cliente ativo).
 func (d dadosFicha) PodeAgir() bool { return d.Valido && d.Cliente.Ativo }
@@ -111,6 +135,12 @@ func (d dadosFicha) PelasDatas() bool {
 // LinhaConsentimento mostra o cadastro e o que aconteceu com o consentimento, do mais recente para
 // o mais antigo: pelo histórico de movimentos (RN-10) ou, sem movimentos, pelas datas (Q-01).
 func (d dadosFicha) LinhaConsentimento() []marco {
+	return linhaConsentimento(d, textoOrigem)
+}
+
+// linhaConsentimento monta a linha com o texto de origem do leitor: o painel (textoOrigem) ou o
+// titular, no portal (textoOrigemTitular). Spec: 3.7.1, 3.7.2.
+func linhaConsentimento(d dadosFicha, origem func(entity.MovimentoConsentimento) string) []marco {
 	ms := []marco{{Data: d.Cliente.DataCadastro, Titulo: "Cadastro", Detalhe: "Nome e e-mail registrados, sem autorização de uso.", Icone: "vazado"}}
 	if len(d.Movimentos) == 0 {
 		ms = append(ms, d.marcosPelasDatas()...)
@@ -118,7 +148,7 @@ func (d dadosFicha) LinhaConsentimento() []marco {
 		return ms
 	}
 	for i, m := range d.Movimentos {
-		mc := marco{Data: m.Data, Titulo: "Consentimento revogado", Icone: "barra", Detalhe: detalheMovimento(m)}
+		mc := marco{Data: m.Data, Titulo: "Consentimento revogado", Icone: "barra", Detalhe: detalheMovimento(m, origem)}
 		if m.Tipo == entity.MovimentoConcessao {
 			mc.Titulo, mc.Icone = "Consentimento concedido", "ok"
 			if i > 0 {
@@ -136,7 +166,7 @@ func (d dadosFicha) LinhaConsentimento() []marco {
 }
 
 // detalheMovimento: finalidade, termo e origem, em frases curtas (docs/design/03-textos.md).
-func detalheMovimento(m entity.MovimentoConsentimento) string {
+func detalheMovimento(m entity.MovimentoConsentimento, origem func(entity.MovimentoConsentimento) string) string {
 	var partes []string
 	if m.Finalidade != "" {
 		partes = append(partes, "Finalidade "+m.Finalidade)
@@ -146,7 +176,7 @@ func detalheMovimento(m entity.MovimentoConsentimento) string {
 	} else {
 		partes = append(partes, "termo não registrado")
 	}
-	return strings.Join(append(partes, textoOrigem(m)), " · ")
+	return strings.Join(append(partes, origem(m)), " · ")
 }
 
 func textoOrigem(m entity.MovimentoConsentimento) string {
@@ -169,7 +199,7 @@ func (d dadosFicha) marcosPelasDatas() []marco {
 	var ms []marco
 	if !c.DataConsentimento.IsZero() {
 		m := marco{Data: c.DataConsentimento, Titulo: "Consentimento concedido", Icone: "ok",
-			Detalhe: "Finalidade " + c.Finalidade + " · termo " + c.VersaoTermo}
+			Detalhe: "Finalidade " + string(c.Finalidade) + " · termo " + c.VersaoTermo}
 		if c.DataRevogacao != nil && c.DataRevogacao.Before(c.DataConsentimento) {
 			m.Titulo = "Consentimento concedido novamente"
 		}
@@ -204,9 +234,19 @@ func (p *painel) carregarFicha(w http.ResponseWriter, r *http.Request, aba strin
 		p.falha(w, r, err, "")
 		return dadosFicha{}, false
 	}
-	d := dadosFicha{Aba: aba, Cliente: ficha.Cliente, Consentimento: ficha.Consentimento, Movimentos: ficha.Historico, MetaEventos: p.d.MetaEventos,
-		Concessao: formConsentimento{Finalidade: p.d.Finalidade, VersaoTermo: p.d.VersaoTermo},
+	d := dadosFicha{Aba: aba, Cliente: ficha.Cliente, Consentimento: ficha.Consentimento, MetaEventos: p.d.MetaEventos,
+		Concessao: formConsentimento{Finalidade: string(entity.FinalidadeSegmentacao), VersaoTermo: p.d.VersaoTermo},
 		Cadastro:  formCadastro{Nome: ficha.Cliente.Nome, Email: ficha.Cliente.Email}}
+	if len(ficha.Finalidades) > 1 {
+		d.Publicidade = ficha.Finalidades[1]
+	}
+	for _, m := range ficha.Historico { // cada linha do tempo com a sua finalidade (Q-61)
+		if m.FinalidadeEfetiva() == entity.FinalidadePublicidadeTerceiros {
+			d.MovPublicidade = append(d.MovPublicidade, m)
+		} else {
+			d.Movimentos = append(d.Movimentos, m)
+		}
+	}
 	d.PermEliminar = operadorAtual(r).Papel.Pode(entity.PermEliminacao)
 	if ficha.Cliente.EstaEliminado() { // RN-17: nada de comportamento resta; só a prova do consentimento
 		d.Eliminado = true

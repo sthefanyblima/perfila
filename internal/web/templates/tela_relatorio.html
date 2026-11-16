@@ -1,0 +1,27 @@
+{{define "conteudo"}}
+<header class="pf-header">
+  <ol class="pf-crumbs"><li>Campanhas</li><li aria-current="page">Relatório agregado</li></ol>
+  <div class="pf-header__row">
+    <h1 class="pf-header__title">Relatório agregado</h1>
+    <a class="pf-btn" href="/painel/publicos/relatorio.csv" hx-boost="false" data-teste="acao-baixar-csv">Baixar CSV</a>
+  </div>
+</header>
+{{template "alerta" (alertaInfo "Sem identificadores" "Conta só quem concedeu a Segmentação. Grupos com menos de 5 clientes não são detalhados, para ninguém ser identificado.")}}
+<div class="pf-tablewrap">
+  <table class="pf-table" data-teste="relatorio-agregado">
+    <thead><tr><th scope="col">Segmento</th><th scope="col" class="pf-r">Clientes</th><th scope="col" class="pf-r">Ticket médio</th><th scope="col">Categoria mais comum</th></tr></thead>
+    <tbody>
+    {{range .Dados}}
+      <tr data-teste="linha-agregada">
+        <td><span class="pf-tag pf-tag--accent">{{.SegmentoNome}}</span></td>
+        {{if .Oculta}}
+        <td class="pf-r pf-muted">menos de 5</td><td class="pf-r pf-muted">—</td><td class="pf-muted">—</td>
+        {{else}}
+        <td class="pf-r pf-num">{{.Quantidade}}</td><td class="pf-r pf-num">{{dinheiro .TicketMedio}}</td><td>{{if .CategoriaMaisComum}}{{.CategoriaMaisComum}}{{else}}—{{end}}</td>
+        {{end}}
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}

@@ -49,10 +49,13 @@ build: ## binário estático do UML8
 # entram com os exemplos. Nunca use fora da máquina local.
 PAINEL_DEV_HASH = $$2a$$12$$K99VPCTS2/gKMH2bvoJ/0etMPEZhCWn/M1baHwaVRTIpAyWbWH7UC
 PAINEL_DEV_CHAVE = 00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff
+# Portal do titular em desenvolvimento (Q-60): o link aponta para a própria máquina; chave diferente da do painel.
+PORTAL_DEV_CHAVE = ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100
 
-serve: ## API e painel em modo memória na porta 8080 (token: dev-token; painel: admin / dev-senha-admin)
+serve: ## API, painel e portal do titular em modo memória na porta 8080 (token: dev-token; painel: admin / dev-senha-admin)
 	AUTH_TOKEN=$${AUTH_TOKEN:-dev-token} ENGAJAMENTO_META_EVENTOS=$${ENGAJAMENTO_META_EVENTOS:-10} \
-	PAINEL_USUARIO=admin PAINEL_SENHA_HASH='$(PAINEL_DEV_HASH)' PAINEL_CHAVE_SESSAO=$(PAINEL_DEV_CHAVE) $(GO) run ./cmd/omega-server serve
+	PAINEL_USUARIO=admin PAINEL_SENHA_HASH='$(PAINEL_DEV_HASH)' PAINEL_CHAVE_SESSAO=$(PAINEL_DEV_CHAVE) \
+	PORTAL_URL_BASE=$${PORTAL_URL_BASE:-http://localhost:8080} PORTAL_CHAVE_SESSAO=$(PORTAL_DEV_CHAVE) $(GO) run ./cmd/omega-server serve
 
 COMPOSE = docker compose -f deploy/docker-compose.yml
 

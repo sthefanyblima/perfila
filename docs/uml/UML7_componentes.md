@@ -3,30 +3,30 @@
 > **Fonte:** Módulo 5 · imagem original: [`img/UML7_componentes.png`](img/UML7_componentes.png)
 > **Imagem corrigida (v1, gerada do Mermaid abaixo):** [`img/v1/UML7_componentes.png`](img/v1/UML7_componentes.png)
 > **Fonte da verdade para:** camadas, ports e direção das dependências (prevalece sobre UML3 — D-10).
-> **Versão:** v1.8 (operadores e auditoria da v1.5, relatórios da v1.7 e importação de eventos, 13/11/2026) · **Decisões relacionadas:** C-01, C-02, D-05, D-12, D-16, Q-20 a Q-26, Q-35 a Q-39, Q-46, Q-47.
+> **Versão:** v1.11 (operadores e auditoria da v1.5, relatórios da v1.7, importação de eventos da v1.8 portal do titular e públicos, 14/11/2026) · **Decisões relacionadas:** C-01, C-02, D-05, D-12, D-16, Q-20 a Q-26, Q-35 a Q-39, Q-46, Q-47, Q-55 a Q-59, Q-61, Q-62.
 
-## Diagrama (v1.5)
+## Diagrama (v1.10)
 
 ```mermaid
 flowchart TB
   subgraph AP["Camada de Apresentação"]
     CMD["[CMD]<br/>inicialização · configuração · subcomandos"]
     API["[API]<br/>HTTP · DTOs · Autenticação/LGPD middleware<br/>lote de eventos JSON «ADIÇÃO v1.8»"]
-    WEB["[Web] «ADIÇÃO v1.3»<br/>painel /painel · templates · sessão · CSRF<br/>permissão por rota · menu por papel «v1.5»<br/>relatórios: SVG e CSV «ADIÇÃO v1.7»<br/>importar eventos CSV «ADIÇÃO v1.8»"]
+    WEB["[Web] «ADIÇÃO v1.3»<br/>painel /painel · templates · sessão · CSRF<br/>permissão por rota · menu por papel «v1.5»<br/>relatórios: SVG e CSV «ADIÇÃO v1.7»<br/>importar eventos CSV «ADIÇÃO v1.8»<br/>portal do titular /titular «ADIÇÃO v1.10» · sessão própria"]
   end
   subgraph APP["Camada de Aplicação"]
-    UC["[Casos de Uso]<br/>ColetarDados · GerarPerfil · SegmentarCliente<br/>GerarRecomendacao · GerenciarConsentimento<br/>ExpirarRecomendacoes «ADIÇÃO»<br/>ProcessarCliente · ListarClientes · ConsultarCliente<br/>ConsultarResultado · ListarSegmentos · ListarCatalogo «ADIÇÃO v1.3»<br/>AutenticarOperador · GerenciarOperadores<br/>RegistrarAuditoria · ListarAuditoria · ExpurgarAuditoria «ADIÇÃO v1.5»<br/>SalvarSegmento · PreverSegmentacao · SalvarProduto «ADIÇÃO v1.6»<br/>GerarRelatorio «ADIÇÃO v1.7»<br/>ImportarEventos · LerCSVEventos «ADIÇÃO v1.8»"]
+    UC["[Casos de Uso]<br/>ColetarDados · GerarPerfil · SegmentarCliente<br/>GerarRecomendacao · GerenciarConsentimento<br/>ExpirarRecomendacoes «ADIÇÃO»<br/>ProcessarCliente · ListarClientes · ConsultarCliente<br/>ConsultarResultado · ListarSegmentos · ListarCatalogo «ADIÇÃO v1.3»<br/>AutenticarOperador · GerenciarOperadores<br/>RegistrarAuditoria · ListarAuditoria · ExpurgarAuditoria «ADIÇÃO v1.5»<br/>SalvarSegmento · PreverSegmentacao · SalvarProduto «ADIÇÃO v1.6»<br/>GerarRelatorio «ADIÇÃO v1.7»<br/>ImportarEventos · LerCSVEventos «ADIÇÃO v1.8»<br/>SolicitarAcessoTitular · AutenticarTitular · ConsultarMeusDados<br/>PedirEliminacao · ListarPedidosEliminacao · ListarCaixaSaida «ADIÇÃO v1.10»<br/>GerarPublico · ExportarPublico · PropagarRevogacao<br/>RelatorioAgregadoSegmentos «ADIÇÃO v1.11»"]
   end
   subgraph DOM["Camada de Domínio"]
-    ENT["[Entidades & Objetos de Valor]<br/>Cliente · ConsentimentoLGPD · EventoComportamental<br/>PerfilCliente · Segmento · RecomendacaoProduto · Produto<br/>MovimentoConsentimento «v1.4» · Operador · RegistroAuditoria «v1.5»<br/>Contagem · Media · Percentual «ADIÇÃO v1.7»"]
+    ENT["[Entidades & Objetos de Valor]<br/>Cliente · ConsentimentoLGPD · EventoComportamental<br/>PerfilCliente · Segmento · RecomendacaoProduto · Produto<br/>MovimentoConsentimento «v1.4» · Operador · RegistroAuditoria «v1.5»<br/>Contagem · Media · Percentual «ADIÇÃO v1.7»<br/>ExportacaoPublico · MembroPublico · LotePublico · ReciboEnvio «v1.11»"]
     SVC["[Serviços de Domínio]<br/>PerfilamentoService · SegmentacaoService<br/>RecomendacaoService · ValidadorLGPD"]
-    PORT["[Interfaces (Ports)]<br/>Cliente/Evento/Perfil/Segmento/Recomendacao/Consentimento/Produto«ADIÇÃO» Repository<br/>ConsentimentoGateway · IntegracaoGateway · Clock«ADIÇÃO»<br/>Operador/Auditoria Repository · HashSenha «ADIÇÃO v1.5»<br/>RelatorioRepository «ADIÇÃO v1.7, só leitura agregada»"]
+    PORT["[Interfaces (Ports)]<br/>Cliente/Evento/Perfil/Segmento/Recomendacao/Consentimento/Produto«ADIÇÃO»/Publico«v1.11» Repository<br/>Operador/Auditoria Repository · HashSenha «ADIÇÃO v1.5»<br/>RelatorioRepository «ADIÇÃO v1.7, só leitura agregada»<br/>TokenAcesso/PedidoEliminacao Repository · CaixaSaidaSimulada «ADIÇÃO v1.10»<br/>ConsentimentoGateway · IntegracaoGateway · Notificador«ADIÇÃO v1.10» · Clock«ADIÇÃO»<br/>Cliente/Evento/Perfil/Segmento/Recomendacao/Consentimento/Produto«ADIÇÃO»/Publico«v1.11» Repository<br/>DestinoPublicitarioGateway«v1.11»"]
   end
   subgraph INF["Camada de Infraestrutura"]
-    PG["[Repositórios PostgreSQL]<br/>Pg*Repository (9) + PgRelatorioRepository"]
+    PG["[Repositórios PostgreSQL]<br/>Pg*Repository (9) + PgRelatorioRepository + 3 do portal + PgPublicoRepository «v1.11»"]
     SEN["[Senha] «ADIÇÃO v1.5»<br/>HashSenha com bcrypt"]
     MEM["[Repositórios em memória]<br/>fakes de teste/demo «ADIÇÃO»"]
-    EXT["[Serviços Externos]<br/>consentimento local · integração stub"]
+    EXT["[Serviços Externos]<br/>consentimento local · integração stub · notificador simulado «v1.10»<br/>destino publicitário em arquivo CSV «v1.11»"]
     CFG["[Configuração]<br/>config.env"]
   end
   SH["[Shared] erros de domínio · logger — usado por todas as camadas"]
@@ -52,12 +52,14 @@ flowchart TB
 | CMD | requer: Casos de Uso, Configuração | Support | **pronto** (`cmd/omega-server`) |
 | API | requer: Casos de Uso; oferece HTTP | Support | **pronto** |
 | Web (painel) | requer: Casos de Uso; oferece HTML em `/painel` | v1.3 | T-35 a T-38 |
+| Web (portal do titular) | requer: Casos de Uso; oferece HTML em `/titular`, com sessão própria | v1.10 | T-78 |
+| Notificador simulado | implementa `Notificador` sobre `CaixaSaidaSimulada` (memória e PostgreSQL) | v1.10 | T-76 |
 | Casos de Uso | requer: Ports, Serviços | Core | **pronto** |
 | Entidades | — | Core | **pronto** |
 | Serviços de Domínio | requer: Ports | Core | **pronto** |
 | Ports | oferecidos pelo domínio | Core | **pronto** |
-| Repositórios em memória | implementa os 7 repositórios + Clock; `RelatorioRepository` sobre os mesmos fakes (v1.7) | Core | **pronto** |
-| Repositórios PostgreSQL | implementa os 9 repositórios; `PgRelatorioRepository` com SQL agregado (v1.7) | Generic | **pronto** (T-19); operadores e auditoria na T-49; relatórios na T-61 |
+| Repositórios em memória | implementa os 7 repositórios + Clock; `PublicoRepository` (v1.11, T-82); `RelatorioRepository` sobre os mesmos fakes (v1.7) | Core | **pronto** |
+| Repositórios PostgreSQL | implementa os 9 repositórios; `PgRelatorioRepository` com SQL agregado (v1.7) | Generic | **pronto** (T-19); operadores e auditoria na T-49; relatórios na T-61; `PgPublicoRepository` na T-82 |
 | Senha | implementa `HashSenha` (bcrypt, custo 12) | v1.5 | T-49 |
 | Serviços Externos | implementa ConsentimentoGateway, IntegracaoGateway | Support | **pronto** (local / stub) |
 | Configuração | `config.env` (Spec 3.8) | Support | **pronto** |
@@ -75,6 +77,8 @@ flowchart TB
 9. Port novo da v1.7 (Q-46): `RelatorioRepository`, só de leitura e só de agregados (contagens e somas); nunca devolve linha de cliente. A proteção de grupos pequenos fica no domínio (`ProtegerContagem` e afins), não na infraestrutura.
 10. A importação em lote da v1.8 (Q-47) não cria port: `ImportarEventosUseCase` grava cada linha por `ColetarDadosUseCase.Registrar` e procura duplicados com `EventoRepository.BuscarPorCliente`. A leitura do CSV fica na aplicação (`LerCSVEventos`, só biblioteca padrão), para o painel e os cenários usarem a mesma regra; a API converte o JSON nas mesmas entradas. O `IntegracaoGateway` continua stub (D-12, Q-03).
 11. Ports novos da v1.9 (Q-51, Q-52): `RemoverPorCliente` em `EventoRepository`, `PerfilRepository` e `RecomendacaoRepository`; `ConsentimentoRepository.ListarRevogadosAte`. Os casos de uso dos direitos do titular ficam em `application/usecase` e o painel os chama como os demais.
+12. Ports novos da v1.10 (Q-57, Q-59): `ClienteRepository.BuscarPorEmail`, `TokenAcessoRepository`, `PedidoEliminacaoRepository`, `CaixaSaidaSimulada` e o gateway `Notificador`. O portal é parte do componente Web, com roteador, sessão e chave próprios; como o painel, não importa `infra` (teste de arquitetura, regra "web").
+13. Ports novos da v1.11 (Q-61, Q-62): `PublicoRepository`, `DestinoPublicitarioGateway`, `PerfilRepository.ListarPorSegmento`, `ConsentimentoRepository` por finalidade (`BuscarPorCliente` com a finalidade, `ListarPorCliente`). O destino é o único ponto que saberá falar com uma plataforma de anúncio; o painel nunca o importa (recebe só o `ReciboEnvio` pelo caso de uso).
 
 ## Divergências registradas
 
@@ -85,9 +89,8 @@ flowchart TB
 | D-16 | "Autenticação" sem mecanismo. | Token Bearer estático (`AUTH_TOKEN`). |
 | Q-20 | O diagrama não tem interface para quem opera; só a API JSON. | [ADIÇÃO] componente Web na apresentação, com sessão própria (Q-22); o `AUTH_TOKEN` nunca vai ao navegador. |
 | Q-26 | A orquestração de RN-09 ficava no handler da API. | `ProcessarClienteUseCase` na aplicação, usado por API e Web. |
-| Q-36 | O login conferia o bcrypt dentro de `Web`, e a aplicação não pode importar bibliotecas de terceiros além de `uuid` (C-01). | Port `HashSenha` no domínio, implementado em `infra/senha`; login pelo caso de uso `AutenticarOperador`. |
-| Q-46 | UC-05 e UC-07 não têm componente nem port. | [ADIÇÃO] `GerarRelatorioUseCase` na aplicação e `RelatorioRepository` no domínio, implementado em memória e no PostgreSQL. |
-| Q-47 | Eventos de lojas chegam em lote, e nenhum componente recebe lotes. | [ADIÇÃO] `ImportarEventosUseCase` na aplicação, usado por Web (CSV) e API (JSON); sem port novo. |
+| Q-57 | O diagrama não tem como avisar o cliente (notificação fora do MVP). | [ADIÇÃO] port `Notificador`; no MVP, `NotificadorSimulado` com a caixa de saída no banco. |
+| Q-62 | Não havia componente para entregar dados a uma plataforma de anúncio (UC-06). | [ADIÇÃO] `DestinoPublicitarioGateway` no domínio, com a implementação em arquivo CSV nos Serviços Externos; trocar por API depois não muda os casos de uso. |
 
 ## Rastreabilidade
 

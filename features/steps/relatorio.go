@@ -72,12 +72,7 @@ func registrarPassosRelatorio(sc *godog.ScenarioContext, m *Mundo) {
 		}
 		return m.paginaTemMarcador(`data-teste="tabela-`+g+`"`, true)
 	})
-	sc.Step(`^a página não mostra "([^"]*)"$`, func(t string) error {
-		if strings.Contains(m.web.pagina, t) {
-			return fmt.Errorf("a página mostra %q", t)
-		}
-		return nil
-	})
+	// "a página não mostra" fica em portal.go, que também aceita "a página de destino" (v1.10).
 	sc.Step(`^a resposta é um arquivo CSV$`, func() error {
 		h := m.api.resposta.Header()
 		if !strings.HasPrefix(h.Get("Content-Type"), "text/csv") || !strings.HasPrefix(h.Get("Content-Disposition"), "attachment") {
@@ -119,7 +114,7 @@ func (m *Mundo) grupoDeClientes(n int, categoria string, conceder, revogar, inat
 		if !conceder {
 			continue
 		}
-		if err := c.consentimento.Conceder(m.ctx, id(nome), "segmentacao", "v1"); err != nil {
+		if err := c.consentimento.Conceder(m.ctx, id(nome), entity.FinalidadeSegmentacao, "v1"); err != nil {
 			return err
 		}
 		if _, err := c.coletar.Registrar(m.ctx, entity.EventoComportamental{ID: uuid.New(), ClienteID: id(nome),
@@ -131,7 +126,7 @@ func (m *Mundo) grupoDeClientes(n int, categoria string, conceder, revogar, inat
 			return err
 		}
 		if revogar {
-			if err := c.consentimento.Revogar(m.ctx, id(nome)); err != nil {
+			if err := c.consentimento.Revogar(m.ctx, id(nome), entity.FinalidadeSegmentacao); err != nil {
 				return err
 			}
 		}
