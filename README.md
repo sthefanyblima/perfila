@@ -126,7 +126,7 @@ Interface web em `/painel`, servida pelo próprio `omega-server`, seguindo o des
 | Papel | Alcança |
 |---|---|
 | Atendimento | clientes, consentimento, eventos e processamento; Segmentos e Catálogo só para leitura |
-| Analista | só Segmentos e Catálogo, com edição (v1.6), sem nenhum dado de cliente: a prévia mostra só contagens ; e os Relatórios agregados (v1.7, RN-15) |
+| Analista | Segmentos e Catálogo, com edição (v1.6), e os Relatórios agregados (v1.7, RN-15), sem nenhum dado de cliente: a prévia e os relatórios mostram só contagens |
 | Administrador | tudo isso, mais Relatórios, Usuários, Auditoria e Operação |
 
 Cada alteração de segmento ou produto e cada prévia ficam na Auditoria, com os nomes dos campos alterados, nunca os valores (Q-44).
