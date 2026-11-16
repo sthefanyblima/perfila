@@ -14,13 +14,13 @@ import (
 )
 
 // Públicos para campanha (Spec 3.7.1, v1.11, UC-06 parcial, RN-21, RN-22, Q-66).
-func (p *painel) rotasPublicos(mux *http.ServeMux, sessao func(http.HandlerFunc) http.Handler) {
-	mux.Handle("GET /painel/publicos", sessao(p.telaPublicos))
-	mux.Handle("GET /painel/publicos/{tipo}", sessao(p.confirmarExportacao))
-	mux.Handle("POST /painel/publicos/{tipo}", sessao(p.exportar))
-	mux.Handle("GET /painel/publicos/exportacoes/{id}/arquivo", sessao(p.baixarArquivo))
-	mux.Handle("GET /painel/publicos/relatorio", sessao(p.telaRelatorio))
-	mux.Handle("GET /painel/publicos/relatorio.csv", sessao(p.relatorioCSV))
+func (p *painel) rotasPublicos(mux *http.ServeMux, sessao func(entity.Permissao, http.HandlerFunc) http.Handler) {
+	mux.Handle("GET /painel/publicos", sessao(entity.PermPublicos, p.telaPublicos))
+	mux.Handle("GET /painel/publicos/{tipo}", sessao(entity.PermPublicos, p.confirmarExportacao))
+	mux.Handle("POST /painel/publicos/{tipo}", sessao(entity.PermPublicos, p.exportar))
+	mux.Handle("GET /painel/publicos/exportacoes/{id}/arquivo", sessao(entity.PermPublicos, p.baixarArquivo))
+	mux.Handle("GET /painel/publicos/relatorio", sessao(entity.PermPublicos, p.telaRelatorio))
+	mux.Handle("GET /painel/publicos/relatorio.csv", sessao(entity.PermPublicos, p.relatorioCSV))
 }
 
 // exportacaoVista é uma linha do histórico, com o arquivo disponível ou não.

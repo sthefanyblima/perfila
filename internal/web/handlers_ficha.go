@@ -16,14 +16,14 @@ import (
 	"perfila/internal/shared/errs"
 )
 
-func (p *painel) rotasFicha(mux *http.ServeMux, sessao func(http.HandlerFunc) http.Handler) {
-	mux.Handle("GET /painel/clientes/{id}", sessao(p.fichaVisaoGeral))
-	mux.Handle("POST /painel/clientes/{id}/processamento", sessao(p.processar))
-	mux.Handle("GET /painel/clientes/{id}/eventos", sessao(p.fichaEventos))
-	mux.Handle("POST /painel/clientes/{id}/eventos", sessao(p.registrarEvento))
-	mux.Handle("GET /painel/clientes/{id}/consentimento", sessao(p.fichaConsentimento))
-	mux.Handle("GET /painel/clientes/{id}/consentimento/{acao}", sessao(p.confirmarConsentimento))
-	mux.Handle("POST /painel/clientes/{id}/consentimento/{acao}", sessao(p.alterarConsentimento))
+func (p *painel) rotasFicha(mux *http.ServeMux, sessao func(entity.Permissao, http.HandlerFunc) http.Handler) {
+	mux.Handle("GET /painel/clientes/{id}", sessao(entity.PermClientes, p.fichaVisaoGeral))
+	mux.Handle("POST /painel/clientes/{id}/processamento", sessao(entity.PermProcessamento, p.processar))
+	mux.Handle("GET /painel/clientes/{id}/eventos", sessao(entity.PermClientes, p.fichaEventos))
+	mux.Handle("POST /painel/clientes/{id}/eventos", sessao(entity.PermEventos, p.registrarEvento))
+	mux.Handle("GET /painel/clientes/{id}/consentimento", sessao(entity.PermClientes, p.fichaConsentimento))
+	mux.Handle("GET /painel/clientes/{id}/consentimento/{acao}", sessao(entity.PermConsentimento, p.confirmarConsentimento))
+	mux.Handle("POST /painel/clientes/{id}/consentimento/{acao}", sessao(entity.PermConsentimento, p.alterarConsentimento))
 }
 
 // etapaVista é uma etapa do PipelineTrace.
@@ -47,6 +47,7 @@ type formConsentimento struct {
 // dadosFicha alimenta as três abas da ficha (docs/design/02-telas-e-fluxos.md, Ficha do cliente).
 type dadosFicha struct {
 	Aba            string
+	PermEliminar   bool // papel com a permissão eliminacao (RN-11): só ele vê o botão Eliminar dados
 	Cliente        entity.Cliente
 	Consentimento  entity.ConsentimentoLGPD
 	Movimentos     []entity.MovimentoConsentimento // da segmentacao, ordem cronológica (RN-10); vazio = linha pelas datas
@@ -70,8 +71,28 @@ type dadosFicha struct {
 	MaisEventos   bool
 	Evento        formEvento
 	Concessao     formConsentimento
-	Confirmar     string // "conceder" ou "revogar" na página de confirmação
+	Confirmar     string // "conceder", "revogar" ou "eliminar" na página de confirmação
 	ErroConfirmar *alerta
+
+	// Direitos do titular (v1.9, Q-48 a Q-50).
+	Eliminado  bool // cadastro anonimizado: só a prova do consentimento é mostrada (RN-17)
+	Cadastro   formCadastro
+	Eliminacao formEliminacao
+
+	PedidoAberto *entity.PedidoEliminacao // pedido feito no portal, à espera da operação (v1.10, Q-58)
+}
+
+// EstadoSelo é o estado do selo do cabeçalho: o do consentimento ou, eliminado, ELIMINADO.
+func (d dadosFicha) EstadoSelo() string {
+	if d.Eliminado {
+		return estadoEliminado
+	}
+	return string(d.Consentimento.Status)
+}
+
+// PodeEliminar: a eliminação pede a revogação antes, com consentimento concedido (RN-17, Q-27).
+func (d dadosFicha) PodeEliminar() bool {
+	return !d.Eliminado && d.Consentimento.Status != entity.StatusConcedido
 }
 
 func (d dadosFicha) PodeConceder() bool { return d.Consentimento.Status != entity.StatusConcedido }
@@ -86,7 +107,7 @@ func (d dadosFicha) LinhaPublicidade() []marco {
 	ms := make([]marco, 0, len(d.MovPublicidade))
 	for i := len(d.MovPublicidade) - 1; i >= 0; i-- {
 		m := d.MovPublicidade[i]
-		mc := marco{Data: m.Data, Titulo: "Publicidade revogada", Icone: "barra", Detalhe: detalheMovimento(m)}
+		mc := marco{Data: m.Data, Titulo: "Publicidade revogada", Icone: "barra", Detalhe: detalheMovimento(m, textoOrigem)}
 		if m.Tipo == entity.MovimentoConcessao {
 			mc.Titulo, mc.Icone = "Publicidade concedida", "ok"
 		}
@@ -114,6 +135,12 @@ func (d dadosFicha) PelasDatas() bool {
 // LinhaConsentimento mostra o cadastro e o que aconteceu com o consentimento, do mais recente para
 // o mais antigo: pelo histórico de movimentos (RN-10) ou, sem movimentos, pelas datas (Q-01).
 func (d dadosFicha) LinhaConsentimento() []marco {
+	return linhaConsentimento(d, textoOrigem)
+}
+
+// linhaConsentimento monta a linha com o texto de origem do leitor: o painel (textoOrigem) ou o
+// titular, no portal (textoOrigemTitular). Spec: 3.7.1, 3.7.2.
+func linhaConsentimento(d dadosFicha, origem func(entity.MovimentoConsentimento) string) []marco {
 	ms := []marco{{Data: d.Cliente.DataCadastro, Titulo: "Cadastro", Detalhe: "Nome e e-mail registrados, sem autorização de uso.", Icone: "vazado"}}
 	if len(d.Movimentos) == 0 {
 		ms = append(ms, d.marcosPelasDatas()...)
@@ -121,7 +148,7 @@ func (d dadosFicha) LinhaConsentimento() []marco {
 		return ms
 	}
 	for i, m := range d.Movimentos {
-		mc := marco{Data: m.Data, Titulo: "Consentimento revogado", Icone: "barra", Detalhe: detalheMovimento(m)}
+		mc := marco{Data: m.Data, Titulo: "Consentimento revogado", Icone: "barra", Detalhe: detalheMovimento(m, origem)}
 		if m.Tipo == entity.MovimentoConcessao {
 			mc.Titulo, mc.Icone = "Consentimento concedido", "ok"
 			if i > 0 {
@@ -139,7 +166,7 @@ func (d dadosFicha) LinhaConsentimento() []marco {
 }
 
 // detalheMovimento: finalidade, termo e origem, em frases curtas (docs/design/03-textos.md).
-func detalheMovimento(m entity.MovimentoConsentimento) string {
+func detalheMovimento(m entity.MovimentoConsentimento, origem func(entity.MovimentoConsentimento) string) string {
 	var partes []string
 	if m.Finalidade != "" {
 		partes = append(partes, "Finalidade "+m.Finalidade)
@@ -149,7 +176,7 @@ func detalheMovimento(m entity.MovimentoConsentimento) string {
 	} else {
 		partes = append(partes, "termo não registrado")
 	}
-	return strings.Join(append(partes, textoOrigem(m)), " · ")
+	return strings.Join(append(partes, origem(m)), " · ")
 }
 
 func textoOrigem(m entity.MovimentoConsentimento) string {
@@ -208,7 +235,8 @@ func (p *painel) carregarFicha(w http.ResponseWriter, r *http.Request, aba strin
 		return dadosFicha{}, false
 	}
 	d := dadosFicha{Aba: aba, Cliente: ficha.Cliente, Consentimento: ficha.Consentimento, MetaEventos: p.d.MetaEventos,
-		Concessao: formConsentimento{Finalidade: string(entity.FinalidadeSegmentacao), VersaoTermo: p.d.VersaoTermo}}
+		Concessao: formConsentimento{Finalidade: string(entity.FinalidadeSegmentacao), VersaoTermo: p.d.VersaoTermo},
+		Cadastro:  formCadastro{Nome: ficha.Cliente.Nome, Email: ficha.Cliente.Email}}
 	if len(ficha.Finalidades) > 1 {
 		d.Publicidade = ficha.Finalidades[1]
 	}
@@ -218,6 +246,11 @@ func (p *painel) carregarFicha(w http.ResponseWriter, r *http.Request, aba strin
 		} else {
 			d.Movimentos = append(d.Movimentos, m)
 		}
+	}
+	d.PermEliminar = operadorAtual(r).Papel.Pode(entity.PermEliminacao)
+	if ficha.Cliente.EstaEliminado() { // RN-17: nada de comportamento resta; só a prova do consentimento
+		d.Eliminado = true
+		return d, true
 	}
 	d.Valido = ficha.Consentimento.EstaValido()
 	if !d.Valido {
@@ -351,9 +384,23 @@ func motivoLegivel(m string) string {
 	return strings.ToUpper(s[:1]) + s[1:]
 }
 
+// lerFicha carrega uma aba da ficha e registra a leitura na auditoria (RN-13): leitura sem
+// registro não é mostrada.
+func (p *painel) lerFicha(w http.ResponseWriter, r *http.Request, aba string) (dadosFicha, bool) {
+	d, ok := p.carregarFicha(w, r, aba)
+	if !ok {
+		return d, false
+	}
+	if err := p.auditar(r, entity.AcaoLerFicha, entity.AlvoCliente, d.Cliente.ID, nil); err != nil {
+		p.falha(w, r, err, "")
+		return dadosFicha{}, false
+	}
+	return d, true
+}
+
 // GET /painel/clientes/{id} — visão geral.
 func (p *painel) fichaVisaoGeral(w http.ResponseWriter, r *http.Request) {
-	if d, ok := p.carregarFicha(w, r, "visao"); ok {
+	if d, ok := p.lerFicha(w, r, "visao"); ok {
 		p.renderFicha(w, r, http.StatusOK, d)
 	}
 }
@@ -376,6 +423,7 @@ func (p *painel) processar(w http.ResponseWriter, r *http.Request) {
 	}
 	res, errProc := p.d.Processar.Executar(r.Context(), id)
 	p.acao(r, "processar", id.String())
+	p.auditar(r, entity.AcaoProcessar, entity.AlvoCliente, id, errProc)
 	if errProc == nil {
 		codigo := "processamento-concluido"
 		if res.Recomendacao == nil {

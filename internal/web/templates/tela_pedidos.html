@@ -1,0 +1,31 @@
+{{define "conteudo"}}
+<header class="pf-header">
+  <ol class="pf-crumbs"><li>Clientes</li><li aria-current="page">Pedidos do titular</li></ol>
+  <div class="pf-header__row">
+    <div>
+      <h1 class="pf-header__title">Pedidos do titular</h1>
+      <p class="pf-header__meta">Pedidos de eliminação feitos pelo portal do titular. Atenda na aba Direitos do titular da ficha.</p>
+    </div>
+  </div>
+</header>
+{{if .Dados}}
+<div class="pf-tablewrap">
+  <table class="pf-table" data-teste="lista-pedidos">
+    <caption class="pf-sr">Pedidos de eliminação, abertos primeiro</caption>
+    <thead><tr><th scope="col">Cliente</th><th scope="col">Pedido em</th><th scope="col">Situação</th><th scope="col">Consentimento</th></tr></thead>
+    <tbody>
+    {{range .Dados}}
+      <tr data-href="/painel/clientes/{{.Cliente.ID}}/direitos" data-teste="linha-pedido">
+        <td><span class="pf-cell-main"><a href="/painel/clientes/{{.Cliente.ID}}/direitos">{{.Cliente.Nome}}</a></span>{{template "uuid" .Cliente.ID}}</td>
+        <td class="pf-num">{{dataHora .Pedido.DataPedido}}</td>
+        <td><span data-teste="selo" data-estado="{{estado .Pedido.Status}}">{{template "tag" (estado .Pedido.Status)}}</span>{{if .Pedido.DataAtendimento}}<br><span class="pf-muted pf-small">em {{dataHoraPtr .Pedido.DataAtendimento}}</span>{{end}}</td>
+        <td>{{template "tag" (estado .Consentimento)}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+{{else}}
+<div class="pf-empty" data-teste="sem-pedidos"><p class="pf-empty__title">Nenhum pedido do titular.</p><p class="pf-muted">Os pedidos de eliminação feitos pelo portal aparecem aqui.</p></div>
+{{end}}
+{{end}}

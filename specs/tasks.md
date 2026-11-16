@@ -1,6 +1,6 @@
 # Tarefas (T-xx)
 
-Perfila · Equipe Omega · Plano SDD v1.0 · atualizado em 12/11/2026 (cronograma: escopo fecha 19/11, evento 24/11)
+Perfila · Equipe Omega · Plano SDD v1.0 · atualizado em 13/11/2026 (cronograma: escopo fecha 19/11, evento 24/11)
 
 Legenda de status: ✅ concluída · 🟡 parcial · ⬜ a fazer. "Prova" é o que precisa estar verde para a tarefa ser aceita (Definição de pronto no `specs/plan.md`, seção 3).
 
@@ -88,19 +88,20 @@ Prova de cada concessão e revogação (Q-34, RN-10, L-06). Base para os públic
 | T-45 | Painel: origem `painel` com o operador; linha do tempo pelo histórico, com a linha pelas datas para quem não tem movimentos | T-44 | cenários `@web` do histórico | ✅ 4 cenários `@web`; `TestDetalheMovimento`, `TestLinhaPeloHistorico` |
 | T-46 | Exemplos (Karina: v1, revoga, v2) conferidos pelo histórico; checklist L-06; README; fluxo no navegador | T-45 | `TestCarregarExemplos`; painel conferido | ✅ Karina com v1 pela API, revogação e v2 pelo painel; L-06 atendido; fluxo conferido no navegador; cobertura 91,0% |
 
-## Públicos para campanhas — Spec v1.11
+## Usuários, perfis de acesso e auditoria — Spec v1.5
 
-Consentimento por finalidade e UC-06 parcial, "Criar público para campanha" (Q-61 a Q-67, RN-21, RN-22; fecha L-04). Branch `feat/publicos`. Numeradas depois das tarefas das branches abertas (T-47 a T-68) para não colidir.
+Operadores no banco com papel (ADMINISTRADOR, ANALISTA, ATENDIMENTO), matriz de permissões e trilha de auditoria (Q-35 a Q-41, L-12, L-23). Aprovadas em 13/11.
 
 | ID | Tarefa | Depende de | Prova | Status |
 |---|---|---|---|---|
-| T-80 | Spec v1.11 (Q-61 a Q-67, RN-21, RN-22, UC-06 parcial, contratos, ports, rotas, configuração), UML1, UML2, UML5, UML7 e UML8 em texto, design (telas e textos) e `features/publicos.feature` (`@aplicacao`, `@api`, `@web`, `@lgpd`) em `@wip` | T-46 | revisão; cenários vermelhos | ✅ |
-| T-81 | Domínio: `Finalidade`, consentimento por finalidade, `MembroPublico` e `HashEmail`; `ConsentimentoRepository` por finalidade na memória e no PostgreSQL; `Precondicoes` com `segmentacao` (L-04); migração 011 inteira (consentimento e as tabelas de públicos, para não ter duas migrações) | T-80 | testes de tabela; contrato nos dois backends; cenários de finalidade | ✅ `TestConsentimentoPorFinalidade`, `TestMembroPublicoTransicoes`, `TestHashEmail`, `TestMigracaoFinalidades`; contrato `Consentimento` por finalidade (memória e PostgreSQL 16); 7 cenários `@aplicacao` de finalidade |
-| T-82 | Ports e infraestrutura: `PublicoRepository` (memória, PostgreSQL, contrato), `PerfilRepository.ListarPorSegmento`, `DestinoPublicitarioGateway` em CSV | T-81 | contrato nos dois backends; `TestDestinoCSV` | ✅ contrato `PerfilPorSegmento` e `Publico` (memória e PostgreSQL 16); `TestDestinoCSV` |
-| T-83 | Casos de uso `GerarPublico`, `ExportarPublico`, `PropagarRevogacao` (chamado por UC-08 `Revogar`) e `RelatorioAgregadoSegmentos`; finalidade na API | T-82 | cenários `@aplicacao`, `@api` e `@lgpd` de `publicos.feature` | ✅ 36 cenários de `publicos.feature` (`@aplicacao`, `@dominio`, `@api`); 206 no verify; cobertura domínio + aplicação 88,9% |
-| T-84 | Painel: conceder e revogar cada finalidade na ficha (selo e linha do tempo por finalidade), tela Públicos (contagem, gerar e baixar, histórico, remoções pendentes) e relatório agregado | T-83 | cenários `@web` de `publicos.feature` | ✅ 10 cenários `@web` de `publicos_painel.feature` (a parte `@web` ficou em arquivo próprio); 216 no verify |
-| T-85 | Exemplos com a finalidade nova (e uma revogação), checklist LGPD (L-04 e itens novos), README e roteiro; fluxo no navegador | T-84 | `TestCarregarExemplos`; painel conferido | ✅ `TestCarregarExemplos` (Ana, Bruno, Heitor e Isabela com a publicidade; Carla revogou); checklist L-04 e L-44 a L-51; fluxo no navegador: conceder a publicidade, gerar e baixar, revogar, remoção pendente e arquivo de remoção |
-
+| T-47 | Spec v1.5 (atores, entidades, casos de uso, ports, rotas, configuração), UML1, UML2, UML7 e UML8 em texto, Q-35 a Q-41; `usuarios.feature` e cenários novos em `painel.feature` (`@wip`) | T-46 | Spec, UML e features revisados | ✅ 54 cenários novos (`@wip`): 30 `@aplicacao` em `usuarios.feature`, 24 `@web` em `painel.feature` |
+| T-48 | `Operador`, `PapelOperador`, matriz `Pode`, `RegistroAuditoria`; ports `OperadorRepository`, `AuditoriaRepository`, `HashSenha`; memória e contrato | T-47 | testes de tabela; contrato em memória | ✅ `TestPapelPode`, `TestNovoOperador`, `TestOperadorAlteracoes`, `TestNovoRegistroAuditoria`; contrato `Operador` e `Auditoria` em memória |
+| T-49 | PostgreSQL: migração 007, `PgOperadorRepository`, `PgAuditoriaRepository`; bcrypt em `infra/senha` | T-48 | contrato nos dois backends; `TestMigracoes` | ✅ `TestPapelPode`, `TestNovoOperador`, `TestOperadorAlteracoes`, `TestNovoRegistroAuditoria`; contrato `Operador` e `Auditoria` em memória |
+| T-50 | Casos de uso `AutenticarOperador`, `GerenciarOperadores`, `RegistrarAuditoria`, `ListarAuditoria`; administrador inicial | T-48 | cenários `@aplicacao` | ✅ `TestPapelPode`, `TestNovoOperador`, `TestOperadorAlteracoes`, `TestNovoRegistroAuditoria`; contrato `Operador` e `Auditoria` em memória |
+| T-51 | Painel: Entrar pelo caso de uso, sessão com o ID do operador conferida a cada requisição, permissão por rota (403), menu por papel, auditoria das ações e das leituras de ficha | T-50 | cenários `@web` de papéis e sessão | ✅ `usuarios.feature` verde (`@aplicacao`); cobertura de domínio + aplicação 88,2%. `TrocarSenha` devolve o operador para o painel renovar a sessão (Spec 3.5 ajustada) |
+| T-52 | Telas Usuários (criar, mudar papel, desativar, ativar, redefinir senha) e Minha senha | T-51 | cenários `@web` de usuários | ✅ 11 cenários `@web` novos (menu por papel, ação sem permissão, sessão encerrada, mudança de papel, auditoria das ações e leituras, auditoria sem dado pessoal); `TestAdministradorInicial` |
+| T-53 | Tela Auditoria (filtros e paginação) e subcomando `expurgar-auditoria` | T-51 | cenários `@web` da auditoria; `TestExpurgarAuditoria` | ✅ 11 cenários `@web` novos (menu por papel, ação sem permissão, sessão encerrada, mudança de papel, auditoria das ações e leituras, auditoria sem dado pessoal); `TestAdministradorInicial` |
+| T-54 | Exemplos (um operador por papel, só no modo memória), README, roteiro, checklist (L-12, L-23, L-28); fluxo no navegador | T-52, T-53 | `TestCarregarExemplos`; painel conferido | ✅ `TestOperadoresExemplo`; atendimento e analista só no modo memória; README, roteiro (passo 5c), checklist (L-12, L-23, L-28, L-29) e textos do design; fluxo conferido no navegador |
 ## Fechamento
 
 | Data | Marco |
@@ -111,3 +112,75 @@ Consentimento por finalidade e UC-06 parcial, "Criar público para campanha" (Q-
 | 24/11 | Evento final |
 
 Trello: cards atualizados toda sexta (13/11, 20/11).
+
+## Edição de segmentos e catálogo — Spec v1.6
+
+Segmentos e produtos editados pelo painel, com prévia, proteções do `padrao` e auditoria dos campos alterados (Q-33, Q-42 a Q-44; Q-45 aberta). Aprovadas em 13/11.
+
+| ID | Tarefa | Depende de | Prova | Status |
+|---|---|---|---|---|
+| T-55 | Spec v1.6 (RN-14, RN-11, RN-13, 3.2, 3.5, 3.6, 3.7.1, 3.8), UML2 e UML7 em texto, Q-33 decidida e Q-42 a Q-45; cenários novos em `segmentacao.feature`, `recomendacao.feature` e `painel.feature` (`@wip`) | T-54 | Spec, UML e features revisados | ✅ 26 cenários e esquemas novos (`@wip`): 10 em `segmentacao.feature`, 5 em `recomendacao.feature`, 11 em `painel.feature` |
+| T-56 | Domínio da RN-14 (`Segmento.Validar`, `ValidarCriterio`, `ValidarSegmentos`, `Produto.Validar`, `NormalizarCategoria`, `EscolherSegmento`, `errs.ErroCampo`); ports `SegmentoRepository.ListarTodos` e `Salvar`, `ProdutoRepository.BuscarPorID` e `Salvar`, `ConsentimentoRepository.ListarConcedidos`; memória, PostgreSQL, migração 008 e contrato | T-55 | testes de tabela; contrato nos dois backends; `TestMigracoes` | ✅ `TestValidarSegmentos`, `TestValidarCriterioMensagem`, `TestProdutoValidar`, `TestEscolherSegmento`; contrato `SegmentoGravacao`, `ProdutoGravacao` e `ConsentimentosConcedidos` (memória e PostgreSQL 16); migração 008 |
+| T-57 | Casos de uso `SalvarSegmento`, `PreverSegmentacao`, `SalvarProduto`; `ListarSegmentos.Todos` e `Consultar`, `ListarCatalogo.Consultar` e `Categorias`; permissão `editar_configuracao`; `RegistroAuditoria.Campos` e ações novas | T-56 | cenários `@aplicacao` e `@dominio` novos | ✅ 15 cenários e esquemas sem `@wip` (`segmentacao.feature` e `recomendacao.feature`); `TestRegistroAuditoriaCampos`, `TestPapelPode`; contrato `AuditoriaCampos` nos dois backends; cobertura de domínio + aplicação 85,7% |
+| T-58 | Painel: formulários de segmento (critério por linhas) e de produto, prévia e confirmação, testar critério, ativar e desativar, auditoria com os campos | T-57 | cenários `@web` novos | ✅ 11 cenários e esquemas `@web` sem `@wip`; prévia, salvar, critério inválido, `padrao` protegido, testar critério, criar e desativar produto e auditoria com os campos; fluxo de edição de segmento conferido no navegador |
+| T-59 | Exemplos, README, roteiro, checklist LGPD e textos do design; fluxo no navegador | T-58 | painel conferido; cobertura ≥ 80% | ✅ README (telas e papéis), roteiro (passo 5d), checklist L-30 e requisito futuro da Q-45, textos e telas do design; nenhum exemplo novo (segmentos e catálogo da migração 005 bastam); cobertura de domínio + aplicação 88,6% |
+
+## Relatórios agregados — Spec v1.7
+
+UC-05 e UC-07 em versão parcial: só números agregados, comportamento só com consentimento válido e grupos pequenos como "menos de 5" (Q-46, RN-15). Numeração a partir de T-60 para não colidir com as branches abertas.
+
+| ID | Tarefa | Depende de | Prova | Status |
+|---|---|---|---|---|
+| T-60 | Spec v1.7, Q-46, UML1 e UML7 em texto; `features/relatorios.feature` (`@wip` até a tarefa que a implementa) | T-46 | Spec, UML e feature revisados | ✅ 25 cenários executados (`@wip`) |
+| T-61 | `Contagem`, `Media`, `Percentual` e as funções de proteção; `RelatorioRepository` na memória e no PostgreSQL | T-60 | testes de tabela; contrato nos dois backends | ✅ `TestProteger*`; caso `Relatorio` do contrato verde na memória e no PostgreSQL |
+| T-62 | `GerarRelatorioUseCase` com período | T-61 | cenários `@dominio` e `@aplicacao` de `relatorios.feature` | ✅ 21 cenários (8 `@dominio`, 13 `@aplicacao`); `@wip` só nos 4 `@web` |
+| T-63 | Painel: tela Relatórios com indicadores, gráficos SVG e tabelas; CSV agregado | T-62 | cenários `@web` de `relatorios.feature`; `@wip` retirado | ✅ 4 cenários `@web` (25 no total da feature); `TestBarraOcultaNaoRevelaONumero`, `TestCelulaCSVSemFormula` |
+| T-64 | Clientes de volume nos exemplos; README, roteiro, checklist LGPD; fluxo no navegador | T-63 | `TestCarregarExemplos`; painel conferido | ✅ 60 clientes de volume; `TestRelatorioDosExemplos`; L-31 a L-35; tela e CSV conferidos no navegador |
+
+## Importação de eventos em lote — Spec v1.8
+
+Lotes de eventos por CSV no painel e JSON na API, linha a linha, com RN-01 e RN-04 em cada linha, prévia sem gravar e duplicados ignorados (Q-47, RN-16). Numeração a partir de T-65 para não colidir com as branches abertas.
+
+| ID | Tarefa | Depende de | Prova | Status |
+|---|---|---|---|---|
+| T-65 | Spec v1.8, Q-47, UML7 em texto, `03-textos.md` e `02-telas-e-fluxos.md`; `features/importacao.feature` (`@wip` até a tarefa que a implementa) | T-46 | Spec, UML e feature revisados | ✅ 45 cenários escritos (`@wip`) |
+| T-66 | `LerCSVEventos` e `ImportarEventosUseCase` (`Previa`, `Importar`); rota `POST /v1/eventos/lote` | T-65 | cenários `@aplicacao` e `@api` de `importacao.feature`; testes de tabela do CSV | ✅ 38 cenários (34 `@aplicacao`, 4 `@api`); `TestLerCSVEventos`, `TestLerCSVEventosRecusa`, `TestDecimalComPonto`; `@wip` só nos 7 `@web` |
+| T-67 | Painel: tela Importar eventos (enviar, prévia, confirmar, relatório) e modelo CSV | T-66 | cenários `@web` de `importacao.feature`; `@wip` retirado | ✅ 7 cenários `@web` (45 no total da feature); prévia, confirmação, arquivo recusado e celular conferidos no navegador |
+| T-68 | IDs fixos nos clientes de exemplo e `docs/exemplos/eventos-lote.csv`; README, roteiro e checklist LGPD; fluxo no navegador | T-67 | `TestCarregarExemplos`; arquivo de exemplo importado no painel | ✅ `TestArquivoDeExemploImporta` (4 aceitas, 1 duplicada, 5 rejeitadas); L-36 a L-39; arquivo de exemplo importado no navegador |
+
+## Direitos do titular e retenção — Spec v1.9
+
+Correção, acesso e portabilidade e eliminação a pedido do titular (art. 18 da LGPD) e retenção após a revogação (RN-17, RN-18, Q-48 a Q-53; L-19, L-20). Numeração a partir de T-69, migração 009 e Q-48 para não colidir com as branches abertas (v1.5 a v1.8).
+
+| ID | Tarefa | Depende de | Prova | Status |
+|---|---|---|---|---|
+| T-69 | Spec v1.9, Q-48 a Q-53, exceção em C-03, UML2, UML7 e UML8 em texto, `02-telas-e-fluxos.md` e `03-textos.md`; `features/direitos.feature` (`@wip` até a tarefa que a implementa) | T-46 | Spec, UML e feature revisados | ✅ cenários escritos (`@wip`) |
+| T-70 | `Cliente.DataEliminacao`, `Anonimizar`, `EstaEliminado` e `ErrClienteEliminado`; `RemoverPorCliente` (eventos, perfis, recomendações) e `ListarRevogadosAte` na memória e no PostgreSQL; migração 009; contrato | T-69 | testes de tabela; contrato nos dois backends | ✅ `TestClienteAnonimizar`; contrato `DireitosDoTitular` e `RevogadosAte` (memória e PostgreSQL 16); `TestMigracaoEliminacaoExigeAnonimizado` |
+| T-71 | `AtualizarCadastro`, `ExportarDadosTitular`, `EliminarDadosTitular`, `AplicarRetencao`; RN-01 e UC-08 com o cliente eliminado; `RETENCAO_DIAS_REVOGADO` e subcomando `aplicar-retencao` | T-70 | cenários `@aplicacao` de `direitos.feature` | ✅ 36 cenários `@aplicacao`; `TestConfirmacaoConfere`, `TestRetencaoPrazoInvalido`, `TestCarregarPadroes`; subcomando em `TestArgumentosEConfig`; `@wip` só nos 10 `@web` |
+| T-72 | Painel: aba Direitos do titular (corrigir, baixar dados, eliminar com confirmação forte), ficha do eliminado e retenção na Operação; log `direito_atendido` | T-71 | cenários `@web` de `direitos.feature`; `@wip` retirado | ✅ 10 cenários `@web` (46 no total da feature); `TestExportacaoFormato` |
+| T-73 | Exemplo revogado há mais de 180 dias; checklist (L-19, L-20), README e roteiro; fluxo no navegador | T-72 | `TestCarregarExemplos`; painel conferido | ✅ Olga (c-015) revogada há 220 dias, atingida pela retenção; Fábio não; L-19 e L-20 ⚠️; `make retencao`; no navegador: exportação, eliminação (nome errado e certo), busca vazia pelo nome antigo, retenção pela Operação, foco inicial em Cancelar e celular sem rolagem lateral; cobertura 90,6% |
+
+## Portal do titular — Spec v1.10
+
+O próprio cliente vê e revoga o consentimento, concede de novo, baixa os próprios dados e pede a eliminação pelo portal `/titular`, com link de uso único por e-mail (RN-19, RN-20, Q-55 a Q-60; L-40 a L-43). Branch empilhada sobre a v1.9 (direitos do titular). Numeração a partir de T-75, migração 010 e Q-55, acima de todas as branches abertas.
+
+| ID | Tarefa | Depende de | Prova | Status |
+|---|---|---|---|---|
+| T-75 | Spec v1.10, Q-55 a Q-60, UML1, UML2, UML7 e UML8 em texto, `02-telas-e-fluxos.md` e `03-textos.md`; `features/portal.feature` (`@wip` até a tarefa que a implementa) | T-72 | Spec, UML e feature revisados | ✅ cenários escritos (`@wip`) |
+| T-76 | `TokenAcessoTitular`, `PedidoEliminacao`, `MensagemSimulada` e `ErrAcessoInvalido`; `BuscarPorEmail`, `TokenAcessoRepository`, `PedidoEliminacaoRepository` e `CaixaSaidaSimulada` na memória e no PostgreSQL; `NotificadorSimulado`; migração 010; contrato | T-75 | testes de tabela; contrato nos dois backends | ✅ `TestNovoTokenAcesso`, `TestTokenAcessoUsar`, `TestPedidoEliminacao`, `TestNotificadorSimulado`; contrato `BuscarPorEmail`, `TokenAcesso`, `PedidoEliminacao` e `CaixaSaidaSimulada` (memória e PostgreSQL 16) |
+| T-77 | `SolicitarAcessoTitular`, `AutenticarTitular`, `ConsultarMeusDados`, `PedirEliminacao`, `ListarPedidosEliminacao`, `ListarCaixaSaida`; RN-17 com tokens e pedido; `PORTAL_URL_BASE` e `PORTAL_CHAVE_SESSAO` | T-76 | cenários `@aplicacao` e `@dominio` de `portal.feature` | ✅ 29 cenários `@aplicacao` e `@dominio`; `TestCarregarPortal`; `@wip` só nos 21 `@web` |
+| T-78 | Portal web `/titular` (entrar, link, meus dados, revogar, conceder, baixar, pedir eliminação) com sessão própria; no painel, Pedidos do titular e Caixa de saída (simulada) | T-77 | cenários `@web` de `portal.feature`; `@wip` retirado | ✅ 21 cenários `@web` (51 no total da feature); 267 cenários no verify |
+| T-79 | Cenário `@implantacao` do portal pelo Nginx; exemplo com pedido aberto; checklist LGPD (seção 4), README e roteiro; fluxo no navegador | T-78 | `bdd-implantacao`; painel e portal conferidos | ✅ 5 cenários `@implantacao` (Nginx, duas réplicas e PostgreSQL); Fábio revogou pelo portal e tem pedido aberto (`TestCarregarExemplos`); L-17, L-18 e L-40 a L-43; fluxo conferido no navegador (`make serve`) |
+
+## Públicos para campanhas — Spec v1.11
+
+Consentimento por finalidade e UC-06 parcial, "Criar público para campanha" (Q-61 a Q-67, RN-21, RN-22; fecha L-04). Branch `feat/publicos`. Renumeradas em 16/11 (eram T-69 a T-74, Q-48 a Q-54 e Spec v1.9) para vir depois do portal do titular (v1.10).
+
+| ID | Tarefa | Depende de | Prova | Status |
+|---|---|---|---|---|
+| T-80 | Spec v1.11 (Q-61 a Q-67, RN-21, RN-22, UC-06 parcial, contratos, ports, rotas, configuração), UML1, UML2, UML5, UML7 e UML8 em texto, design (telas e textos) e `features/publicos.feature` (`@aplicacao`, `@api`, `@web`, `@lgpd`) em `@wip` | T-46 | revisão; cenários vermelhos | ✅ |
+| T-81 | Domínio: `Finalidade`, consentimento por finalidade, `MembroPublico` e `HashEmail`; `ConsentimentoRepository` por finalidade na memória e no PostgreSQL; `Precondicoes` com `segmentacao` (L-04); migração 011 inteira (consentimento e as tabelas de públicos, para não ter duas migrações) | T-80 | testes de tabela; contrato nos dois backends; cenários de finalidade | ✅ `TestConsentimentoPorFinalidade`, `TestMembroPublicoTransicoes`, `TestHashEmail`, `TestMigracaoFinalidades`; contrato `Consentimento` por finalidade (memória e PostgreSQL 16); 7 cenários `@aplicacao` de finalidade |
+| T-82 | Ports e infraestrutura: `PublicoRepository` (memória, PostgreSQL, contrato), `PerfilRepository.ListarPorSegmento`, `DestinoPublicitarioGateway` em CSV | T-81 | contrato nos dois backends; `TestDestinoCSV` | ✅ contrato `PerfilPorSegmento` e `Publico` (memória e PostgreSQL 16); `TestDestinoCSV` |
+| T-83 | Casos de uso `GerarPublico`, `ExportarPublico`, `PropagarRevogacao` (chamado por UC-08 `Revogar`) e `RelatorioAgregadoSegmentos`; finalidade na API | T-82 | cenários `@aplicacao`, `@api` e `@lgpd` de `publicos.feature` | ✅ 36 cenários de `publicos.feature` (`@aplicacao`, `@dominio`, `@api`); 206 no verify; cobertura domínio + aplicação 88,9% |
+| T-84 | Painel: conceder e revogar cada finalidade na ficha (selo e linha do tempo por finalidade), tela Públicos (contagem, gerar e baixar, histórico, remoções pendentes) e relatório agregado | T-83 | cenários `@web` de `publicos.feature` | ✅ 10 cenários `@web` de `publicos_painel.feature` (a parte `@web` ficou em arquivo próprio); 216 no verify |
+| T-85 | Exemplos com a finalidade nova (e uma revogação), checklist LGPD (L-04 e itens novos), README e roteiro; fluxo no navegador | T-84 | `TestCarregarExemplos`; painel conferido | ✅ `TestCarregarExemplos` (Ana, Bruno, Heitor e Isabela com a publicidade; Carla revogou); checklist L-04 e L-44 a L-51; fluxo no navegador: conceder a publicidade, gerar e baixar, revogar, remoção pendente e arquivo de remoção |

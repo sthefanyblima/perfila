@@ -45,6 +45,10 @@ func NovoClienteRepository() *ClienteRepository {
 func (r *ClienteRepository) Salvar(_ context.Context, c entity.Cliente) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if c.DataEliminacao != nil { // cópia em UTC: o chamador não altera o que foi gravado
+		d := c.DataEliminacao.UTC()
+		c.DataEliminacao = &d
+	}
 	r.dados[c.ID] = c
 	return nil
 }
@@ -135,6 +139,21 @@ func (r *EventoRepository) BuscarPorCliente(_ context.Context, clienteID uuid.UU
 	return out, nil
 }
 
+// RemoverPorCliente apaga os eventos do cliente e diz quantos. Spec: RN-17, Q-52.
+func (r *EventoRepository) RemoverPorCliente(_ context.Context, clienteID uuid.UUID) (int, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	ficam := r.dados[:0]
+	for _, e := range r.dados {
+		if e.ClienteID != clienteID {
+			ficam = append(ficam, e)
+		}
+	}
+	n := len(r.dados) - len(ficam)
+	r.dados = ficam
+	return n, nil
+}
+
 // Total devolve o número de eventos gravados (apoio a testes).
 func (r *EventoRepository) Total() int {
 	r.mu.RLock()
@@ -162,6 +181,17 @@ func (r *PerfilRepository) Salvar(_ context.Context, p entity.PerfilCliente) (en
 	}
 	r.dados[p.ClienteID] = p
 	return p, nil
+}
+
+// RemoverPorCliente apaga o perfil do cliente; devolve 0 ou 1. Spec: RN-17, Q-52.
+func (r *PerfilRepository) RemoverPorCliente(_ context.Context, clienteID uuid.UUID) (int, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if _, ok := r.dados[clienteID]; !ok {
+		return 0, nil
+	}
+	delete(r.dados, clienteID)
+	return 1, nil
 }
 
 func (r *PerfilRepository) BuscarPorCliente(_ context.Context, clienteID uuid.UUID) (entity.PerfilCliente, error) {
@@ -241,6 +271,43 @@ func (r *SegmentoRepository) BuscarPorID(_ context.Context, id uuid.UUID) (entit
 	return s, nil
 }
 
+// ListarTodos devolve ativos e inativos, Prioridade crescente, desempate por ID. Spec: 3.6, RN-14.
+func (r *SegmentoRepository) ListarTodos(_ context.Context) ([]entity.Segmento, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	out := make([]entity.Segmento, 0, len(r.dados))
+	for _, s := range r.dados {
+		out = append(out, s)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Prioridade != out[j].Prioridade {
+			return out[i].Prioridade < out[j].Prioridade
+		}
+		return out[i].ID.String() < out[j].ID.String()
+	})
+	return out, nil
+}
+
+// Salvar insere ou atualiza por ID e repete as unicidades do PostgreSQL (migração 008): nome sem
+// diferenciar maiúsculas e prioridade entre os ativos. Spec: 3.6, RN-14.
+func (r *SegmentoRepository) Salvar(_ context.Context, s entity.Segmento) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, outro := range r.dados {
+		if outro.ID == s.ID {
+			continue
+		}
+		if strings.EqualFold(outro.Nome, s.Nome) {
+			return errs.NovoErroCampo("nome", fmt.Sprintf("Já existe o segmento %q.", outro.Nome))
+		}
+		if s.Ativo && outro.Ativo && outro.Prioridade == s.Prioridade {
+			return errs.NovoErroCampo("prioridade", fmt.Sprintf("A prioridade %d já é do segmento %q.", s.Prioridade, outro.Nome))
+		}
+	}
+	r.dados[s.ID] = s
+	return nil
+}
+
 // ---------- Recomendação ----------
 
 type RecomendacaoRepository struct {
@@ -271,6 +338,20 @@ func (r *RecomendacaoRepository) ListarAtivasVencidas(_ context.Context, agora t
 		}
 	}
 	return out, nil
+}
+
+// RemoverPorCliente apaga as recomendações do cliente e diz quantas. Spec: RN-17, Q-52.
+func (r *RecomendacaoRepository) RemoverPorCliente(_ context.Context, clienteID uuid.UUID) (int, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	n := 0
+	for id, rec := range r.dados {
+		if rec.ClienteID == clienteID {
+			delete(r.dados, id)
+			n++
+		}
+	}
+	return n, nil
 }
 
 // ListarAtivasPorCliente devolve as recomendações ATIVA do cliente (Q-18).
@@ -412,6 +493,46 @@ func (r *ConsentimentoRepository) ListarPorCliente(_ context.Context, clienteID 
 	return out, nil
 }
 
+// ListarConcedidos devolve os registros de segmentacao com Status CONCEDIDO, por ClienteID.
+// Spec: 3.6, Q-42, Q-61.
+func (r *ConsentimentoRepository) ListarConcedidos(_ context.Context) ([]entity.ConsentimentoLGPD, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	out := []entity.ConsentimentoLGPD{}
+	for k, c := range r.dados {
+		if k.finalidade == entity.FinalidadeSegmentacao && c.Status == entity.StatusConcedido {
+			out = append(out, c)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].ClienteID.String() < out[j].ClienteID.String() })
+	return out, nil
+}
+
+// ListarRevogadosAte devolve os clientes com a segmentacao REVOGADO e DataRevogacao <= limite, da revogação mais
+// antiga para a mais recente (desempate por ID). Spec: RN-18, Q-51.
+func (r *ConsentimentoRepository) ListarRevogadosAte(_ context.Context, limite time.Time) ([]uuid.UUID, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	vencidos := []entity.ConsentimentoLGPD{}
+	for k, c := range r.dados {
+		if k.finalidade == entity.FinalidadeSegmentacao && c.Status == entity.StatusRevogado && c.DataRevogacao != nil && !c.DataRevogacao.After(limite) {
+			vencidos = append(vencidos, c)
+		}
+	}
+	sort.Slice(vencidos, func(i, j int) bool {
+		a, b := vencidos[i], vencidos[j]
+		if !a.DataRevogacao.Equal(*b.DataRevogacao) {
+			return a.DataRevogacao.Before(*b.DataRevogacao)
+		}
+		return a.ClienteID.String() < b.ClienteID.String()
+	})
+	out := make([]uuid.UUID, 0, len(vencidos))
+	for _, c := range vencidos {
+		out = append(out, c.ClienteID)
+	}
+	return out, nil
+}
+
 // Remover apaga o registro de uma finalidade (apoio a testes: NAO_CONCEDIDO sem registro).
 func (r *ConsentimentoRepository) Remover(clienteID uuid.UUID, finalidade entity.Finalidade) {
 	r.mu.Lock()
@@ -474,4 +595,21 @@ func (r *ProdutoRepository) ListarAtivosPorCategoria(_ context.Context, categori
 		}
 	}
 	return out, nil
+}
+
+// BuscarPorID devolve errs.ErrProdutoNaoEncontrado se não existir. Spec: 3.6, Q-43.
+func (r *ProdutoRepository) BuscarPorID(_ context.Context, id uuid.UUID) (entity.Produto, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	p, ok := r.dados[id]
+	if !ok {
+		return entity.Produto{}, errs.ErrProdutoNaoEncontrado
+	}
+	return p, nil
+}
+
+// Salvar insere ou atualiza por ID. Spec: 3.6, Q-43.
+func (r *ProdutoRepository) Salvar(_ context.Context, p entity.Produto) error {
+	r.Adicionar(p)
+	return nil
 }

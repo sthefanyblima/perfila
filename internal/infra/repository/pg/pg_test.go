@@ -58,8 +58,8 @@ func bancoDeTeste(t *testing.T, esquema string) *sql.DB {
 
 func esvaziar(t *testing.T, db *sql.DB) {
 	t.Helper()
-	_, err := db.Exec(`TRUNCATE membros_publico, exportacoes_publico, recomendacoes_produto, perfis_cliente, eventos_comportamentais,
-		movimentos_consentimento, consentimentos_lgpd, clientes, produtos, segmentos`)
+	_, err := db.Exec(`TRUNCATE membros_publico, exportacoes_publico, tokens_acesso_titular, pedidos_eliminacao, caixa_saida_simulada, recomendacoes_produto, perfis_cliente, eventos_comportamentais,
+		movimentos_consentimento, consentimentos_lgpd, clientes, produtos, segmentos, operadores, registros_auditoria`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,6 +78,12 @@ func TestContratoPostgres(t *testing.T) {
 			Recomendacoes:  pg.NovoPgRecomendacaoRepository(db),
 			Consentimentos: pg.NovoPgConsentimentoRepository(db),
 			Produtos:       pg.NovoPgProdutoRepository(db),
+			Operadores:     pg.NovoPgOperadorRepository(db),
+			Auditoria:      pg.NovoPgAuditoriaRepository(db),
+			Relatorios:     pg.NovoPgRelatorioRepository(db),
+			Tokens:         pg.NovoPgTokenAcessoRepository(db),
+			Pedidos:        pg.NovoPgPedidoEliminacaoRepository(db),
+			CaixaSaida:     pg.NovaPgCaixaSaidaSimulada(db),
 			Publicos:       pg.NovoPgPublicoRepository(db),
 			AdicionarSegmento: func(t *testing.T, s entity.Segmento) {
 				if _, err := db.Exec(`INSERT INTO segmentos (id, nome, descricao, criterio, prioridade, ativo)
@@ -110,7 +116,7 @@ func TestMigracoes(t *testing.T) {
 		versoes = append(versoes, v)
 	}
 	linhas.Close()
-	if !reflect.DeepEqual(versoes, []string{"001_inicial", "002_dados_demonstracao", "003_recomendacoes_ativas_por_cliente", "004_listagem_de_clientes", "005_demonstracao_ampliada", "006_movimentos_consentimento", "011_finalidades_e_publicos"}) {
+	if !reflect.DeepEqual(versoes, []string{"001_inicial", "002_dados_demonstracao", "003_recomendacoes_ativas_por_cliente", "004_listagem_de_clientes", "005_demonstracao_ampliada", "006_movimentos_consentimento", "007_operadores_auditoria", "008_configuracao_pelo_painel", "009_eliminacao_titular", "010_portal_titular", "011_finalidades_e_publicos"}) {
 		t.Fatalf("migrações registradas: %v", versoes)
 	}
 	aplicadas, err := pg.Migrar(ctx, db)
@@ -245,6 +251,47 @@ func TestMigracaoReconstroiMovimentos(t *testing.T) {
 	for _, sqlTexto := range []string{`UPDATE movimentos_consentimento SET versao_termo = 'v9'`, `DELETE FROM movimentos_consentimento`} {
 		if _, err := db.Exec(sqlTexto); err == nil {
 			t.Fatalf("o banco aceitou %q em movimentos_consentimento", sqlTexto)
+		}
+	}
+}
+
+// Spec: RN-13 Q-39 — a auditoria é só de inclusão: o banco recusa UPDATE; DELETE é o expurgo.
+func TestAuditoriaSoInclusao(t *testing.T) {
+	db := bancoDeTeste(t, "teste_auditoria")
+	esvaziar(t, db)
+	if _, err := db.Exec(`INSERT INTO registros_auditoria (id, data, operador, acao, resultado)
+		VALUES (gen_random_uuid(), now(), 'admin', 'entrar', 'SUCESSO')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`UPDATE registros_auditoria SET operador = 'outro'`); err == nil {
+		t.Fatal("UPDATE em registros_auditoria foi aceito")
+	}
+	if _, err := db.Exec(`INSERT INTO registros_auditoria (id, data, operador, acao, alvo_tipo, resultado)
+		VALUES (gen_random_uuid(), now(), 'admin', 'ler_ficha', 'cliente', 'SUCESSO')`); err == nil {
+		t.Fatal("alvo com tipo e sem ID foi aceito")
+	}
+	if _, err := db.Exec(`DELETE FROM registros_auditoria`); err != nil {
+		t.Fatalf("expurgo recusado: %v", err)
+	}
+}
+
+// Spec: RN-17, Q-50 — a 009 só aceita data de eliminação em cadastro anonimizado e inativo.
+func TestMigracaoEliminacaoExigeAnonimizado(t *testing.T) {
+	db := bancoDeTeste(t, "teste_eliminacao")
+	casos := []struct {
+		nome, email string
+		ativo, ok   bool
+	}{
+		{"Titular eliminado", "eliminado@anonimizado.invalid", false, true},
+		{"Ana Sintética", "eliminado@anonimizado.invalid", false, false},
+		{"Titular eliminado", "c-001@exemplo.test", false, false},
+		{"Titular eliminado", "eliminado@anonimizado.invalid", true, false},
+	}
+	for i, c := range casos {
+		_, err := db.Exec(`INSERT INTO clientes (id, nome, email, data_cadastro, ativo, data_eliminacao)
+			VALUES (gen_random_uuid(), $1, $2, now(), $3, now())`, c.nome, c.email, c.ativo)
+		if (err == nil) != c.ok {
+			t.Errorf("caso %d (%+v): erro %v", i, c, err)
 		}
 	}
 }

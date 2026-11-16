@@ -13,7 +13,7 @@ import (
 
 // GET /painel/clientes/{id}/eventos — formulário em linha e linha do tempo (UC-01).
 func (p *painel) fichaEventos(w http.ResponseWriter, r *http.Request) {
-	d, ok := p.carregarFicha(w, r, "eventos")
+	d, ok := p.lerFicha(w, r, "eventos")
 	if !ok {
 		return
 	}
@@ -58,7 +58,9 @@ func (p *painel) registrarEvento(w http.ResponseWriter, r *http.Request) {
 	ev.Timestamp = quando
 
 	if len(f.Erros) == 0 {
-		if _, err = p.d.Coletar.Registrar(r.Context(), ev); err == nil {
+		_, err = p.d.Coletar.Registrar(r.Context(), ev)
+		p.auditar(r, entity.AcaoRegistrarEvento, entity.AlvoCliente, id, err)
+		if err == nil {
 			p.acao(r, "registrar_evento", id.String())
 			http.Redirect(w, r, fmt.Sprintf("/painel/clientes/%s/eventos?aviso=evento-registrado", id), http.StatusSeeOther)
 			return
@@ -83,7 +85,7 @@ func (p *painel) registrarEvento(w http.ResponseWriter, r *http.Request) {
 
 // GET /painel/clientes/{id}/consentimento — o ConsentRecord completo (UC-08), sempre disponível.
 func (p *painel) fichaConsentimento(w http.ResponseWriter, r *http.Request) {
-	if d, ok := p.carregarFicha(w, r, "consentimento"); ok {
+	if d, ok := p.lerFicha(w, r, "consentimento"); ok {
 		p.renderFicha(w, r, http.StatusOK, d)
 	}
 }
@@ -136,6 +138,9 @@ func (p *painel) alterarConsentimento(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		err = p.d.Consentimento.Revogar(ctx, id, fin)
+	}
+	if f.ErroVersao == "" {
+		p.auditar(r, entity.AcaoAuditoria(acao+"_consentimento"), entity.AlvoCliente, id, err)
 	}
 	if err == nil && f.ErroVersao == "" {
 		nome, destino := acao+"_consentimento", fmt.Sprintf("/painel/clientes/%s", id)

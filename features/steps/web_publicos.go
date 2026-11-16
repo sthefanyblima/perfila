@@ -18,12 +18,7 @@ func registrarPassosPublicosWeb(sc *godog.ScenarioContext, m *Mundo) {
 	sc.Step(`^a página mostra o selo "([^"]*)" da finalidade "([^"]*)"$`, func(estado, f string) error {
 		return m.paginaTemMarcador(`data-teste="selo-finalidade" data-finalidade="`+f+`" data-estado="`+estado+`"`, true)
 	})
-	sc.Step(`^a página não mostra "([^"]*)"$`, func(t string) error {
-		if strings.Contains(m.web.pagina, t) {
-			return fmt.Errorf("a página mostra %q", t)
-		}
-		return nil
-	})
+	// "a página não mostra" fica em portal.go (v1.10).
 	sc.Step(`^(?:que )?o operador (?:confirma|confirmou) "(conceder|revogar)" a finalidade "([^"]*)" do cliente "([^"]*)"$`, m.confirmaFinalidade)
 	sc.Step(`^que o operador revogou a finalidade "([^"]*)" do cliente "([^"]*)"$`, func(f, c string) error {
 		return m.confirmaFinalidade("revogar", f, c)

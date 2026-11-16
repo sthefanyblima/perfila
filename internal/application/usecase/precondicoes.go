@@ -26,11 +26,15 @@ func NovasPrecondicoes(clientes port.ClienteRepository, validador *service.Valid
 	return Precondicoes{clientes: clientes, validador: validador}
 }
 
-// Verificar checa, nesta ordem: cliente existe, cliente ativo, consentimento válido. Spec: RN-01.
+// Verificar checa, nesta ordem: cliente existe, não foi eliminado (v1.9), está ativo e tem
+// consentimento válido. Spec: RN-01, RN-17.
 func (p Precondicoes) Verificar(ctx context.Context, clienteID uuid.UUID) (entity.Cliente, error) {
 	c, err := p.clientes.BuscarPorID(ctx, clienteID)
 	if err != nil {
 		return entity.Cliente{}, err
+	}
+	if c.EstaEliminado() {
+		return entity.Cliente{}, fmt.Errorf("%w: %s", errs.ErrClienteEliminado, clienteID)
 	}
 	if !c.Ativo {
 		return entity.Cliente{}, fmt.Errorf("%w: %s", errs.ErrClienteInativo, clienteID)

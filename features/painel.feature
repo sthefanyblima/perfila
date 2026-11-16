@@ -244,3 +244,217 @@ Funcionalidade: Painel web do operador
     Quando a página "/painel/clientes/c-001/consentimento" é aberta
     Então a página mostra o aviso "linha-pelas-datas"
     E a página mostra "Consentimento revogado"
+
+  # ---- Usuários, perfis de acesso e auditoria (v1.5, Q-35 a Q-41, RN-11 a RN-13) ----
+
+  @RN-11 @Q-37
+  Esquema do Cenário: Cada papel só abre o que pode
+    Dado que o operador "rita" com o papel "<papel>" entrou no painel
+    Quando a página "<pagina>" é aberta
+    Então a resposta tem status <status>
+
+    Exemplos:
+      | papel         | pagina                 | status |
+      | ATENDIMENTO   | /painel/clientes       | 200    |
+      | ATENDIMENTO   | /painel/clientes/c-001 | 200    |
+      | ATENDIMENTO   | /painel/segmentos      | 200    |
+      | ATENDIMENTO   | /painel/operacao       | 403    |
+      | ATENDIMENTO   | /painel/usuarios       | 403    |
+      | ATENDIMENTO   | /painel/auditoria      | 403    |
+      | ANALISTA      | /painel/segmentos      | 200    |
+      | ANALISTA      | /painel/catalogo       | 200    |
+      | ANALISTA      | /painel/clientes       | 403    |
+      | ANALISTA      | /painel/clientes/c-001 | 403    |
+      | ANALISTA      | /painel/minha-senha    | 200    |
+      | ADMINISTRADOR | /painel/usuarios       | 200    |
+      | ADMINISTRADOR | /painel/auditoria      | 200    |
+      | ADMINISTRADOR | /painel/operacao       | 200    |
+
+  @RN-11 @Q-37
+  Esquema do Cenário: O menu mostra só as telas do papel
+    Dado que o operador "rita" com o papel "<papel>" entrou no painel
+    Quando a página "/painel/segmentos" é aberta
+    Então o menu mostra só os itens "<itens>"
+
+    Exemplos:
+      | papel         | itens                                                    |
+      | ANALISTA      | segmentos, catalogo                                      |
+      | ATENDIMENTO   | clientes, segmentos, catalogo                            |
+      | ADMINISTRADOR | clientes, segmentos, catalogo, operacao, usuarios, auditoria |
+
+  @RN-11 @Q-37 @lgpd
+  Cenário: Sem permissão, a ação é recusada e nada é processado
+    Dado que o consentimento do cliente "c-001" está no estado "CONCEDIDO"
+    E que o operador "caio" com o papel "ANALISTA" entrou no painel
+    Quando o operador envia "POST /painel/clientes/c-001/processamento"
+    Então a resposta tem status 403
+    E a página mostra "Sem permissão"
+    E o cliente "c-001" não tem perfil
+    E o último registro da auditoria é "acesso_negado" do operador "caio" sobre o cliente "c-001" com o resultado "NEGADO"
+
+  @RN-12 @Q-38
+  Cenário: Operador desativado perde o acesso na hora
+    Dado que o operador "rita" com o papel "ATENDIMENTO" entrou no painel
+    E que o operador "rita" foi desativado
+    Quando a página "/painel/clientes" é aberta
+    Então a resposta leva a "/painel/entrar"
+    E a página de destino mostra "Sua sessão foi encerrada. Entre de novo."
+
+  @RN-12 @Q-38
+  Cenário: A mudança de papel vale na próxima página
+    Dado que o operador "rita" com o papel "ATENDIMENTO" entrou no painel
+    E que o papel do operador "rita" mudou para "ANALISTA"
+    Quando a página "/painel/clientes" é aberta
+    Então a resposta tem status 403
+
+  @RN-12 @Q-40
+  Cenário: Com senha provisória, o operador só chega a Minha senha
+    Dado que existe o operador "rita" com o papel "ATENDIMENTO" e a senha "senha-provisoria-1"
+    E que o operador "rita" precisa trocar a senha
+    Quando o operador "rita" entra com a senha "senha-provisoria-1"
+    Então a resposta leva a "/painel/minha-senha"
+
+  @RN-12 @Q-35
+  Cenário: O administrador cria um operador pela tela Usuários
+    Dado que o operador entrou no painel
+    Quando o operador cria pelo painel o operador "rita" com o papel "ATENDIMENTO" e a senha "senha-provisoria-1"
+    Então a resposta leva à página do operador "rita"
+    E o operador "rita" está ativo com o papel "ATENDIMENTO"
+    E o último registro da auditoria é "criar_operador" do operador "operador" sobre o operador "rita" com o resultado "SUCESSO"
+
+  @RN-13 @Q-39
+  Esquema do Cenário: Ações e leituras de ficha ficam na auditoria
+    Dado que o operador entrou no painel
+    E que o consentimento do cliente "c-001" está no estado "<estado>"
+    Quando <acao>
+    Então a auditoria tem um registro "<registro>" do operador "operador" sobre o cliente "c-001" com o resultado "SUCESSO"
+
+    Exemplos:
+      | estado        | acao                                                         | registro              |
+      | CONCEDIDO     | a página "/painel/clientes/c-001" é aberta                    | ler_ficha             |
+      | CONCEDIDO     | a página "/painel/clientes/c-001/eventos" é aberta            | ler_ficha             |
+      | NAO_CONCEDIDO | o operador confirma "conceder" o consentimento do cliente "c-001" | conceder_consentimento |
+      | CONCEDIDO     | o operador processa o cliente "c-001" pelo painel             | processar             |
+
+  @RN-13 @Q-39 @lgpd @C-09
+  Cenário: A auditoria não guarda nome nem e-mail
+    Dado que o operador entrou no painel
+    E que o operador cadastrou o cliente "Cliente Sintético" com o e-mail "c-020@exemplo.test"
+    Quando a página da ficha do cliente cadastrado é aberta
+    Então a auditoria tem registros das ações "cadastrar_cliente" e "ler_ficha"
+    E nenhum registro da auditoria contém "Cliente Sintético" nem "c-020@exemplo.test"
+
+  @RN-13 @Q-39
+  Cenário: A tela Auditoria filtra por ação
+    Dado que o operador entrou no painel
+    E que o consentimento do cliente "c-001" está no estado "CONCEDIDO"
+    E que a página "/painel/clientes/c-001" foi aberta
+    Quando a página "/painel/auditoria?acao=ler_ficha" é aberta
+    Então a resposta tem status 200
+    E a auditoria na tela mostra 1 registro
+
+  # ---- Edição de segmentos e catálogo (v1.6, Q-33, Q-42 a Q-44, RN-14) ----
+
+  @RN-11 @Q-33
+  Esquema do Cenário: Só quem edita a configuração abre os formulários
+    Dado que o operador "rita" com o papel "<papel>" entrou no painel
+    Quando a página "<pagina>" é aberta
+    Então a resposta tem status <status>
+
+    Exemplos:
+      | papel         | pagina                   | status |
+      | ANALISTA      | /painel/segmentos/novo   | 200    |
+      | ADMINISTRADOR | /painel/segmentos/novo   | 200    |
+      | ATENDIMENTO   | /painel/segmentos/novo   | 403    |
+      | ANALISTA      | /painel/catalogo/novo    | 200    |
+      | ATENDIMENTO   | /painel/catalogo/novo    | 403    |
+
+  @RN-11 @Q-33
+  Esquema do Cenário: A lista de segmentos só oferece edição a quem pode editar
+    Dado que o operador "rita" com o papel "<papel>" entrou no painel
+    Quando a página "/painel/segmentos" é aberta
+    Então a página de destino <oferece> "novo-segmento"
+
+    Exemplos:
+      | papel       | oferece    |
+      | ANALISTA    | oferece    |
+      | ATENDIMENTO | não oferece |
+
+  @RN-14 @Q-33
+  Cenário: O formulário mostra o critério gravado e uma linha por condição
+    Dado que o operador "caio" com o papel "ANALISTA" entrou no painel
+    E que existe o segmento ativo "premium" com prioridade 1 e critério "ticketMedio >= 500 && frequenciaCompras >= 3"
+    Quando o formulário do segmento "premium" é aberto
+    Então a página mostra "ticketMedio &gt;= 500 &amp;&amp; frequenciaCompras &gt;= 3"
+    E o formulário tem 2 condições preenchidas
+
+  @RN-14 @Q-42 @lgpd
+  Cenário: Salvar passa pela prévia, que mostra só contagens
+    Dado que o consentimento do cliente "c-001" está no estado "CONCEDIDO"
+    E que o cliente "c-001" foi processado
+    E que o operador "caio" com o papel "ANALISTA" entrou no painel
+    E que existe o segmento ativo "engajado" com prioridade 2 e critério "scoreEngajamento >= 0.7"
+    Quando o operador envia o formulário do segmento "engajado" com o critério "scoreEngajamento >= 0.5"
+    Então a página mostra o aviso "previa-segmentacao"
+    E a página de destino oferece "salvar-segmento"
+    E a página não mostra o nome nem o e-mail do cliente "c-001"
+    E o segmento "engajado" continua com o critério "scoreEngajamento >= 0.7"
+    E o último registro da auditoria é "prever_segmentacao" do operador "caio" sobre o segmento "engajado" com o resultado "SUCESSO"
+
+  @RN-14 @RN-13 @Q-44
+  Cenário: Confirmar a prévia salva o segmento e registra os campos alterados
+    Dado que o operador "caio" com o papel "ANALISTA" entrou no painel
+    E que existe o segmento ativo "engajado" com prioridade 2 e critério "scoreEngajamento >= 0.7"
+    Quando o operador confirma o segmento "engajado" com o critério "scoreEngajamento >= 0.5"
+    Então a resposta leva a "/painel/segmentos"
+    E o segmento "engajado" continua com o critério "scoreEngajamento >= 0.5"
+    E o último registro da auditoria é "editar_segmento" do operador "caio" sobre o segmento "engajado" com o resultado "SUCESSO"
+    E o último registro da auditoria tem os campos "criterio"
+
+  @RN-14 @Q-33
+  Cenário: Critério inválido volta ao formulário com a condição errada
+    Dado que o operador "caio" com o papel "ANALISTA" entrou no painel
+    E que existe o segmento ativo "engajado" com prioridade 2 e critério "scoreEngajamento >= 0.7"
+    Quando o operador envia o formulário do segmento "engajado" com o critério "idade > 18"
+    Então a resposta tem status 422
+    E a página mostra "idade &gt; 18"
+    E o segmento "engajado" continua com o critério "scoreEngajamento >= 0.7"
+
+  @RN-14 @Q-33
+  Cenário: O segmento padrao recusa a desativação
+    Dado que o operador "caio" com o papel "ANALISTA" entrou no painel
+    Quando o operador confirma a desativação do segmento "padrao"
+    Então a resposta tem status 422
+    E os segmentos ativos são "padrao"
+
+  @RN-14 @Q-33
+  Cenário: Desativar um segmento pede confirmação com a prévia
+    Dado que o operador "caio" com o papel "ANALISTA" entrou no painel
+    E que existe o segmento ativo "engajado" com prioridade 2 e critério "scoreEngajamento >= 0.7"
+    Quando o operador pede para desativar o segmento "engajado"
+    Então a página mostra o aviso "previa-segmentacao"
+    E a página de destino oferece "desativar-segmento"
+    E os segmentos ativos são "engajado" e "padrao"
+
+  @RN-14 @Q-42
+  Cenário: Testar critério pelo painel
+    Dado que o operador "caio" com o papel "ANALISTA" entrou no painel
+    Quando o operador testa o critério "ticketMedio >= 500" com frequência de compras 1, ticket médio 600 e score 0
+    Então a página mostra "O critério casa com estes valores."
+
+  @RN-14 @RN-13 @Q-43 @Q-44
+  Cenário: Criar um produto pelo catálogo
+    Dado que o operador "caio" com o papel "ANALISTA" entrou no painel
+    Quando o operador cria pelo painel o produto "Atlas" na categoria "Livros" com preço "90,50"
+    Então a resposta leva a "/painel/catalogo"
+    E o produto "Atlas" está gravado na categoria "livros" com o preço 90.5
+    E o último registro da auditoria é "criar_produto" do operador "caio" sobre o produto "Atlas" com o resultado "SUCESSO"
+
+  @RN-14 @RN-13 @Q-43 @Q-44
+  Cenário: Desativar um produto pede confirmação e fica na auditoria
+    Dado que o operador "caio" com o papel "ANALISTA" entrou no painel
+    Quando o operador confirma a desativação do produto "Item 1"
+    Então a resposta leva a "/painel/catalogo"
+    E o produto "Item 1" está inativo
+    E o último registro da auditoria é "desativar_produto" do operador "caio" sobre o produto "Item 1" com o resultado "SUCESSO"
+    E o último registro da auditoria tem os campos "ativo"

@@ -7,18 +7,21 @@ package web
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
 
+	"github.com/google/uuid"
+
 	"perfila/internal/application/usecase"
+	"perfila/internal/domain/entity"
 	"perfila/internal/domain/port"
+	"perfila/internal/shared/errs"
 )
 
 // Dependencias reúne o que o painel precisa; montada só na raiz de composição (C-08).
 type Dependencias struct {
-	Usuario     string // PAINEL_USUARIO
-	SenhaHash   []byte // bcrypt de PAINEL_SENHA_HASH
 	ChaveSessao []byte // PAINEL_CHAVE_SESSAO (32 bytes)
 	VersaoTermo string // PAINEL_VERSAO_TERMO (Q-25)
 
@@ -32,7 +35,26 @@ type Dependencias struct {
 	ListarSegmentos    *usecase.ListarSegmentosUseCase
 	ListarCatalogo     *usecase.ListarCatalogoUseCase
 	Expirar            *usecase.ExpirarRecomendacoesUseCase
-	MetaEventos        int // ENGAJAMENTO_META_EVENTOS, para explicar o score
+	Autenticar         *usecase.AutenticarOperadorUseCase  // v1.5 (Q-36, Q-38)
+	Operadores         *usecase.GerenciarOperadoresUseCase // v1.5 (Q-35, Q-40)
+	RegistrarAuditoria *usecase.RegistrarAuditoriaUseCase  // v1.5 (RN-13)
+	ListarAuditoria    *usecase.ListarAuditoriaUseCase     // v1.5 (RN-13)
+	SalvarSegmento     *usecase.SalvarSegmentoUseCase      // v1.6 (RN-14, Q-33)
+	PreverSegmentacao  *usecase.PreverSegmentacaoUseCase   // v1.6 (Q-42)
+	SalvarProduto      *usecase.SalvarProdutoUseCase       // v1.6 (Q-43)
+	GerarRelatorio     *usecase.GerarRelatorioUseCase      // v1.7 (RN-15)
+	Importar           *usecase.ImportarEventosUseCase     // v1.8 (RN-16, Q-47)
+	// Direitos do titular e retenção (v1.9, Q-48 a Q-53).
+	AtualizarCadastro *usecase.AtualizarCadastroUseCase
+	ExportarDados     *usecase.ExportarDadosTitularUseCase
+	EliminarDados     *usecase.EliminarDadosTitularUseCase
+	AplicarRetencao   *usecase.AplicarRetencaoUseCase
+	// Portal do titular (v1.10, Q-57, Q-58): pedidos e caixa de saída simulada. CaixaSaida nil =
+	// portal desligado, e a tela some da navegação.
+	MeusDados   *usecase.ConsultarMeusDadosUseCase
+	Pedidos     *usecase.ListarPedidosEliminacaoUseCase
+	CaixaSaida  *usecase.ListarCaixaSaidaUseCase
+	MetaEventos int // ENGAJAMENTO_META_EVENTOS, para explicar o score
 
 	// Públicos para campanha (v1.11, UC-06 parcial, RN-21, RN-22).
 	GerarPublico         *usecase.GerarPublicoUseCase
@@ -63,18 +85,18 @@ func NovoRouter(d Dependencias) (http.Handler, error) {
 		return nil, err
 	}
 	p := &painel{d: d, telas: t, tentativas: novoLimitador(d.Clock)}
-	sessao := func(f http.HandlerFunc) http.Handler { return p.exigirSessao(f) }
+	sessao := func(perm entity.Permissao, f http.HandlerFunc) http.Handler { return p.exigirSessao(perm, f) }
 
 	mux := http.NewServeMux()
 	mux.Handle("GET /painel/static/", estaticos())
 	mux.HandleFunc("GET /painel/entrar", p.telaEntrar)
 	mux.HandleFunc("POST /painel/entrar", p.entrar)
-	mux.Handle("POST /painel/sair", sessao(p.sair))
-	mux.Handle("GET /painel/{$}", sessao(func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/painel/clientes", http.StatusSeeOther)
+	mux.Handle("POST /painel/sair", sessao("", p.sair))
+	mux.Handle("GET /painel/{$}", sessao("", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, inicio(operadorAtual(r)), http.StatusSeeOther)
 	}))
-	for _, rotas := range []func(*http.ServeMux, func(http.HandlerFunc) http.Handler){
-		p.rotasClientes, p.rotasFicha, p.rotasConfiguracao, p.rotasPublicos,
+	for _, rotas := range []func(*http.ServeMux, func(entity.Permissao, http.HandlerFunc) http.Handler){
+		p.rotasClientes, p.rotasFicha, p.rotasDireitos, p.rotasConfiguracao, p.rotasUsuarios, p.rotasAuditoria, p.rotasRelatorios, p.rotasImportacao, p.rotasPedidos, p.rotasPublicos,
 	} {
 		rotas(mux, sessao)
 	}
@@ -82,13 +104,37 @@ func NovoRouter(d Dependencias) (http.Handler, error) {
 	return p.cabecalhos(p.registro(mux)), nil
 }
 
-// acao registra uma ação do operador: só operador, ação e ID do cliente (C-09, Q-24).
-func (p *painel) acao(r *http.Request, nome, clienteID string) {
+// acao registra uma ação do operador: só operador, ação, ID do cliente e quantidades
+// (C-09, Q-24, RN-16).
+func (p *painel) acao(r *http.Request, nome, clienteID string, extras ...slog.Attr) {
 	attrs := []slog.Attr{slog.String("operador", operadorDe(r)), slog.String("acao", nome)}
 	if clienteID != "" {
 		attrs = append(attrs, slog.String("clienteId", clienteID))
 	}
+	attrs = append(attrs, extras...)
 	p.d.Log.LogAttrs(r.Context(), slog.LevelInfo, "painel_acao", attrs...)
+}
+
+// auditar grava a ação na trilha (RN-13): err nil = SUCESSO; sem permissão ou credenciais =
+// NEGADO; outro erro = FALHA (o código vai só para o log). Devolve o erro da gravação: numa
+// leitura, quem chama não mostra a tela sem registro; numa ação, só registra no log. campos são
+// os nomes dos campos alterados de segmento ou produto (v1.6, Q-44).
+func (p *painel) auditar(r *http.Request, acao entity.AcaoAuditoria, tipo entity.TipoAlvo, alvo uuid.UUID, err error, campos ...string) error {
+	resultado := entity.ResultadoSucesso
+	switch {
+	case errors.Is(err, errs.ErrSemPermissao), errors.Is(err, errs.ErrCredenciaisInvalidas):
+		resultado = entity.ResultadoNegado
+	case err != nil:
+		resultado = entity.ResultadoFalha
+	}
+	if err != nil {
+		campos = nil // nada foi alterado
+	}
+	if e := p.d.RegistrarAuditoria.Executar(r.Context(), operadorDe(r), acao, tipo, alvo, resultado, campos...); e != nil {
+		p.d.Log.ErrorContext(r.Context(), "auditoria_falhou", "acao", string(acao), "erro", e.Error())
+		return e
+	}
+	return nil
 }
 
 // registro loga método, caminho (só UUIDs) e status; nunca a query string, que pode ter o termo
@@ -113,7 +159,10 @@ func (s *statusWriter) WriteHeader(code int) {
 }
 
 // cabecalhos aplica os cabeçalhos de segurança da Spec 3.7.1 a toda resposta do painel.
-func (p *painel) cabecalhos(next http.Handler) http.Handler {
+func (p *painel) cabecalhos(next http.Handler) http.Handler { return cabecalhosSeguranca(next) }
+
+// cabecalhosSeguranca vale para o painel e para o portal do titular (3.7.1, 3.7.2).
+func cabecalhosSeguranca(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()
 		h.Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; "+

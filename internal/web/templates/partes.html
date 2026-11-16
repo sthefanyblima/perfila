@@ -2,27 +2,59 @@
 
 {{define "nav"}}
 <nav id="navegacao" class="pf-nav" aria-label="Navegação principal">
-  <a class="pf-nav__brand" href="/painel/clientes">Perfila <span class="pf-nav__env">console</span></a>
+  <a class="pf-nav__brand" href="/painel/">Perfila <span class="pf-nav__env">console</span></a>
+  {{- if .Pode.clientes}}
   <div class="pf-nav__group">
     <span class="pf-nav__heading">Clientes</span>
-    <a class="pf-nav__link" href="/painel/clientes"{{if eq .Nav "clientes"}} aria-current="page"{{end}}>Clientes</a>
+    <a class="pf-nav__link" href="/painel/clientes" data-teste="menu-clientes"{{if eq .Nav "clientes"}} aria-current="page"{{end}}>Clientes</a>
+    {{- if .Pode.eventos}}
+    <a class="pf-nav__link" href="/painel/eventos/importar" data-teste="menu-importar"{{if eq .Nav "importar"}} aria-current="page"{{end}}>Importar eventos</a>
+    {{- end}}
+    {{- if .Pode.eliminacao}}
+    <a class="pf-nav__link" href="/painel/pedidos" data-teste="menu-pedidos"{{if eq .Nav "pedidos"}} aria-current="page"{{end}}>Pedidos do titular</a>
+    {{- end}}
   </div>
+  {{- end}}
+  {{- if .Pode.relatorios}}
+  <div class="pf-nav__group">
+    <span class="pf-nav__heading">Análise</span>
+    <a class="pf-nav__link" href="/painel/relatorios" data-teste="menu-relatorios"{{if eq .Nav "relatorios"}} aria-current="page"{{end}}>Relatórios</a>
+  </div>
+  {{- end}}
+  {{- if .Pode.publicos}}
   <div class="pf-nav__group">
     <span class="pf-nav__heading">Campanhas</span>
-    <a class="pf-nav__link" href="/painel/publicos"{{if eq .Nav "publicos"}} aria-current="page"{{end}}>Públicos</a>
-    <a class="pf-nav__link" href="/painel/publicos/relatorio"{{if eq .Nav "relatorio"}} aria-current="page"{{end}}>Relatório agregado</a>
+    <a class="pf-nav__link" href="/painel/publicos" data-teste="menu-publicos"{{if eq .Nav "publicos"}} aria-current="page"{{end}}>Públicos</a>
+    <a class="pf-nav__link" href="/painel/publicos/relatorio" data-teste="menu-relatorio-segmento"{{if eq .Nav "relatorio"}} aria-current="page"{{end}}>Relatório agregado</a>
   </div>
+  {{- end}}
+  {{- if .Pode.configuracao}}
   <div class="pf-nav__group">
     <span class="pf-nav__heading">Configuração</span>
-    <a class="pf-nav__link" href="/painel/segmentos"{{if eq .Nav "segmentos"}} aria-current="page"{{end}}>Segmentos</a>
-    <a class="pf-nav__link" href="/painel/catalogo"{{if eq .Nav "catalogo"}} aria-current="page"{{end}}>Catálogo</a>
+    <a class="pf-nav__link" href="/painel/segmentos" data-teste="menu-segmentos"{{if eq .Nav "segmentos"}} aria-current="page"{{end}}>Segmentos</a>
+    <a class="pf-nav__link" href="/painel/catalogo" data-teste="menu-catalogo"{{if eq .Nav "catalogo"}} aria-current="page"{{end}}>Catálogo</a>
   </div>
+  {{- end}}
+  {{- if or .Pode.operacao .Pode.usuarios .Pode.auditoria}}
   <div class="pf-nav__group">
-    <span class="pf-nav__heading">Operação</span>
-    <a class="pf-nav__link" href="/painel/operacao"{{if eq .Nav "operacao"}} aria-current="page"{{end}}>Saúde e expiração</a>
+    <span class="pf-nav__heading">Administração</span>
+    {{- if .Pode.operacao}}
+    <a class="pf-nav__link" href="/painel/operacao" data-teste="menu-operacao"{{if eq .Nav "operacao"}} aria-current="page"{{end}}>Saúde e expiração</a>
+    {{- if and .Pode.operacao .Portal}}
+    <a class="pf-nav__link" href="/painel/operacao/caixa-saida" data-teste="menu-caixa"{{if eq .Nav "caixa"}} aria-current="page"{{end}}>Caixa de saída (simulada)</a>
+    {{- end}}
+    {{- end}}
+    {{- if .Pode.usuarios}}
+    <a class="pf-nav__link" href="/painel/usuarios" data-teste="menu-usuarios"{{if eq .Nav "usuarios"}} aria-current="page"{{end}}>Usuários</a>
+    {{- end}}
+    {{- if .Pode.auditoria}}
+    <a class="pf-nav__link" href="/painel/auditoria" data-teste="menu-auditoria"{{if eq .Nav "auditoria"}} aria-current="page"{{end}}>Auditoria</a>
+    {{- end}}
   </div>
+  {{- end}}
   <div class="pf-nav__foot">
-    <span class="pf-nav__op"><span class="pf-nav__avatar" aria-hidden="true">{{slice .Operador 0 1}}</span>{{.Operador}}</span>
+    <span class="pf-nav__op"><span class="pf-nav__avatar" aria-hidden="true">{{slice .Operador 0 1}}</span><span>{{.Operador}}{{if .Papel}}<span class="pf-nav__papel">{{.Papel}}</span>{{end}}</span></span>
+    <a class="pf-btn pf-btn--quiet pf-btn--sm" href="/painel/minha-senha"{{if eq .Nav "minha-senha"}} aria-current="page"{{end}}>{{icone "chave"}} Minha senha</a>
     <form method="post" action="/painel/sair" hx-boost="false">
       <input type="hidden" name="_csrf" value="{{.CSRF}}">
       <button type="submit" class="pf-btn pf-btn--quiet pf-btn--sm">{{icone "sair"}} Sair</button>
@@ -30,6 +62,13 @@
   </div>
 </nav>
 {{end}}
+
+{{define "campo-texto"}}<div class="pf-field">
+  <label class="pf-field__label" for="{{.Nome}}">{{.Rotulo}}</label>
+  <input class="pf-input" id="{{.Nome}}" name="{{.Nome}}" value="{{.Valor}}" autocomplete="off"{{if or .Dica .Erro}} aria-describedby="{{if .Dica}}{{.Nome}}-dica{{end}}{{if .Erro}} {{.Nome}}-erro{{end}}"{{end}}{{if .Erro}} aria-invalid="true"{{end}}>
+  {{if .Dica}}<span class="pf-field__hint" id="{{.Nome}}-dica">{{.Dica}}</span>{{end}}
+  {{if .Erro}}<span class="pf-field__error" id="{{.Nome}}-erro" aria-live="assertive" data-teste="erro-{{.Nome}}">{{icone "barra"}}{{.Erro}}</span>{{end}}
+</div>{{end}}
 
 {{define "csrf"}}<input type="hidden" name="_csrf" value="{{.}}">{{end}}
 
@@ -61,25 +100,29 @@
         <span class="pf-tag pf-tag--neutral" data-teste="selo-publicidade" data-estado="{{estado .Publicidade.Status}}">Publicidade: {{rotulo (estado .Publicidade.Status)}}</span>
       </div>
     </div>
-    <div id="selo-consentimento" class="pf-consent pf-consent--compact pf-consent--{{estado .Consentimento.Status}}" data-teste="selo" data-estado="{{estado .Consentimento.Status}}">
-      <span class="pf-consent__seal" aria-hidden="true">{{icone (iconeEstado (estado .Consentimento.Status))}}</span>
+    <div id="selo-consentimento" class="pf-consent pf-consent--compact pf-consent--{{.EstadoSelo}}" data-teste="selo" data-estado="{{.EstadoSelo}}">
+      <span class="pf-consent__seal" aria-hidden="true">{{icone (iconeEstado .EstadoSelo)}}</span>
       <div>
-        <div class="pf-consent__state"><span class="pf-sr">Consentimento: </span>{{rotulo (estado .Consentimento.Status)}}</div>
+        <div class="pf-consent__state"><span class="pf-sr">{{if .Eliminado}}Dados do titular: {{else}}Consentimento: {{end}}</span>{{rotulo .EstadoSelo}}</div>
         <div class="pf-consent__sub">
-          {{- if eq (estado .Consentimento.Status) "CONCEDIDO"}}Desde {{dataHora .Consentimento.DataConsentimento}} · termo {{.Consentimento.VersaoTermo}}
+          {{- if .Eliminado}}Eliminado em {{dataHoraPtr .Cliente.DataEliminacao}}
+          {{- else if eq (estado .Consentimento.Status) "CONCEDIDO"}}Desde {{dataHora .Consentimento.DataConsentimento}} · termo {{.Consentimento.VersaoTermo}}
           {{- else if eq (estado .Consentimento.Status) "REVOGADO"}}Revogado em {{dataHoraPtr .Consentimento.DataRevogacao}}
           {{- else}}Nenhum consentimento registrado{{end -}}
         </div>
       </div>
-      {{if ne .Aba "consentimento"}}<div class="pf-consent__actions">{{template "acao-consentimento" .}}</div>{{end}}
+      {{if and (ne .Aba "consentimento") (not .Eliminado)}}<div class="pf-consent__actions">{{template "acao-consentimento" .}}</div>{{end}}
     </div>
   </div>
 </header>
+{{if not .Eliminado}}
 <nav class="pf-tabs" aria-label="Seções da ficha">
   <a class="pf-tab" href="/painel/clientes/{{.Cliente.ID}}"{{if eq .Aba "visao"}} aria-current="page"{{end}}>Visão geral</a>
   <a class="pf-tab" href="/painel/clientes/{{.Cliente.ID}}/eventos"{{if eq .Aba "eventos"}} aria-current="page"{{end}}>Eventos{{if .Valido}}<span class="pf-tab__count">{{len .Eventos}}</span>{{end}}</a>
   <a class="pf-tab" href="/painel/clientes/{{.Cliente.ID}}/consentimento"{{if eq .Aba "consentimento"}} aria-current="page"{{end}}>Consentimento</a>
+  <a class="pf-tab" href="/painel/clientes/{{.Cliente.ID}}/direitos"{{if eq .Aba "direitos"}} aria-current="page"{{end}}>Direitos do titular</a>
 </nav>
+{{end}}
 {{end}}{{end}}
 
 {{define "acao-consentimento"}}
@@ -91,7 +134,8 @@
 {{end}}
 
 {{define "dialogos-consentimento"}}
-{{if eq (estado .D.Consentimento.Status) "CONCEDIDO"}}
+{{if .D.Eliminado}}
+{{else if eq (estado .D.Consentimento.Status) "CONCEDIDO"}}
 <dialog class="pf-dialog" id="dlg-revogar" aria-labelledby="dlg-revogar-titulo">{{template "form-consentimento" (formConsentimento .D .CSRF "revogar" true)}}</dialog>
 {{else}}
 <dialog class="pf-dialog" id="dlg-conceder" aria-labelledby="dlg-conceder-titulo">{{template "form-consentimento" (formConsentimento .D .CSRF "conceder" true)}}</dialog>

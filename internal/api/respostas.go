@@ -16,7 +16,7 @@ func statusPorCodigo(codigo string) int {
 	switch codigo {
 	case errs.ErrClienteNaoEncontrado.Codigo:
 		return http.StatusNotFound
-	case errs.ErrClienteInativo.Codigo, errs.ErrTransicaoInvalida.Codigo, errs.ErrPerfilNaoEncontrado.Codigo:
+	case errs.ErrClienteInativo.Codigo, errs.ErrClienteEliminado.Codigo, errs.ErrTransicaoInvalida.Codigo, errs.ErrPerfilNaoEncontrado.Codigo:
 		return http.StatusConflict
 	case errs.ErrConsentimentoInvalido.Codigo:
 		return http.StatusForbidden

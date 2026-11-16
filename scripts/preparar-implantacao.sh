@@ -4,6 +4,7 @@
 #   deploy/config.env  config.env do UML8, com AUTH_TOKEN aleatório
 #   painel (Q-28)      PAINEL_SENHA aleatória em deploy/.env; hash bcrypt (omega-server hash-senha)
 #                      e PAINEL_CHAVE_SESSAO em deploy/config.env
+#   portal (Q-60)      PORTAL_URL_BASE (o endereço do Nginx) e PORTAL_CHAVE_SESSAO aleatória em deploy/config.env
 # Os dois arquivos são ignorados pelo git. Spec: 3.8, T-24.
 set -eu
 cd "$(dirname "$0")/../deploy"
@@ -35,4 +36,11 @@ if ! grep -q '^PAINEL_SENHA_HASH=.' config.env; then
     hash=$(sed -n 's/^PAINEL_SENHA=//p' .env | docker run --rm -i --entrypoint omega-server perfila/omega-server:local hash-senha)
     printf 'PAINEL_USUARIO=operador\nPAINEL_SENHA_HASH=%s\nPAINEL_CHAVE_SESSAO=%s\n' "$hash" "$(chave)" >> config.env
     echo "painel configurado em deploy/config.env (hash bcrypt e chave de sessão aleatória)"
+fi
+
+# Portal do titular (Q-60): endereço público do Nginx no link e chave própria, diferente da do painel.
+if ! grep -q '^PORTAL_CHAVE_SESSAO=.' config.env; then
+    sed -i.bak '/^PORTAL_URL_BASE=/d; /^PORTAL_CHAVE_SESSAO=/d' config.env && rm -f config.env.bak
+    printf 'PORTAL_URL_BASE=https://localhost:%s\nPORTAL_CHAVE_SESSAO=%s\n' "${PERFILA_PORTA_HTTPS:-8443}" "$(chave)" >> config.env
+    echo "portal do titular configurado em deploy/config.env (endereço do Nginx e chave de sessão aleatória)"
 fi

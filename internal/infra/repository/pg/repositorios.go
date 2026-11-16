@@ -62,10 +62,10 @@ func NovoPgClienteRepository(db *sql.DB) *PgClienteRepository { return &PgClient
 
 func (r *PgClienteRepository) Salvar(ctx context.Context, c entity.Cliente) error {
 	_, err := r.db.ExecContext(ctx, `
-		INSERT INTO clientes (id, nome, email, data_cadastro, ativo) VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO clientes (id, nome, email, data_cadastro, ativo, data_eliminacao) VALUES ($1, $2, $3, $4, $5, $6)
 		ON CONFLICT (id) DO UPDATE SET nome = EXCLUDED.nome, email = EXCLUDED.email,
-			data_cadastro = EXCLUDED.data_cadastro, ativo = EXCLUDED.ativo`,
-		c.ID, c.Nome, c.Email, c.DataCadastro.UTC(), c.Ativo)
+			data_cadastro = EXCLUDED.data_cadastro, ativo = EXCLUDED.ativo, data_eliminacao = EXCLUDED.data_eliminacao`,
+		c.ID, c.Nome, c.Email, c.DataCadastro.UTC(), c.Ativo, nulo(c.DataEliminacao))
 	if err != nil {
 		return fmt.Errorf("pg: salvando cliente %s: %w", c.ID, err)
 	}
@@ -73,18 +73,40 @@ func (r *PgClienteRepository) Salvar(ctx context.Context, c entity.Cliente) erro
 }
 
 func (r *PgClienteRepository) BuscarPorID(ctx context.Context, id uuid.UUID) (entity.Cliente, error) {
-	var c entity.Cliente
-	err := r.db.QueryRowContext(ctx,
-		`SELECT id, nome, email, data_cadastro, ativo FROM clientes WHERE id = $1`, id).
-		Scan(&c.ID, &c.Nome, &c.Email, &c.DataCadastro, &c.Ativo)
+	c, err := lerCliente(r.db.QueryRowContext(ctx, `SELECT `+colunasCliente+` FROM clientes WHERE id = $1`, id))
 	if errors.Is(err, sql.ErrNoRows) {
 		return entity.Cliente{}, errs.ErrClienteNaoEncontrado
 	}
 	if err != nil {
 		return entity.Cliente{}, fmt.Errorf("pg: buscando cliente %s: %w", id, err)
 	}
-	c.DataCadastro = utc(c.DataCadastro)
 	return c, nil
+}
+
+// colunasCliente e lerCliente leem um cliente com a data de eliminação (v1.9, RN-17).
+const colunasCliente = `id, nome, email, data_cadastro, ativo, data_eliminacao`
+
+func lerCliente(l interface{ Scan(...any) error }) (entity.Cliente, error) {
+	var c entity.Cliente
+	var eliminacao sql.NullTime
+	if err := l.Scan(&c.ID, &c.Nome, &c.Email, &c.DataCadastro, &c.Ativo, &eliminacao); err != nil {
+		return entity.Cliente{}, err
+	}
+	c.DataCadastro, c.DataEliminacao = utc(c.DataCadastro), ptrUTC(eliminacao)
+	return c, nil
+}
+
+// remover apaga as linhas da tabela que pertencem ao cliente e diz quantas. Spec: RN-17, Q-52.
+func remover(ctx context.Context, db *sql.DB, tabela string, clienteID uuid.UUID) (int, error) {
+	res, err := db.ExecContext(ctx, `DELETE FROM `+tabela+` WHERE cliente_id = $1`, clienteID)
+	if err != nil {
+		return 0, fmt.Errorf("pg: removendo %s do cliente %s: %w", tabela, clienteID, err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("pg: contando %s removidos do cliente %s: %w", tabela, clienteID, err)
+	}
+	return int(n), nil
 }
 
 // normalizado repete memoria.NormalizarBusca em SQL (minúsculas, sem acentos); a migração 004
@@ -109,7 +131,7 @@ func (r *PgClienteRepository) Listar(ctx context.Context, f port.FiltroClientes)
 	if f.Limite > 0 {
 		limite = strconv.Itoa(f.Limite)
 	}
-	linhas, err := r.db.QueryContext(ctx, `SELECT id, nome, email, data_cadastro, ativo FROM clientes `+where+
+	linhas, err := r.db.QueryContext(ctx, `SELECT `+colunasCliente+` FROM clientes `+where+
 		` ORDER BY data_cadastro DESC, id::text LIMIT `+limite+` OFFSET `+strconv.Itoa(max(f.Deslocamento, 0)), args...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("pg: listando clientes: %w", err)
@@ -117,11 +139,10 @@ func (r *PgClienteRepository) Listar(ctx context.Context, f port.FiltroClientes)
 	defer linhas.Close()
 	out := []entity.Cliente{}
 	for linhas.Next() {
-		var c entity.Cliente
-		if err := linhas.Scan(&c.ID, &c.Nome, &c.Email, &c.DataCadastro, &c.Ativo); err != nil {
+		c, err := lerCliente(linhas)
+		if err != nil {
 			return nil, 0, fmt.Errorf("pg: lendo cliente: %w", err)
 		}
-		c.DataCadastro = utc(c.DataCadastro)
 		out = append(out, c)
 	}
 	if err := linhas.Err(); err != nil {
@@ -178,6 +199,11 @@ func (r *PgEventoRepository) BuscarPorCliente(ctx context.Context, clienteID uui
 	return out, nil
 }
 
+// RemoverPorCliente apaga os eventos do cliente e diz quantos. Spec: RN-17, Q-52.
+func (r *PgEventoRepository) RemoverPorCliente(ctx context.Context, clienteID uuid.UUID) (int, error) {
+	return remover(ctx, r.db, "eventos_comportamentais", clienteID)
+}
+
 // ---------- Perfil ----------
 
 // PgPerfilRepository persiste perfis em `perfis_cliente`. Spec: UC-02, UC-03, RN-05, D-06.
@@ -205,6 +231,11 @@ func (r *PgPerfilRepository) Salvar(ctx context.Context, p entity.PerfilCliente)
 		return entity.PerfilCliente{}, fmt.Errorf("pg: salvando perfil do cliente %s: %w", p.ClienteID, err)
 	}
 	return p, nil
+}
+
+// RemoverPorCliente apaga o perfil do cliente; devolve 0 ou 1. Spec: RN-17, Q-52.
+func (r *PgPerfilRepository) RemoverPorCliente(ctx context.Context, clienteID uuid.UUID) (int, error) {
+	return remover(ctx, r.db, "perfis_cliente", clienteID)
 }
 
 func (r *PgPerfilRepository) BuscarPorCliente(ctx context.Context, clienteID uuid.UUID) (entity.PerfilCliente, error) {
@@ -254,16 +285,23 @@ func (r *PgPerfilRepository) ListarPorSegmento(ctx context.Context, segmentoID u
 
 // ---------- Segmento ----------
 
-// PgSegmentoRepository lê `segmentos` (populados por migração). Spec: UC-03, RN-06.
+// PgSegmentoRepository lê e, desde a v1.6, grava `segmentos`. Spec: UC-03, RN-06, RN-14.
 type PgSegmentoRepository struct{ db *sql.DB }
 
 func NovoPgSegmentoRepository(db *sql.DB) *PgSegmentoRepository { return &PgSegmentoRepository{db} }
 
 // ListarAtivos devolve os segmentos ativos em ordem crescente de Prioridade (desempate por Nome).
 func (r *PgSegmentoRepository) ListarAtivos(ctx context.Context) ([]entity.Segmento, error) {
-	linhas, err := r.db.QueryContext(ctx, `
-		SELECT id, nome, descricao, criterio, prioridade, ativo
-		FROM segmentos WHERE ativo ORDER BY prioridade, nome`)
+	return r.listar(ctx, `WHERE ativo ORDER BY prioridade, nome`)
+}
+
+// ListarTodos devolve ativos e inativos, Prioridade crescente, desempate por ID. Spec: 3.6, RN-14.
+func (r *PgSegmentoRepository) ListarTodos(ctx context.Context) ([]entity.Segmento, error) {
+	return r.listar(ctx, `ORDER BY prioridade, id::text`)
+}
+
+func (r *PgSegmentoRepository) listar(ctx context.Context, filtro string) ([]entity.Segmento, error) {
+	linhas, err := r.db.QueryContext(ctx, `SELECT id, nome, descricao, criterio, prioridade, ativo FROM segmentos `+filtro)
 	if err != nil {
 		return nil, fmt.Errorf("pg: listando segmentos: %w", err)
 	}
@@ -280,6 +318,27 @@ func (r *PgSegmentoRepository) ListarAtivos(ctx context.Context) ([]entity.Segme
 		return nil, fmt.Errorf("pg: lendo segmentos: %w", err)
 	}
 	return out, nil
+}
+
+// Salvar insere ou atualiza por ID; as violações dos índices da migração 008 viram errs.ErroCampo.
+// Spec: 3.6, RN-14.
+func (r *PgSegmentoRepository) Salvar(ctx context.Context, s entity.Segmento) error {
+	_, err := r.db.ExecContext(ctx, `
+		INSERT INTO segmentos (id, nome, descricao, criterio, prioridade, ativo) VALUES ($1, $2, $3, $4, $5, $6)
+		ON CONFLICT (id) DO UPDATE SET nome = EXCLUDED.nome, descricao = EXCLUDED.descricao,
+			criterio = EXCLUDED.criterio, prioridade = EXCLUDED.prioridade, ativo = EXCLUDED.ativo`,
+		s.ID, s.Nome, s.Descricao, s.Criterio, s.Prioridade, s.Ativo)
+	var e interface{ SQLState() string }
+	if errors.As(err, &e) && e.SQLState() == "23505" {
+		if strings.Contains(err.Error(), "segmentos_nome_unico") {
+			return errs.NovoErroCampo("nome", fmt.Sprintf("Já existe um segmento com o nome %q.", s.Nome))
+		}
+		return errs.NovoErroCampo("prioridade", fmt.Sprintf("A prioridade %d já é de outro segmento ativo.", s.Prioridade))
+	}
+	if err != nil {
+		return fmt.Errorf("pg: salvando segmento %s: %w", s.ID, err)
+	}
+	return nil
 }
 
 // BuscarPorID devolve errs.ErrDadosInvalidos se o segmento não existir (mesmo contrato do fake).
@@ -334,6 +393,11 @@ func (r *PgRecomendacaoRepository) ListarAtivasPorCliente(ctx context.Context, c
 }
 
 // ListarPorCliente devolve todas as recomendações do cliente, a mais recente primeiro (Q-23).
+// RemoverPorCliente apaga as recomendações do cliente e diz quantas. Spec: RN-17, Q-52.
+func (r *PgRecomendacaoRepository) RemoverPorCliente(ctx context.Context, clienteID uuid.UUID) (int, error) {
+	return remover(ctx, r.db, "recomendacoes_produto", clienteID)
+}
+
 func (r *PgRecomendacaoRepository) ListarPorCliente(ctx context.Context, clienteID uuid.UUID) ([]entity.RecomendacaoProduto, error) {
 	return r.listar(ctx, `WHERE cliente_id = $1 ORDER BY data_geracao DESC, id::text`, clienteID)
 }
@@ -432,6 +496,31 @@ func (r *PgConsentimentoRepository) ListarMovimentos(ctx context.Context, client
 	return out, nil
 }
 
+// ListarRevogadosAte devolve os clientes com a segmentacao REVOGADO e data_revogacao <= limite, da revogação mais
+// antiga para a mais recente. Spec: RN-18, Q-51.
+func (r *PgConsentimentoRepository) ListarRevogadosAte(ctx context.Context, limite time.Time) ([]uuid.UUID, error) {
+	linhas, err := r.db.QueryContext(ctx, `
+		SELECT cliente_id FROM consentimentos_lgpd
+		WHERE finalidade = 'segmentacao' AND status = 'REVOGADO' AND data_revogacao <= $1
+		ORDER BY data_revogacao, cliente_id::text`, limite.UTC())
+	if err != nil {
+		return nil, fmt.Errorf("pg: listando revogados: %w", err)
+	}
+	defer linhas.Close()
+	out := []uuid.UUID{}
+	for linhas.Next() {
+		var id uuid.UUID
+		if err := linhas.Scan(&id); err != nil {
+			return nil, fmt.Errorf("pg: lendo revogado: %w", err)
+		}
+		out = append(out, id)
+	}
+	if err := linhas.Err(); err != nil {
+		return nil, fmt.Errorf("pg: lendo revogados: %w", err)
+	}
+	return out, nil
+}
+
 func salvarConsentimento(ctx context.Context, ex executor, c entity.ConsentimentoLGPD) error {
 	_, err := ex.ExecContext(ctx, `
 		INSERT INTO consentimentos_lgpd (id, cliente_id, status, finalidade, versao_termo,
@@ -504,9 +593,40 @@ func lerConsentimento(l escaneavel) (entity.ConsentimentoLGPD, error) {
 	return c, nil
 }
 
+// ListarConcedidos devolve os registros com Status CONCEDIDO, por ClienteID. Spec: 3.6, Q-42.
+func (r *PgConsentimentoRepository) ListarConcedidos(ctx context.Context) ([]entity.ConsentimentoLGPD, error) {
+	linhas, err := r.db.QueryContext(ctx, `
+		SELECT id, cliente_id, status, finalidade, versao_termo, data_consentimento, data_revogacao, data_atualizacao
+		FROM consentimentos_lgpd WHERE finalidade = 'segmentacao' AND status = 'CONCEDIDO' ORDER BY cliente_id::text`)
+	if err != nil {
+		return nil, fmt.Errorf("pg: listando consentimentos concedidos: %w", err)
+	}
+	defer linhas.Close()
+	out := []entity.ConsentimentoLGPD{}
+	for linhas.Next() {
+		var c entity.ConsentimentoLGPD
+		var status string
+		var concessao, revogacao sql.NullTime
+		if err := linhas.Scan(&c.ID, &c.ClienteID, &status, &c.Finalidade, &c.VersaoTermo, &concessao, &revogacao, &c.DataAtualizacao); err != nil {
+			return nil, fmt.Errorf("pg: lendo consentimento: %w", err)
+		}
+		c.Status = entity.StatusConsentimento(status)
+		if concessao.Valid {
+			c.DataConsentimento = concessao.Time.UTC()
+		}
+		c.DataRevogacao = ptrUTC(revogacao)
+		c.DataAtualizacao = utc(c.DataAtualizacao)
+		out = append(out, c)
+	}
+	if err := linhas.Err(); err != nil {
+		return nil, fmt.Errorf("pg: lendo consentimentos concedidos: %w", err)
+	}
+	return out, nil
+}
+
 // ---------- Produto ----------
 
-// PgProdutoRepository lê o catálogo em `produtos` (populado por migração, Q-08). Spec: D-05, RN-07.
+// PgProdutoRepository lê e, desde a v1.6, grava o catálogo em `produtos`. Spec: D-05, RN-07, RN-14.
 type PgProdutoRepository struct{ db *sql.DB }
 
 func NovoPgProdutoRepository(db *sql.DB) *PgProdutoRepository { return &PgProdutoRepository{db} }
@@ -518,6 +638,31 @@ func (r *PgProdutoRepository) ListarAtivosPorCategoria(ctx context.Context, cate
 // ListarTodos devolve o catálogo completo, por Categoria, Nome e ID (Q-23).
 func (r *PgProdutoRepository) ListarTodos(ctx context.Context) ([]entity.Produto, error) {
 	return r.listar(ctx, `ORDER BY categoria, nome, id::text`)
+}
+
+// BuscarPorID devolve errs.ErrProdutoNaoEncontrado se não existir. Spec: 3.6, Q-43.
+func (r *PgProdutoRepository) BuscarPorID(ctx context.Context, id uuid.UUID) (entity.Produto, error) {
+	lista, err := r.listar(ctx, `WHERE id = $1`, id)
+	if err != nil {
+		return entity.Produto{}, err
+	}
+	if len(lista) == 0 {
+		return entity.Produto{}, errs.ErrProdutoNaoEncontrado
+	}
+	return lista[0], nil
+}
+
+// Salvar insere ou atualiza por ID. Spec: 3.6, Q-43.
+func (r *PgProdutoRepository) Salvar(ctx context.Context, p entity.Produto) error {
+	_, err := r.db.ExecContext(ctx, `
+		INSERT INTO produtos (id, nome, categoria, preco, ativo) VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT (id) DO UPDATE SET nome = EXCLUDED.nome, categoria = EXCLUDED.categoria,
+			preco = EXCLUDED.preco, ativo = EXCLUDED.ativo`,
+		p.ID, p.Nome, p.Categoria, p.Preco, p.Ativo)
+	if err != nil {
+		return fmt.Errorf("pg: salvando produto %s: %w", p.ID, err)
+	}
+	return nil
 }
 
 func (r *PgProdutoRepository) listar(ctx context.Context, filtro string, args ...any) ([]entity.Produto, error) {

@@ -115,6 +115,12 @@ func rotulo(v string) string {
 		return "Concedido"
 	case string(entity.StatusRevogado):
 		return "Revogado"
+	case estadoEliminado:
+		return "Eliminado"
+	case string(entity.PedidoAberto):
+		return "Aberto"
+	case string(entity.PedidoAtendido):
+		return "Atendido"
 	case string(entity.StatusGerada):
 		return "Gerada"
 	case string(entity.StatusAtiva):
@@ -127,6 +133,16 @@ func rotulo(v string) string {
 		return "Navegação"
 	case string(entity.TipoInteracao):
 		return "Interação"
+	case string(entity.PapelAdministrador):
+		return "Administrador"
+	case string(entity.PapelAtendimento):
+		return "Atendimento"
+	case string(entity.PapelAnalista):
+		return "Analista"
+	case string(entity.AlvoSegmento):
+		return "Segmento"
+	case string(entity.AlvoProduto):
+		return "Produto"
 	case string(entity.ExportacaoInclusao):
 		return "Inclusão"
 	case string(entity.ExportacaoRemocao):
@@ -138,11 +154,11 @@ func rotulo(v string) string {
 // tomDoEstado é a variante semântica da etiqueta de estado (StatusTag).
 func tomDoEstado(v string) string {
 	switch v {
-	case string(entity.StatusConcedido), string(entity.StatusAtiva):
+	case string(entity.StatusConcedido), string(entity.StatusAtiva), string(entity.PedidoAtendido):
 		return "ok"
-	case string(entity.StatusRevogado):
+	case string(entity.StatusRevogado), estadoEliminado:
 		return "critical"
-	case string(entity.StatusGerada):
+	case string(entity.StatusGerada), string(entity.PedidoAberto):
 		return "warn"
 	}
 	return "neutral"

@@ -34,7 +34,7 @@ func (uc *GerenciarConsentimentoUseCase) Conceder(ctx context.Context, clienteID
 	if !finalidade.Valida() {
 		return fmt.Errorf("%w: finalidade %q", errs.ErrDadosInvalidos, finalidade)
 	}
-	c, err := uc.carregar(ctx, clienteID, finalidade)
+	c, err := uc.carregarParaAlterar(ctx, clienteID, finalidade)
 	if err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func (uc *GerenciarConsentimentoUseCase) Revogar(ctx context.Context, clienteID 
 	if !finalidade.Valida() {
 		return fmt.Errorf("%w: finalidade %q", errs.ErrDadosInvalidos, finalidade)
 	}
-	c, err := uc.carregar(ctx, clienteID, finalidade)
+	c, err := uc.carregarParaAlterar(ctx, clienteID, finalidade)
 	if err != nil {
 		return err
 	}
@@ -107,6 +107,19 @@ func (uc *GerenciarConsentimentoUseCase) ConsultarFinalidades(ctx context.Contex
 		out = append(out, c)
 	}
 	return out, nil
+}
+
+// carregarParaAlterar é carregar recusando o cliente eliminado: depois da eliminação, o
+// consentimento só serve de prova (v1.9, RN-17), em qualquer finalidade.
+func (uc *GerenciarConsentimentoUseCase) carregarParaAlterar(ctx context.Context, clienteID uuid.UUID, finalidade entity.Finalidade) (entity.ConsentimentoLGPD, error) {
+	cli, err := uc.clientes.BuscarPorID(ctx, clienteID)
+	if err != nil {
+		return entity.ConsentimentoLGPD{}, err
+	}
+	if cli.EstaEliminado() {
+		return entity.ConsentimentoLGPD{}, fmt.Errorf("%w: %s", errs.ErrClienteEliminado, clienteID)
+	}
+	return uc.carregar(ctx, clienteID, finalidade)
 }
 
 func (uc *GerenciarConsentimentoUseCase) carregar(ctx context.Context, clienteID uuid.UUID, finalidade entity.Finalidade) (entity.ConsentimentoLGPD, error) {
