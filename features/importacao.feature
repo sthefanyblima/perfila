@@ -337,3 +337,26 @@ Funcionalidade: Importação de eventos em lote
     Quando o operador confirma a importação
     Então o log do painel registra a importação com 1 importado, 0 duplicados e 1 rejeitado
     E o log do painel não contém o ID do cliente "c-001"
+
+  @web @RN-13 @Q-68 @wip
+  Cenário: A confirmação da importação fica na auditoria, sem alvo
+    Dado que o operador entrou no painel
+    E que o arquivo de eventos é:
+      """
+      cliente_id,tipo,origem,timestamp,valor
+      c-001,navegacao,app,2026-11-11T09:00:00Z,0
+      """
+    E que o operador enviou o arquivo de eventos pelo painel
+    Quando o operador confirma a importação
+    Então o último registro da auditoria é "importar_eventos" do operador "operador" sem alvo com o resultado "SUCESSO"
+
+  @web @RN-13 @Q-68 @wip
+  Cenário: A prévia da importação não entra na auditoria
+    Dado que o operador entrou no painel
+    E que o arquivo de eventos é:
+      """
+      cliente_id,tipo,origem,timestamp,valor
+      c-001,navegacao,app,2026-11-11T09:00:00Z,0
+      """
+    Quando o operador envia o arquivo de eventos pelo painel
+    Então a auditoria não tem registro "importar_eventos"

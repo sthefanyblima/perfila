@@ -184,3 +184,14 @@ Consentimento por finalidade e UC-06 parcial, "Criar público para campanha" (Q-
 | T-83 | Casos de uso `GerarPublico`, `ExportarPublico`, `PropagarRevogacao` (chamado por UC-08 `Revogar`) e `RelatorioAgregadoSegmentos`; finalidade na API | T-82 | cenários `@aplicacao`, `@api` e `@lgpd` de `publicos.feature` | ✅ 36 cenários de `publicos.feature` (`@aplicacao`, `@dominio`, `@api`); 206 no verify; cobertura domínio + aplicação 88,9% |
 | T-84 | Painel: conceder e revogar cada finalidade na ficha (selo e linha do tempo por finalidade), tela Públicos (contagem, gerar e baixar, histórico, remoções pendentes) e relatório agregado | T-83 | cenários `@web` de `publicos.feature` | ✅ 10 cenários `@web` de `publicos_painel.feature` (a parte `@web` ficou em arquivo próprio); 216 no verify |
 | T-85 | Exemplos com a finalidade nova (e uma revogação), checklist LGPD (L-04 e itens novos), README e roteiro; fluxo no navegador | T-84 | `TestCarregarExemplos`; painel conferido | ✅ `TestCarregarExemplos` (Ana, Bruno, Heitor e Isabela com a publicidade; Carla revogou); checklist L-04 e L-44 a L-51; fluxo no navegador: conceder a publicidade, gerar e baixar, revogar, remoção pendente e arquivo de remoção |
+
+## Auditoria dos pedidos — Spec v1.12
+
+Os pedidos do titular (v1.9), a confirmação da importação (v1.8) e os públicos (v1.11) passam a ser gravados na trilha de auditoria da RN-13, como a Q-53 previa e a Q-66 pedia (Q-68, Q-69). Os logs `direito_atendido`, `painel_acao` e `publico_exportado` continuam, com as quantidades. A partir da main com as v1.5 a v1.11; migração 012.
+
+| ID | Tarefa | Depende de | Prova | Status |
+|---|---|---|---|---|
+| T-86 | Spec v1.12 (Q-68, Q-69; RN-13, 3.2, RN-16, RN-21, 3.5, 3.7.1, 3.8), UML2 e UML7 em texto, rótulos da tela Auditoria em `03-textos.md`; cenários `@aplicacao` e `@web` em `@wip` em `usuarios.feature`, `direitos.feature`, `importacao.feature`, `portal.feature` e `publicos_painel.feature`; restauração das linhas Q-35 a Q-67 do `OPEN_QUESTIONS.md`, perdidas no merge do portal com os públicos | T-73, T-78, T-84 | revisão; cenários vermelhos | ✅ 26 cenários escritos (`@wip`) |
+| T-87 | Domínio e infraestrutura: oito constantes `AcaoAuditoria` e `Valida()`; teste de tabela; migração 012 com o `CHECK` de `registros_auditoria.acao`; `TestMigracoes` com a 012; contrato da auditoria nos dois backends | T-86 | testes de tabela; contrato nos dois backends | ⏳ |
+| T-88 | Painel: `auditar` nos direitos do titular, na confirmação da importação e nos públicos (com `Baixar` devolvendo a exportação, Q-69); leituras sem registro respondem erro interno; `rotuloAcao` e filtro da tela Auditoria; `@wip` retirado | T-87 | cenários novos verdes | ⏳ |
+| T-89 | README, `docs/CHECKLIST_LGPD.md` (L-28 e os itens que diziam "só no log"), roteiro, notas das Q-53 e Q-66 e contagem de cenários | T-88 | revisão | ⏳ |

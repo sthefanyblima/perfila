@@ -174,6 +174,26 @@ Mensagem da caixa de saída simulada: assunto "Seu link de acesso ao Perfila"; t
 
 No painel: "O titular pediu a eliminação pelo portal em {data}." (aba Direitos do titular) · "Nenhum pedido do titular." · "Nenhuma mensagem nas últimas 24 horas." · "Simulação para a demonstração: nenhum e-mail sai do sistema. Mensagens com mais de 24 horas são apagadas."
 
+## Ações na tela Auditoria (RN-13)
+
+Rótulo de cada ação na coluna Ação e no filtro, na ordem da RN-13. O valor do sistema aparece só na URL do filtro.
+
+| Valor no sistema | Na tela |
+| --- | --- |
+| `entrar` · `sair` · `sessao_encerrada` · `acesso_negado` | Entrar · Sair · Sessão encerrada · Acesso negado |
+| `ler_ficha` | Abrir ficha |
+| `cadastrar_cliente` · `conceder_consentimento` · `revogar_consentimento` · `registrar_evento` · `processar` | Cadastrar cliente · Conceder consentimento · Revogar consentimento · Registrar evento · Processar |
+| `expirar_recomendacoes` | Expirar recomendações |
+| `criar_operador` · `mudar_papel` · `desativar_operador` · `ativar_operador` · `redefinir_senha` · `trocar_senha` | Criar operador · Mudar papel · Desativar operador · Ativar operador · Redefinir senha · Trocar senha |
+| `criar_segmento` · `editar_segmento` · `ativar_segmento` · `desativar_segmento` · `prever_segmentacao` (v1.6) | Criar segmento · Editar segmento · Ativar segmento · Desativar segmento · Prever segmentação |
+| `criar_produto` · `editar_produto` · `ativar_produto` · `desativar_produto` (v1.6) | Criar produto · Editar produto · Ativar produto · Desativar produto |
+| `corrigir_cadastro` · `exportar_dados_titular` · `eliminar_dados_titular` (v1.12) | Corrigir cadastro · Baixar dados do titular · Eliminar dados do titular |
+| `aplicar_retencao` (v1.12) | Aplicar retenção |
+| `importar_eventos` (v1.12) | Importar eventos |
+| `exportar_publico` · `exportar_remocoes_publico` · `baixar_arquivo_publico` (v1.12) | Gerar arquivo do público · Gerar arquivo de remoção · Baixar arquivo do público |
+
+Ação sem alvo (retenção, importação, entrada e saída) mostra "—" na coluna Alvo.
+
 ## Formatos
 
 | Dado | Formato | Exemplo |

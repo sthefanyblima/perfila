@@ -84,3 +84,45 @@ Funcionalidade: Públicos e consentimento por finalidade no painel
     Dado que o cliente "c-001" com o e-mail "c-001@exemplo.test" está no segmento "vip" com as finalidades "segmentacao,publicidade_terceiros"
     Quando o operador confirma gerar o arquivo do público do segmento "vip"
     Então o log do painel não contém "c-001@exemplo.test", "Cliente c-001" nem "9c4cd21419f4d9f66ea7"
+
+  # ---- Públicos na trilha de auditoria (v1.12, RN-13, Q-68) ----
+
+  @lgpd @RN-13 @Q-68 @wip
+  Cenário: Gerar o arquivo do público fica na auditoria com o segmento
+    Dado que o cliente "c-001" com o e-mail "c-001@exemplo.test" está no segmento "vip" com as finalidades "segmentacao,publicidade_terceiros"
+    Quando o operador confirma gerar o arquivo do público do segmento "vip"
+    Então o último registro da auditoria é "exportar_publico" do operador "analista" sobre o segmento "vip" com o resultado "SUCESSO"
+    E nenhum registro da auditoria contém "c-001@exemplo.test" nem "9c4cd21419f4d9f66ea7"
+
+  @lgpd @RN-13 @Q-63 @Q-68 @wip
+  Cenário: Gerar o arquivo de remoção fica na auditoria com o segmento
+    Dado que o cliente "c-001" com o e-mail "c-001@exemplo.test" está no segmento "vip" com as finalidades "segmentacao,publicidade_terceiros"
+    E que o operador gerou o arquivo do público do segmento "vip"
+    E que o operador revogou a finalidade "publicidade_terceiros" do cliente "c-001"
+    Quando o operador confirma gerar o arquivo de remoção do segmento "vip"
+    Então o último registro da auditoria é "exportar_remocoes_publico" do operador "analista" sobre o segmento "vip" com o resultado "SUCESSO"
+
+  @lgpd @RN-13 @Q-68 @wip
+  Cenário: Baixar o arquivo do público fica na auditoria com o segmento
+    Dado que o cliente "c-001" com o e-mail "c-001@exemplo.test" está no segmento "vip" com as finalidades "segmentacao,publicidade_terceiros"
+    E que o operador gerou o arquivo do público do segmento "vip"
+    Quando o operador baixa o arquivo gerado
+    Então o último registro da auditoria é "baixar_arquivo_publico" do operador "analista" sobre o segmento "vip" com o resultado "SUCESSO"
+
+  @lgpd @RN-13 @Q-64 @Q-69 @wip
+  Cenário: O arquivo vencido fica na auditoria como falha, sem alvo
+    Dado que o cliente "c-001" com o e-mail "c-001@exemplo.test" está no segmento "vip" com as finalidades "segmentacao,publicidade_terceiros"
+    E que o operador gerou o arquivo do público do segmento "vip"
+    E que se passaram 24 horas
+    Quando o operador baixa o arquivo gerado
+    Então a resposta tem status 410
+    E o último registro da auditoria é "baixar_arquivo_publico" do operador "analista" sem alvo com o resultado "FALHA"
+
+  @lgpd @RN-13 @Q-68 @wip
+  Cenário: Sem o registro na auditoria, o arquivo do público não é baixado
+    Dado que o cliente "c-001" com o e-mail "c-001@exemplo.test" está no segmento "vip" com as finalidades "segmentacao,publicidade_terceiros"
+    E que o operador gerou o arquivo do público do segmento "vip"
+    E que a gravação da auditoria está fora do ar
+    Quando o operador baixa o arquivo gerado
+    Então a resposta tem status 500
+    E a resposta não é um arquivo anexo
