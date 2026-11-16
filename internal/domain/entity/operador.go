@@ -45,7 +45,7 @@ const (
 	PermUsuarios           Permissao = "usuarios"
 	PermAuditoria          Permissao = "auditoria"
 	PermRelatorios         Permissao = "relatorios" // v1.7: tela Relatórios e CSV agregado (UC-05 e UC-07 parciais, RN-15)
-	PermEliminacao         Permissao = "eliminacao" // reservada para a eliminação de dados (D-13): sem rota no MVP
+	PermEliminacao         Permissao = "eliminacao" // v1.9: eliminar dados do titular (RN-17)
 )
 
 // Pode aplica a matriz da RN-11: função pura, sem estado. Papel fora do enumerado não pode nada.
