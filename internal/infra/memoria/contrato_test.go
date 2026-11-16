@@ -13,14 +13,19 @@ func TestContratoMemoria(t *testing.T) {
 	contrato.Executar(t, func(t *testing.T) contrato.Repositorios {
 		segmentos := memoria.NovoSegmentoRepository()
 		produtos := memoria.NovoProdutoRepository()
+		clientes, eventos, perfis := memoria.NovoClienteRepository(), memoria.NovoEventoRepository(), memoria.NovoPerfilRepository()
+		recomendacoes, consentimentos := memoria.NovoRecomendacaoRepository(), memoria.NovoConsentimentoRepository()
 		return contrato.Repositorios{
-			Clientes:          memoria.NovoClienteRepository(),
-			Eventos:           memoria.NovoEventoRepository(),
-			Perfis:            memoria.NovoPerfilRepository(),
+			Clientes:          clientes,
+			Eventos:           eventos,
+			Perfis:            perfis,
 			Segmentos:         segmentos,
-			Recomendacoes:     memoria.NovoRecomendacaoRepository(),
-			Consentimentos:    memoria.NovoConsentimentoRepository(),
+			Recomendacoes:     recomendacoes,
+			Consentimentos:    consentimentos,
 			Produtos:          produtos,
+			Operadores:        memoria.NovoOperadorRepository(),
+			Auditoria:         memoria.NovoAuditoriaRepository(),
+			Relatorios:        memoria.NovoRelatorioRepository(clientes, eventos, perfis, recomendacoes, consentimentos),
 			Tokens:            memoria.NovoTokenAcessoRepository(),
 			Pedidos:           memoria.NovoPedidoEliminacaoRepository(),
 			CaixaSaida:        memoria.NovaCaixaSaidaSimulada(),

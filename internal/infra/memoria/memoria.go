@@ -256,6 +256,43 @@ func (r *SegmentoRepository) BuscarPorID(_ context.Context, id uuid.UUID) (entit
 	return s, nil
 }
 
+// ListarTodos devolve ativos e inativos, Prioridade crescente, desempate por ID. Spec: 3.6, RN-14.
+func (r *SegmentoRepository) ListarTodos(_ context.Context) ([]entity.Segmento, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	out := make([]entity.Segmento, 0, len(r.dados))
+	for _, s := range r.dados {
+		out = append(out, s)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Prioridade != out[j].Prioridade {
+			return out[i].Prioridade < out[j].Prioridade
+		}
+		return out[i].ID.String() < out[j].ID.String()
+	})
+	return out, nil
+}
+
+// Salvar insere ou atualiza por ID e repete as unicidades do PostgreSQL (migração 008): nome sem
+// diferenciar maiúsculas e prioridade entre os ativos. Spec: 3.6, RN-14.
+func (r *SegmentoRepository) Salvar(_ context.Context, s entity.Segmento) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, outro := range r.dados {
+		if outro.ID == s.ID {
+			continue
+		}
+		if strings.EqualFold(outro.Nome, s.Nome) {
+			return errs.NovoErroCampo("nome", fmt.Sprintf("Já existe o segmento %q.", outro.Nome))
+		}
+		if s.Ativo && outro.Ativo && outro.Prioridade == s.Prioridade {
+			return errs.NovoErroCampo("prioridade", fmt.Sprintf("A prioridade %d já é do segmento %q.", s.Prioridade, outro.Nome))
+		}
+	}
+	r.dados[s.ID] = s
+	return nil
+}
+
 // ---------- Recomendação ----------
 
 type RecomendacaoRepository struct {
@@ -421,6 +458,20 @@ func (r *ConsentimentoRepository) BuscarPorCliente(_ context.Context, clienteID 
 	return c, nil
 }
 
+// ListarConcedidos devolve os registros com Status CONCEDIDO, por ClienteID. Spec: 3.6, Q-42.
+func (r *ConsentimentoRepository) ListarConcedidos(_ context.Context) ([]entity.ConsentimentoLGPD, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	out := []entity.ConsentimentoLGPD{}
+	for _, c := range r.dados {
+		if c.Status == entity.StatusConcedido {
+			out = append(out, c)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].ClienteID.String() < out[j].ClienteID.String() })
+	return out, nil
+}
+
 // ListarRevogadosAte devolve os clientes REVOGADO com DataRevogacao <= limite, da revogação mais
 // antiga para a mais recente (desempate por ID). Spec: RN-18, Q-51.
 func (r *ConsentimentoRepository) ListarRevogadosAte(_ context.Context, limite time.Time) ([]uuid.UUID, error) {
@@ -508,4 +559,21 @@ func (r *ProdutoRepository) ListarAtivosPorCategoria(_ context.Context, categori
 		}
 	}
 	return out, nil
+}
+
+// BuscarPorID devolve errs.ErrProdutoNaoEncontrado se não existir. Spec: 3.6, Q-43.
+func (r *ProdutoRepository) BuscarPorID(_ context.Context, id uuid.UUID) (entity.Produto, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	p, ok := r.dados[id]
+	if !ok {
+		return entity.Produto{}, errs.ErrProdutoNaoEncontrado
+	}
+	return p, nil
+}
+
+// Salvar insere ou atualiza por ID. Spec: 3.6, Q-43.
+func (r *ProdutoRepository) Salvar(_ context.Context, p entity.Produto) error {
+	r.Adicionar(p)
+	return nil
 }

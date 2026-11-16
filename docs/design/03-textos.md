@@ -37,6 +37,12 @@ O código estável (`errs.Codigo`) define a mensagem; o texto técnico do servid
 | `acesso_invalido` (v1.10) | Portal: abrir o link | Este link não vale mais. Peça um novo. |
 | `transicao_invalida` (pedir eliminação, v1.10) | Portal | Para pedir a eliminação, retire a autorização antes. |
 | 503 `indisponivel` | Qualquer | O banco de dados não está respondendo. Nada foi alterado. Tente de novo em instantes. |
+| `sem_permissao` | Qualquer (403) | Seu perfil de acesso não permite abrir esta página. Se precisar dela, fale com quem administra o painel. |
+| `login_em_uso` | Criar operador | Já existe um operador com esse login. Logins não se repetem, nem de operadores desativados. |
+| `propria_conta` | Operador | Você não pode mudar o próprio papel nem se desativar. Peça a outra pessoa administradora. |
+| `operador_nao_encontrado` | Usuários | Não encontramos esse operador. Volte para a lista de usuários. |
+| `nao_autenticado` (Minha senha) | Minha senha | Senha atual incorreta. |
+| sessão encerrada | Entrar | Sua sessão foi encerrada. Entre de novo. |
 
 ## Validação de campos (RN-04 e cadastro)
 
@@ -53,7 +59,49 @@ O código estável (`errs.Codigo`) define a mensagem; o texto técnico do servid
 | Data e hora | até 2 min no futuro | A data não pode estar no futuro. |
 | Nome do cliente (confirmar eliminação) | igual ao nome do cadastro | O nome digitado não confere com o cadastro. |
 
+Segmentos e produtos (v1.6, RN-14): as mensagens vêm do domínio (`errs.ErroCampo`) e aparecem ao lado do campo.
+
+| Campo | Regra | Mensagem |
+| --- | --- | --- |
+| Nome do segmento | 1 a 40, sem `;` nem `:`, único | Informe o nome do segmento. · Use até 40 caracteres no nome. · O nome não pode ter ponto e vírgula nem dois-pontos. · Já existe o segmento "{nome}". |
+| Prioridade | 1 a 999, única entre os ativos, menor que a do padrão | A prioridade vai de 1 a 999. · A prioridade {n} já é do segmento "{nome}". · A prioridade precisa ser menor que a do segmento "padrao" ({n}). |
+| Critério | gramática da RN-06; só o padrão é vazio | A condição "{condição}" está fora da gramática: use campo, operador e número com ponto. · Campo desconhecido na condição "{condição}": use frequenciaCompras, ticketMedio ou scoreEngajamento. · Condição vazia antes ou depois de "&&". · Complete a condição {n}: campo, operador e valor. · Só o segmento padrão pode ter o critério vazio. Monte pelo menos uma condição. |
+| Situação | o padrão fica ativo | O segmento "padrao" não pode ser desativado. |
+| Nome do produto | 1 a 100 | Informe o nome do produto. |
+| Categoria | 1 a 40 | Informe a categoria. |
+| Preço | 0 a 1.000.000 | O preço vai de 0 a 1.000.000. · Informe o preço com números, por exemplo 90,50. |
+
 Valide no navegador (atributos HTML: `required`, `min`, `max`, `step`) para dar retorno imediato, e sempre de novo no servidor, que é quem decide.
+
+## Importação de eventos (v1.8, RN-16)
+
+Cada linha não aceita mostra a mensagem pelo código do erro; em `dados_invalidos`, pelo motivo.
+
+| Código / motivo | Mensagem |
+| --- | --- |
+| `cliente_nao_encontrado` | Cliente não encontrado. Confira o ID. |
+| `cliente_inativo` | Cadastro inativo. Eventos ficam bloqueados. |
+| `consentimento_invalido` | Sem consentimento válido. O evento não pode ser usado. |
+| `dados_invalidos` / `cliente_id` | Informe o ID do cliente no formato UUID. |
+| `dados_invalidos` / `tipo` | Use compra, navegacao ou interacao. |
+| `dados_invalidos` / `origem` | Informe de onde veio o evento. |
+| `dados_invalidos` / `timestamp` | Informe data, hora e fuso, por exemplo 2026-11-10T14:30:00-03:00. |
+| `dados_invalidos` / `timestamp_futuro` | A data não pode estar no futuro. |
+| `dados_invalidos` / `valor` | O valor deve estar entre 0 e 1000000, com ponto decimal. |
+| `dados_invalidos` / `valor_compra` | Uma compra precisa ter valor maior que zero. |
+| `dados_invalidos` / `colunas` | A linha não tem as mesmas colunas do cabeçalho. |
+| duplicada | Já registrado: mesmo cliente, tipo, data e valor. |
+
+Arquivo recusado inteiro:
+
+| Motivo | Mensagem |
+| --- | --- |
+| `arquivo_vazio` | O arquivo não tem nenhuma linha de evento. Confira se ele tem o cabeçalho e pelo menos uma linha. |
+| `arquivo_grande` | O arquivo passa de 256 KiB. Divida em arquivos menores. |
+| `linhas_demais` | O arquivo passa de 1.000 linhas. Divida em arquivos menores. |
+| `codificacao_invalida` | O arquivo não está em UTF-8. Salve de novo como "CSV UTF-8". |
+| `cabecalho_invalido` | O cabeçalho deve ter as colunas cliente_id, tipo, origem, timestamp e valor (categoria é opcional), separadas por vírgula. |
+| `formato_invalido` | O arquivo tem aspas mal fechadas. Confira o arquivo e envie de novo. |
 
 ## Confirmações
 
@@ -61,13 +109,18 @@ Valide no navegador (atributos HTML: `required`, `min`, `max`, `step`) para dar 
 | --- | --- | --- | --- |
 | Conceder | Conceder consentimento | A partir de agora, os eventos deste cliente podem ser usados para perfil, segmento e recomendação, com a finalidade "{finalidade}" e o termo {versão}. | Conceder (primário) · Cancelar |
 | Revogar | Revogar consentimento | O processamento dos dados deste cliente para imediatamente. Os dados já registrados continuam guardados. Você pode conceder de novo depois. | Revogar consentimento (danger) · Cancelar (foco inicial) |
+| Importar eventos | (sem diálogo: a prévia já é a confirmação) | {n} eventos prontos para importar. Linhas duplicadas e com erro ficam de fora. | Importar {n} eventos (primário) · Enviar outro arquivo |
 | Expirar | Expirar recomendações vencidas | Recomendações ativas com validade até agora passam a Expirada e deixam de ser exibidas. | Expirar agora (primário) · Cancelar |
+| Desativar operador | Desativar {login} | O acesso ao painel acaba agora, inclusive nas sessões abertas. Você pode ativar de novo depois. | Desativar (danger) · Cancelar (foco inicial) |
+| Salvar segmento (v1.6) | Prévia de {nome} | A prévia considera {n} clientes ativos com consentimento válido. Quem já foi segmentado muda só no próximo processamento. | Salvar alterações (primário) · Voltar ao formulário |
+| Desativar segmento | Desativar {nome} | A mesma prévia, com a contagem sem o segmento. | Desativar (danger) · Cancelar |
+| Desativar produto | Desativar {nome} | O produto sai da recomendação no próximo processamento de cada cliente. Você pode ativar de novo depois. | Desativar (danger) · Cancelar (foco inicial) |
 | Eliminar (v1.9) | Eliminar dados do titular | Eventos, perfil e recomendações deste cliente são apagados e o cadastro é anonimizado. O histórico do consentimento fica guardado como prova, sem nome nem e-mail. Não pode ser desfeito. Digite o nome do cliente para confirmar: {nome}. | Eliminar dados (danger) · Cancelar (foco inicial) |
 | Retenção (v1.9) | Aplicar retenção | Eventos, perfil e recomendações de quem revogou o consentimento há {N} dias ou mais são apagados. Cadastro e histórico do consentimento ficam. Não pode ser desfeito. | Aplicar retenção (danger) · Cancelar (foco inicial) |
 
 ## Toasts
 
-"Cliente cadastrado" · "Consentimento concedido" · "Consentimento revogado" · "Evento registrado" · "Processamento concluído" · "Processamento concluído sem recomendação" · "{n} recomendações expiradas" / "Nenhuma recomendação vencida" · "ID copiado" · (v1.9) "Cadastro corrigido" · "Dados eliminados" · "Retenção aplicada a {n} clientes" / "Retenção aplicada a 1 cliente" / "Nenhum cliente com a retenção vencida".
+"Cliente cadastrado" · "Consentimento concedido" · "Consentimento revogado" · "Evento registrado" · "Processamento concluído" · "Processamento concluído sem recomendação" · "{n} recomendações expiradas" / "Nenhuma recomendação vencida" · "ID copiado" · "Operador criado" · "Papel alterado" · "Operador desativado" · "Operador ativado" · "Senha provisória definida" · "Senha trocada" (v1.5) · "Segmento salvo. Os clientes mudam de segmento no próximo processamento." · "Segmento ativado" · "Segmento desativado" · "Produto salvo" · "Produto ativado" · "Produto desativado" · "Nada mudou" (v1.6) · (v1.9) "Cadastro corrigido" · "Dados eliminados" · "Retenção aplicada a {n} clientes" / "Retenção aplicada a 1 cliente" / "Nenhum cliente com a retenção vencida".
 
 ## Direitos do titular (v1.9)
 
@@ -75,7 +128,7 @@ Valide no navegador (atributos HTML: `required`, `min`, `max`, `step`) para dar 
 | --- | --- |
 | Corrigir cadastro | Corrige nome e e-mail a pedido do titular. Não depende do consentimento. |
 | Acesso e portabilidade | Tudo o que o Perfila guarda deste titular: cadastro, consentimento e histórico, eventos, perfil, segmento e recomendações, num arquivo JSON. Vale com qualquer estado do consentimento. |
-| Eliminação | Apaga eventos, perfil e recomendações e anonimiza o cadastro. O histórico do consentimento fica guardado como prova. Não pode ser desfeito. |
+| Eliminação | Apaga eventos, perfil e recomendações e anonimiza o cadastro. O histórico do consentimento fica guardado como prova. Não pode ser desfeito. Quem não é administrador vê, no lugar do botão: "Só o administrador elimina dados." (RN-11) |
 | Cliente eliminado | Dados eliminados em {data}. O cadastro foi anonimizado; resta o histórico do consentimento, guardado como prova. |
 | Retenção (Operação) | Apaga eventos, perfil e recomendações de quem revogou o consentimento há {N} dias ou mais. Cadastro e histórico do consentimento ficam. É o mesmo efeito do comando `aplicar-retencao`. |
 

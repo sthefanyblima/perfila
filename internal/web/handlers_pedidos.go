@@ -2,14 +2,17 @@ package web
 
 import (
 	"net/http"
+
+	"perfila/internal/domain/entity"
 )
 
 // Pedidos do titular e caixa de saída simulada no painel. Spec: v1.10, 3.7.1, Q-57, Q-58.
-// Hoje são da pessoa operadora única (Q-22); com os papéis da v1.5, ficam com ADMINISTRADOR.
+// Com os papéis da v1.5 ficam com ADMINISTRADOR: Pedidos pela permissão eliminacao, a caixa de
+// saída pela operacao (RN-11).
 
-func (p *painel) rotasPedidos(mux *http.ServeMux, sessao func(http.HandlerFunc) http.Handler) {
-	mux.Handle("GET /painel/pedidos", sessao(p.telaPedidos))
-	mux.Handle("GET /painel/operacao/caixa-saida", sessao(p.telaCaixaSaida))
+func (p *painel) rotasPedidos(mux *http.ServeMux, sessao func(entity.Permissao, http.HandlerFunc) http.Handler) {
+	mux.Handle("GET /painel/pedidos", sessao(entity.PermEliminacao, p.telaPedidos))
+	mux.Handle("GET /painel/operacao/caixa-saida", sessao(entity.PermOperacao, p.telaCaixaSaida))
 }
 
 // GET /painel/pedidos — abertos primeiro; cada linha leva à aba Direitos da ficha.

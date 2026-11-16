@@ -231,7 +231,7 @@ func (m *Mundo) portalNoAr(base string) error {
 	c := m.uc()
 	portal, err := web.NovoPortal(web.DependenciasPortal{
 		ChaveSessao: chave, Finalidade: "segmentacao", VersaoTermo: "v1",
-		Solicitar: c.solicitarAcesso, Autenticar: c.autenticar, MeusDados: c.meusDados, Consentimento: c.consentimento,
+		Solicitar: c.solicitarAcesso, Autenticar: c.autenticarTitular, MeusDados: c.meusDados, Consentimento: c.consentimento,
 		ExportarDados: c.exportar, Eliminacao: c.pedirEliminacao,
 		Clock: m.clock, Log: slog.New(slog.NewTextHandler(&m.web.log, nil)),
 	})
@@ -371,7 +371,7 @@ func (m *Mundo) soHash() error {
 }
 
 func (m *Mundo) usarToken(token string) {
-	m.portal.clienteID, m.err = m.uc().autenticar.Executar(m.ctx, token)
+	m.portal.clienteID, m.err = m.uc().autenticarTitular.Executar(m.ctx, token)
 }
 
 func (m *Mundo) linksEmCadastrosDiferentes() error {
@@ -382,7 +382,7 @@ func (m *Mundo) linksEmCadastrosDiferentes() error {
 		if s == nil {
 			return fmt.Errorf("mensagem sem link: %q", msg.Corpo)
 		}
-		c, err := m.uc().autenticar.Executar(m.ctx, s[1])
+		c, err := m.uc().autenticarTitular.Executar(m.ctx, s[1])
 		if err != nil {
 			return err
 		}

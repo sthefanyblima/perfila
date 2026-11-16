@@ -28,10 +28,12 @@ type Config struct {
 
 	// Painel web do operador (Spec 3.8, Q-22, Q-25, Q-29).
 	PainelUsuario     string
-	PainelSenhaHash   string // bcrypt; vazia = painel desligado
+	PainelSenhaHash   string // bcrypt do administrador inicial; exigida só sem operador gravado (Q-35)
 	PainelChaveSessao []byte // 32 bytes (64 dígitos hexadecimais); vazia = painel desligado
 	PainelFinalidade  string
 	PainelVersaoTermo string
+
+	AuditoriaRetencaoDias int // RN-13, Q-39
 
 	// Portal do titular (Spec 3.8, v1.10, Q-60).
 	PortalURLBase     string // endereço público usado no link; vazia = portal desligado
@@ -41,8 +43,8 @@ type Config struct {
 // PortalLigado informa se o portal /titular deve ser montado (Q-60).
 func (c Config) PortalLigado() bool { return c.PortalURLBase != "" && len(c.PortalChaveSessao) > 0 }
 
-// PainelLigado informa se o painel /painel deve ser montado (Q-29).
-func (c Config) PainelLigado() bool { return c.PainelSenhaHash != "" && len(c.PainelChaveSessao) > 0 }
+// PainelLigado informa se o painel /painel deve ser montado: a chave de sessão o liga (Q-29, Q-35).
+func (c Config) PainelLigado() bool { return len(c.PainelChaveSessao) > 0 }
 
 // ModoMemoria informa se o servidor roda sem PostgreSQL (D-23).
 func (c Config) ModoMemoria() bool { return c.DatabaseURL == "" }
@@ -83,6 +85,7 @@ func Carregar(path string, getenv func(string) string) (Config, error) {
 		AuthToken:                valor("AUTH_TOKEN"),
 		RecomendacaoValidadeDias: inteiro("RECOMENDACAO_VALIDADE_DIAS", 30, 1),
 		EngajamentoMetaEventos:   inteiro("ENGAJAMENTO_META_EVENTOS", 30, 1),
+		AuditoriaRetencaoDias:    inteiro("AUDITORIA_RETENCAO_DIAS", 180, 1),
 		RetencaoDiasRevogado:     inteiro("RETENCAO_DIAS_REVOGADO", 180, 1),
 		LogLevel:                 strings.ToLower(valor("LOG_LEVEL")),
 	}
@@ -105,7 +108,8 @@ func Carregar(path string, getenv func(string) string) (Config, error) {
 	return c, nil
 }
 
-// lerPainel lê PAINEL_*: hash e chave andam juntos (Q-29); a chave tem 32 bytes em hexadecimal.
+// lerPainel lê PAINEL_*: a chave liga o painel e tem 32 bytes em hexadecimal; o hash do
+// administrador inicial só faz sentido com ela (Q-29, Q-35).
 // Os valores nunca entram nas mensagens de erro.
 func (c *Config) lerPainel(valor func(string) string) []string {
 	padrao := func(k, p string) string {
@@ -120,8 +124,8 @@ func (c *Config) lerPainel(valor func(string) string) []string {
 	c.PainelSenhaHash = valor("PAINEL_SENHA_HASH")
 	chave := valor("PAINEL_CHAVE_SESSAO")
 	var problemas []string
-	if (c.PainelSenhaHash == "") != (chave == "") {
-		return append(problemas, "PAINEL_SENHA_HASH e PAINEL_CHAVE_SESSAO devem ser definidas juntas (ou nenhuma, painel desligado)")
+	if c.PainelSenhaHash != "" && chave == "" {
+		return append(problemas, "PAINEL_SENHA_HASH exige PAINEL_CHAVE_SESSAO (sem a chave, o painel fica desligado)")
 	}
 	if chave != "" {
 		b, err := hex.DecodeString(chave)

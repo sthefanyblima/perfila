@@ -16,6 +16,7 @@ import (
 	"perfila/internal/infra/external"
 	"perfila/internal/infra/memoria"
 	"perfila/internal/infra/relogio"
+	"perfila/internal/infra/senha"
 )
 
 // Mundo guarda o estado de um cenário: relógio fixo, fakes em memória e último resultado.
@@ -30,6 +31,9 @@ type Mundo struct {
 	recomendacoes  *memoria.RecomendacaoRepository
 	consentimentos *memoria.ConsentimentoRepository
 	produtos       *memoria.ProdutoRepository
+	operadores     *memoria.OperadorRepository  // v1.5
+	auditoria      *memoria.AuditoriaRepository // v1.5
+	hash           senha.Bcrypt
 	// portal do titular (v1.10)
 	tokens     *memoria.TokenAcessoRepository
 	pedidos    *memoria.PedidoEliminacaoRepository
@@ -53,6 +57,10 @@ type Mundo struct {
 	processamento          usecase.ResultadoProcessamento
 	leitura                estadoLeitura
 	web                    estadoWeb
+	ops                    estadoOperadores
+	cfg                    estadoConfig // v1.6
+	rel                    estadoRelatorio
+	importacao             estadoImportacao
 	direitos               estadoDireitos
 	portal                 estadoPortal
 
@@ -76,6 +84,10 @@ func novoMundo() *Mundo {
 		recomendacoes:  memoria.NovoRecomendacaoRepository(),
 		consentimentos: memoria.NovoConsentimentoRepository(),
 		produtos:       memoria.NovoProdutoRepository(),
+		operadores:     memoria.NovoOperadorRepository(),
+		auditoria:      memoria.NovoAuditoriaRepository(),
+		hash:           senha.NovoBcrypt(4), // custo mínimo do bcrypt: cenários rápidos
+		ops:            estadoOperadores{sessoes: map[string]time.Time{}},
 		tokens:         memoria.NovoTokenAcessoRepository(),
 		pedidos:        memoria.NovoPedidoEliminacaoRepository(),
 		caixaSaida:     memoria.NovaCaixaSaidaSimulada(),
@@ -102,6 +114,17 @@ type casos struct {
 	listarCatalogo     *usecase.ListarCatalogoUseCase
 	expirar            *usecase.ExpirarRecomendacoesUseCase
 
+	autenticar         *usecase.AutenticarOperadorUseCase
+	operadores         *usecase.GerenciarOperadoresUseCase
+	registrarAuditoria *usecase.RegistrarAuditoriaUseCase
+	listarAuditoria    *usecase.ListarAuditoriaUseCase
+	expurgarAuditoria  *usecase.ExpurgarAuditoriaUseCase
+
+	salvarSegmento *usecase.SalvarSegmentoUseCase // v1.6
+	prever         *usecase.PreverSegmentacaoUseCase
+	salvarProduto  *usecase.SalvarProdutoUseCase
+	gerarRelatorio *usecase.GerarRelatorioUseCase
+	importar       *usecase.ImportarEventosUseCase // RN-16
 	// direitos do titular e retenção (v1.9)
 	atualizarCadastro *usecase.AtualizarCadastroUseCase
 	exportar          *usecase.ExportarDadosTitularUseCase
@@ -109,12 +132,12 @@ type casos struct {
 	retencao          *usecase.AplicarRetencaoUseCase
 
 	// portal do titular (v1.10)
-	solicitarAcesso *usecase.SolicitarAcessoTitularUseCase
-	autenticar      *usecase.AutenticarTitularUseCase
-	meusDados       *usecase.ConsultarMeusDadosUseCase
-	pedirEliminacao *usecase.PedirEliminacaoUseCase
-	listarPedidos   *usecase.ListarPedidosEliminacaoUseCase
-	listarCaixa     *usecase.ListarCaixaSaidaUseCase
+	solicitarAcesso   *usecase.SolicitarAcessoTitularUseCase
+	autenticarTitular *usecase.AutenticarTitularUseCase
+	meusDados         *usecase.ConsultarMeusDadosUseCase
+	pedirEliminacao   *usecase.PedirEliminacaoUseCase
+	listarPedidos     *usecase.ListarPedidosEliminacaoUseCase
+	listarCaixa       *usecase.ListarCaixaSaidaUseCase
 }
 
 func (m *Mundo) uc() casos {
@@ -137,6 +160,17 @@ func (m *Mundo) uc() casos {
 	c.consultarResultado = usecase.NovoConsultarResultadoUseCase(pre, m.eventos, m.perfis, m.segmentos, m.recomendacoes, m.produtos)
 	c.listarSegmentos = usecase.NovoListarSegmentosUseCase(m.segmentos)
 	c.listarCatalogo = usecase.NovoListarCatalogoUseCase(m.produtos)
+	c.autenticar = usecase.NovoAutenticarOperadorUseCase(m.operadores, m.hash)
+	c.operadores = usecase.NovoGerenciarOperadoresUseCase(m.operadores, m.hash, m.clock)
+	c.registrarAuditoria = usecase.NovoRegistrarAuditoriaUseCase(m.auditoria, m.clock)
+	c.listarAuditoria = usecase.NovoListarAuditoriaUseCase(m.auditoria)
+	c.expurgarAuditoria = usecase.NovoExpurgarAuditoriaUseCase(m.auditoria, m.clock, retencaoPadrao)
+	c.salvarSegmento = usecase.NovoSalvarSegmentoUseCase(m.segmentos)
+	c.prever = usecase.NovoPreverSegmentacaoUseCase(m.segmentos, m.consentimentos, m.clientes, m.perfis)
+	c.salvarProduto = usecase.NovoSalvarProdutoUseCase(m.produtos)
+	c.gerarRelatorio = usecase.NovoGerarRelatorioUseCase(memoria.NovoRelatorioRepository(m.clientes, m.eventos, m.perfis,
+		m.recomendacoes, m.consentimentos), m.segmentos, m.clock, fusoRelatorio)
+	c.importar = usecase.NovoImportarEventosUseCase(coletar, pre, m.eventos, m.clock)
 	c.atualizarCadastro = usecase.NovoAtualizarCadastroUseCase(m.clientes)
 	c.exportar = usecase.NovoExportarDadosTitularUseCase(m.clientes, c.consentimento, m.eventos, m.perfis, m.segmentos,
 		m.recomendacoes, m.produtos, m.clock)
@@ -145,7 +179,7 @@ func (m *Mundo) uc() casos {
 	c.retencao = usecase.NovoAplicarRetencaoUseCase(m.consentimentos, m.eventos, m.perfis, m.recomendacoes, m.clock, m.direitos.prazoDias)
 	c.solicitarAcesso = usecase.NovoSolicitarAcessoTitularUseCase(m.clientes, m.tokens,
 		external.NovoNotificadorSimulado(m.caixaSaida, m.clock), m.clock, m.portal.urlBase)
-	c.autenticar = usecase.NovoAutenticarTitularUseCase(m.clientes, m.tokens, m.clock)
+	c.autenticarTitular = usecase.NovoAutenticarTitularUseCase(m.clientes, m.tokens, m.clock)
 	c.meusDados = usecase.NovoConsultarMeusDadosUseCase(m.clientes, c.consentimento, m.pedidos)
 	c.pedirEliminacao = usecase.NovoPedirEliminacaoUseCase(m.clientes, c.consentimento, m.pedidos, m.clock)
 	c.listarPedidos = usecase.NovoListarPedidosEliminacaoUseCase(m.pedidos, m.clientes, c.consentimento)

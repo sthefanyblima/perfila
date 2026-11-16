@@ -1,0 +1,30 @@
+{{define "conteudo"}}{{with .Dados}}
+<header class="pf-header">
+  <div class="pf-header__row"><h1 class="pf-header__title">Minha senha</h1></div>
+</header>
+{{if .Obrigatoria}}<div data-teste="aviso-senha-provisoria">{{template "alerta" (alertaInfo "Defina a sua senha" "Você entrou com uma senha provisória. Defina uma senha só sua para continuar.")}}</div>{{end}}
+{{if .Erro}}<div class="pf-alert pf-alert--critical" role="alert"><span class="pf-alert__badge" aria-hidden="true">{{icone "barra"}}</span><div><p class="pf-alert__text">{{.Erro}}</p></div></div>{{end}}
+<section class="pf-panel" aria-labelledby="titulo-minha-senha">
+  <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-minha-senha">Trocar a senha</h2></div>
+  <form class="pf-panel__body pf-form" method="post" action="/painel/minha-senha" data-teste="form-minha-senha">
+    {{template "csrf" $.CSRF}}
+    <p class="pf-muted">Use pelo menos 12 caracteres. Uma frase longa é mais fácil de lembrar e mais difícil de adivinhar.</p>
+    <div class="pf-field">
+      <label class="pf-field__label" for="atual">Senha atual</label>
+      <input class="pf-input" id="atual" name="atual" type="password" required autocomplete="current-password"{{if .ErroAtual}} aria-invalid="true" aria-describedby="atual-erro"{{end}}>
+      {{if .ErroAtual}}<span class="pf-field__error" id="atual-erro" aria-live="assertive">{{icone "barra"}}{{.ErroAtual}}</span>{{end}}
+    </div>
+    <div class="pf-field">
+      <label class="pf-field__label" for="nova">Senha nova</label>
+      <input class="pf-input" id="nova" name="nova" type="password" required minlength="12" autocomplete="new-password"{{if .ErroNova}} aria-invalid="true" aria-describedby="nova-erro"{{end}}>
+      {{if .ErroNova}}<span class="pf-field__error" id="nova-erro" aria-live="assertive">{{icone "barra"}}{{.ErroNova}}</span>{{end}}
+    </div>
+    <div class="pf-field">
+      <label class="pf-field__label" for="confirmacao">Confirme a senha nova</label>
+      <input class="pf-input" id="confirmacao" name="confirmacao" type="password" required minlength="12" autocomplete="new-password"{{if .ErroConfirmar}} aria-invalid="true" aria-describedby="confirmacao-erro"{{end}}>
+      {{if .ErroConfirmar}}<span class="pf-field__error" id="confirmacao-erro" aria-live="assertive">{{icone "barra"}}{{.ErroConfirmar}}</span>{{end}}
+    </div>
+    <div class="pf-form__foot"><button type="submit" class="pf-btn pf-btn--primary">Trocar senha</button></div>
+  </form>
+</section>
+{{end}}{{end}}

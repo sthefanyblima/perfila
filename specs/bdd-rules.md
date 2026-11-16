@@ -122,10 +122,12 @@ As features vivem em `features/` e são a versão executável deste documento. E
 | `processamento.feature` | RN-09, Q-26 | `@aplicacao` | 4 | Painel web ✅ (T-32) |
 | `leitura.feature` | RN-01, Q-21, Q-23, Q-31 | `@aplicacao` | 18 | Painel web ✅ (T-34) |
 | `painel.feature` | 3.7.1, UC-01, UC-08, UC-09, RN-01, RN-09, Q-21 a Q-24, Q-31, Q-32, RN-10, Q-34 | `@web` | 33 | Painel web ✅ (T-35 a T-38; +4 do histórico, T-45) |
+| `relatorios.feature` | UC-05, UC-07, RN-15, Q-46 | `@dominio`, `@aplicacao` e `@web` | 25 | Relatórios (v1.7) ✅ (T-62 e T-63) |
+| `importacao.feature` | UC-01, RN-01, RN-04, RN-16, Q-47 | `@aplicacao`, `@api` e `@web` | 45 | Importação de eventos (v1.8) ✅ (T-66 e T-67) |
 | `direitos.feature` | UC-09, RN-01, RN-17, RN-18, Q-48 a Q-53 | `@aplicacao` e `@web` | 46 | Direitos do titular (v1.9) ✅ (T-71 e T-72) |
 | `portal.feature` | UC-08, RN-03, RN-10, RN-17, RN-19, RN-20, Q-49, Q-55 a Q-58 | `@aplicacao`, `@dominio` e `@web` | 51 | Portal do titular (v1.10) ✅ (T-77 e T-78) |
 
-Total no `make verify`: **267 cenários, todos verdes** (107 até a v1.2, os do painel, 12 do histórico do consentimento, v1.4, 46 dos direitos do titular, v1.9, e 51 do portal do titular, v1.10); mais 3 cenários `@implantacao` (11 passos) em `make bdd-implantacao`.
+Total no `make verify`: **436 cenários, todos verdes** (107 até a v1.2, os do painel, 12 do histórico do consentimento, v1.4, os de usuários e perfis, v1.5, os da edição de segmentos e catálogo, v1.6, 25 dos relatórios, v1.7, 45 da importação de eventos, v1.8, 46 dos direitos do titular, v1.9, e 51 do portal do titular, v1.10); mais 3 cenários `@implantacao` (11 passos) em `make bdd-implantacao`.
 
 ### 6.1 Mudanças da v1.0 nas features (aprovadas junto com a Spec v1.0, B-14)
 

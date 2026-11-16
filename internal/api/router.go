@@ -20,6 +20,7 @@ type Dependencias struct {
 	Consentimento *usecase.GerenciarConsentimentoUseCase
 	Coletar       *usecase.ColetarDadosUseCase
 	Processar     *usecase.ProcessarClienteUseCase // RN-09 (Q-26)
+	Importar      *usecase.ImportarEventosUseCase  // RN-16 (Q-47)
 	Log           *slog.Logger
 	Clock         port.Clock // duração no log de acesso (C-07); opcional
 	// Saude confere as dependências (o banco, no modo PostgreSQL); nil = sempre saudável (Q-19).
@@ -44,6 +45,7 @@ func NovoRouter(d Dependencias) http.Handler {
 	mux.Handle("POST /v1/clientes", auth(h.cadastrarCliente))
 	mux.Handle("POST /v1/clientes/{clienteID}/processamento", authLGPD(h.processar))
 	mux.Handle("POST /v1/clientes/{clienteID}/eventos", authLGPD(h.registrarEvento))
+	mux.Handle("POST /v1/eventos/lote", auth(h.importarLote))
 	mux.Handle("PUT /v1/clientes/{clienteID}/consentimento", auth(h.concederConsentimento))
 	mux.Handle("POST /v1/clientes/{clienteID}/consentimento/revogacao", auth(h.revogarConsentimento))
 	mux.Handle("GET /v1/clientes/{clienteID}/consentimento", auth(h.consultarConsentimento))

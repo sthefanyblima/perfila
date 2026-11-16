@@ -2,23 +2,29 @@ package web
 
 import (
 	"crypto/subtle"
+	"errors"
 	"net/http"
 	"time"
 
-	"golang.org/x/crypto/bcrypt"
+	"github.com/google/uuid"
+
+	"perfila/internal/domain/entity"
+	"perfila/internal/shared/errs"
 )
 
 type dadosEntrar struct {
-	Usuario string
-	Volta   string
-	Token   string // CSRF do formulário Entrar (cookie perfila_entrar)
-	Erro    string
-	Expirou bool
+	Usuario   string
+	Volta     string
+	Token     string // CSRF do formulário Entrar (cookie perfila_entrar)
+	Erro      string
+	Expirou   bool
+	Encerrada bool // sessão recusada por operador inativo ou senha trocada (Q-38)
 }
 
-// GET /painel/entrar — formulário único; guarda o destino e avisa sessão vencida (fluxo E).
+// GET /painel/entrar — formulário único; guarda o destino e avisa sessão vencida ou encerrada.
 func (p *painel) telaEntrar(w http.ResponseWriter, r *http.Request) {
-	d := dadosEntrar{Volta: r.URL.Query().Get("volta"), Expirou: r.URL.Query().Get("expirou") == "1"}
+	q := r.URL.Query()
+	d := dadosEntrar{Volta: q.Get("volta"), Expirou: q.Get("expirou") == "1", Encerrada: q.Get("encerrada") == "1"}
 	p.mostrarEntrar(w, r, http.StatusOK, d)
 }
 
@@ -31,7 +37,8 @@ func (p *painel) mostrarEntrar(w http.ResponseWriter, r *http.Request, status in
 	p.render(w, r, status, "entrar", pagina{Titulo: "Entrar", Dados: d})
 }
 
-// POST /painel/entrar — bcrypt, erro genérico e 5 tentativas por IP em 5 minutos (Q-22).
+// POST /painel/entrar — AutenticarOperador (RN-12), erro genérico e 5 tentativas por IP em
+// 5 minutos (Q-22). Cada tentativa vai para a auditoria (RN-13).
 func (p *painel) entrar(w http.ResponseWriter, r *http.Request) {
 	usuario, senha := r.PostFormValue("usuario"), r.PostFormValue("senha")
 	d := dadosEntrar{Usuario: usuario, Volta: r.PostFormValue("volta")}
@@ -47,22 +54,32 @@ func (p *painel) entrar(w http.ResponseWriter, r *http.Request) {
 		p.mostrarEntrar(w, r, http.StatusTooManyRequests, d)
 		return
 	}
-	usuarioOK := subtle.ConstantTimeCompare([]byte(usuario), []byte(p.d.Usuario)) == 1
-	senhaOK := bcrypt.CompareHashAndPassword(p.d.SenhaHash, []byte(senha)) == nil
-	if !usuarioOK || !senhaOK {
+	op, err := p.d.Autenticar.Executar(r.Context(), usuario, senha)
+	if err != nil {
+		if !errors.Is(err, errs.ErrCredenciaisInvalidas) {
+			p.falha(w, r, err, "")
+			return
+		}
 		p.tentativas.falhou(ip)
+		// Só o login de um operador existente vai para a auditoria: o texto digitado pode ser qualquer coisa.
+		ra := r.WithContext(comSessao(r.Context(), sessao{Operador: op.Login}, entity.Operador{}))
+		p.auditar(ra, entity.AcaoEntrar, entity.AlvoNenhum, uuid.Nil, err)
 		d.Erro = "Usuário ou senha incorretos."
 		p.mostrarEntrar(w, r, http.StatusUnauthorized, d)
 		return
 	}
-	s := sessao{Operador: p.d.Usuario, Expira: p.d.Clock.Agora().Add(duracaoSessao), CSRF: tokenAleatorio()}
+	s := novaSessao(op, p.d.Clock.Agora().Add(duracaoSessao))
 	gravarCookie(w, cookieSessao, assinar(p.d.ChaveSessao, s), s.Expira)
 	gravarCookie(w, cookieEntrar, "", time.Unix(1, 0))
-	r = r.WithContext(comSessao(r.Context(), s))
+	r = r.WithContext(comSessao(r.Context(), s, op))
 	p.acao(r, "entrar", "")
+	p.auditar(r, entity.AcaoEntrar, entity.AlvoNenhum, uuid.Nil, nil)
 	destino := d.Volta
-	if !destinoSeguro(destino) {
-		destino = "/painel/clientes"
+	switch {
+	case op.TrocarSenha:
+		destino = "/painel/minha-senha"
+	case !destinoSeguro(destino):
+		destino = inicio(op)
 	}
 	http.Redirect(w, r, destino, http.StatusSeeOther)
 }
@@ -70,6 +87,7 @@ func (p *painel) entrar(w http.ResponseWriter, r *http.Request) {
 // POST /painel/sair — apaga o cookie (a sessão assinada perde a validade no navegador).
 func (p *painel) sair(w http.ResponseWriter, r *http.Request) {
 	p.acao(r, "sair", "")
+	p.auditar(r, entity.AcaoSair, entity.AlvoNenhum, uuid.Nil, nil)
 	gravarCookie(w, cookieSessao, "", time.Unix(1, 0))
 	http.Redirect(w, r, "/painel/entrar", http.StatusSeeOther)
 }

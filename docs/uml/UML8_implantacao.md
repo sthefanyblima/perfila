@@ -3,7 +3,7 @@
 > **Fonte:** Módulo 5 · imagem original: [`img/UML8_implantacao.png`](img/UML8_implantacao.png)
 > **Imagem corrigida (v1, gerada do Mermaid abaixo):** [`img/v1/UML8_implantacao.png`](img/v1/UML8_implantacao.png)
 > **Fonte da verdade para:** servidores, contêineres e configuração (Spec 3.8).
-> **Versão:** v1.10 · **Fase de implementação:** Generic (16–19/11), painel web (T-31 a T-38), direitos do titular (T-69 a T-73) e portal do titular (T-75 a T-79) · **Decisões relacionadas:** D-16, D-21, Q-22, Q-28, Q-29, Q-51, Q-55 a Q-60.
+> **Versão:** v1.10 · **Fase de implementação:** Generic (16–19/11), painel web (T-31 a T-38), operadores (T-47 a T-54), direitos do titular (T-69 a T-73) e portal do titular (T-75 a T-79) · **Decisões relacionadas:** D-16, D-21, Q-22, Q-28, Q-29, Q-35, Q-39, Q-51, Q-55 a Q-60.
 
 ## Diagrama (v1.3)
 
@@ -50,9 +50,10 @@ flowchart LR
 | `RECOMENDACAO_VALIDADE_DIAS` | 30 | RN-08 |
 | `ENGAJAMENTO_META_EVENTOS` | 30 | RN-05 (deve ser > 0) |
 | `LOG_LEVEL` | info | nível de log |
-| `PAINEL_USUARIO` | operador | login do operador do painel (Q-22) |
-| `PAINEL_SENHA_HASH` | vazia = painel desligado | hash bcrypt (`omega-server hash-senha`, Q-28) |
-| `PAINEL_CHAVE_SESSAO` | vazia = painel desligado | chave HMAC da sessão, 64 dígitos hexadecimais |
+| `PAINEL_USUARIO` | operador | login do administrador inicial, usado só sem nenhum operador no banco (Q-35) |
+| `PAINEL_SENHA_HASH` | vazia | hash bcrypt do administrador inicial (`omega-server hash-senha`, Q-28); exigida só enquanto não houver operador |
+| `PAINEL_CHAVE_SESSAO` | vazia = painel desligado | chave HMAC da sessão, 64 dígitos hexadecimais; liga o painel (Q-35) |
+| `AUDITORIA_RETENCAO_DIAS` | 180 | retenção da auditoria do painel (RN-13, Q-39) |
 | `PAINEL_FINALIDADE` | segmentacao | finalidade sugerida ao conceder (Q-25) |
 | `PAINEL_VERSAO_TERMO` | v1 | versão vigente do termo (Q-25) |
 | `RETENCAO_DIAS_REVOGADO` | 180 | prazo da retenção após a revogação, em dias, inteiro > 0 (RN-18, Q-51) |
@@ -61,7 +62,8 @@ flowchart LR
 
 ## Regras para o agente
 
-1. Binário estático `omega-server` com subcomandos `serve`, `expirar-recomendacoes`, `hash-senha` (Q-28), `carregar-exemplos` (Q-30) e `aplicar-retencao` (v1.9, RN-18, Q-51); o administrador os executa por SSH.
+1. Binário estático `omega-server` com subcomandos `serve`, `expirar-recomendacoes`, `hash-senha` (Q-28), `carregar-exemplos` (Q-30), `expurgar-auditoria` (Q-39, a agendar como a expiração) e `aplicar-retencao` (v1.9, RN-18, Q-51); o administrador os executa por SSH.
+5. Operadores ficam no `omega_db` (Q-35). Na primeira subida, sem operador gravado, uma das réplicas cria o administrador inicial a partir de `PAINEL_USUARIO` e `PAINEL_SENHA_HASH` (só uma grava, sob trava); a sessão continua sem estado, e cada réplica confere o operador no banco a cada requisição (Q-38).
 4. O painel (`/painel`) é servido pelo mesmo binário, atrás do mesmo Nginx; a sessão é assinada e sem estado, então qualquer réplica atende (Q-22). Fontes, CSS e htmx saem do próprio binário: nenhuma requisição a terceiros.
 2. O cliente nunca acessa o banco: só o balanceador expõe porta pública (cenário em `implantacao.feature`).
 3. `GET /saude` sem autenticação, para o balanceador.
