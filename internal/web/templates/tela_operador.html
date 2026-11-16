@@ -1,0 +1,80 @@
+{{define "conteudo"}}{{with .Dados}}{{$op := .Op}}
+<header class="pf-header">
+  <ol class="pf-crumbs"><li><a href="/painel/usuarios">Usuários</a></li><li aria-current="page">{{$op.Login}}</li></ol>
+  <div class="pf-header__row">
+    <div>
+      <h1 class="pf-header__title pf-mono" data-teste="operador" data-login="{{$op.Login}}">{{$op.Login}}</h1>
+      <div class="pf-header__meta">
+        <span>{{$op.Nome}}</span>
+        <span class="pf-tag pf-tag--accent">{{rotulo (estado $op.Papel)}}</span>
+        {{if $op.Ativo}}<span class="pf-tag pf-tag--ok">{{icone "ok"}}Ativo</span>{{else}}{{template "tag" "INATIVO"}}{{end}}
+        <span>Criado em {{data $op.CriadoEm}}</span>
+      </div>
+    </div>
+  </div>
+</header>
+{{with .Erro}}{{template "alerta" .}}{{end}}
+{{if .Propria}}{{template "alerta" (alertaInfo "Esta é a sua conta" "Você não pode mudar o próprio papel nem se desativar. Para trocar a sua senha, use Minha senha.")}}{{end}}
+<div class="pf-grid-2">
+  <section class="pf-panel" aria-labelledby="titulo-papel">
+    <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-papel">Papel</h2></div>
+    <div class="pf-panel__body">
+      {{if .Propria}}<p class="pf-muted">{{rotulo (estado $op.Papel)}}.</p>{{else}}
+      <form class="pf-form" method="post" action="/painel/usuarios/{{$op.ID}}/papel" data-teste="acao-mudar-papel">
+        {{template "csrf" $.CSRF}}
+        <div class="pf-field pf-field--estreito">
+          <label class="pf-field__label" for="papel">Papel</label>
+          <select class="pf-select" id="papel" name="papel">
+            {{range $.Dados.Papeis}}<option value="{{.}}"{{if eq . $op.Papel}} selected{{end}}>{{rotulo (estado .)}}</option>{{end}}
+          </select>
+          <span class="pf-field__hint">A mudança vale na próxima página que a pessoa abrir.</span>
+        </div>
+        <div class="pf-form__foot"><button type="submit" class="pf-btn">Salvar papel</button></div>
+      </form>{{end}}
+    </div>
+  </section>
+  <section class="pf-panel" aria-labelledby="titulo-situacao">
+    <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-situacao">Situação</h2></div>
+    <div class="pf-panel__body">
+      {{if $op.Ativo}}
+        <p>Desativar tira o acesso na hora, inclusive de quem já está com o painel aberto. O histórico na auditoria continua.</p>
+        {{if not .Propria}}
+          {{if .Confirmar}}<div class="pf-confirm" data-teste="confirmar-desativar">{{template "form-desativar" (lista (estado $op.ID) $.CSRF $op.Login)}}</div>
+          {{else}}<div><a class="pf-btn pf-btn--danger" href="/painel/usuarios/{{$op.ID}}/desativar" data-dialogo="dlg-desativar" hx-boost="false" data-teste="acao-desativar">Desativar</a></div>{{end}}
+        {{end}}
+      {{else}}
+        <p>Operador desativado: não entra no painel.</p>
+        <form method="post" action="/painel/usuarios/{{$op.ID}}/ativar" data-teste="acao-ativar">{{template "csrf" $.CSRF}}<button type="submit" class="pf-btn">Ativar</button></form>
+      {{end}}
+    </div>
+  </section>
+</div>
+<section class="pf-panel" aria-labelledby="titulo-senha">
+  <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-senha">Redefinir senha</h2>{{if $op.TrocarSenha}}<span class="pf-tag pf-tag--warn">{{icone "atencao"}}Senha provisória</span>{{end}}</div>
+  <form class="pf-panel__body pf-form" method="post" action="/painel/usuarios/{{$op.ID}}/senha" data-teste="acao-redefinir-senha">
+    {{template "csrf" $.CSRF}}
+    <p class="pf-muted">A senha nova é provisória: as sessões abertas dessa pessoa caem na hora, e ela define a própria senha no próximo acesso.</p>
+    <div class="pf-field">
+      <label class="pf-field__label" for="senha">Senha provisória</label>
+      <input class="pf-input" id="senha" name="senha" type="password" required minlength="12" autocomplete="new-password"{{if .ErroSenha}} aria-invalid="true" aria-describedby="senha-erro"{{end}}>
+      {{if .ErroSenha}}<span class="pf-field__error" id="senha-erro" aria-live="assertive">{{icone "barra"}}{{.ErroSenha}}</span>{{end}}
+    </div>
+    <div class="pf-form__foot"><button type="submit" class="pf-btn">Redefinir senha</button></div>
+  </form>
+</section>
+{{if and $op.Ativo (not .Propria) (not .Confirmar)}}<dialog class="pf-dialog" id="dlg-desativar" aria-labelledby="titulo-dlg-desativar">{{template "form-desativar" (lista (estado $op.ID) $.CSRF $op.Login)}}</dialog>{{end}}
+{{end}}{{end}}
+
+{{define "form-desativar"}}
+<form method="post" action="/painel/usuarios/{{index . 0}}/desativar">
+  {{template "csrf" (index . 1)}}
+  <div class="pf-dialog__body">
+    <h2 class="pf-dialog__title" id="titulo-dlg-desativar">Desativar {{index . 2}}</h2>
+    <p>O acesso ao painel acaba agora, inclusive nas sessões abertas. Você pode ativar de novo depois.</p>
+  </div>
+  <div class="pf-dialog__foot">
+    <a class="pf-btn" href="/painel/usuarios/{{index . 0}}" data-fechar-dialogo autofocus>Cancelar</a>
+    <button type="submit" class="pf-btn pf-btn--danger">Desativar</button>
+  </div>
+</form>
+{{end}}

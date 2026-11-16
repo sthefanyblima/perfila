@@ -1,0 +1,30 @@
+{{define "conteudo"}}
+<header class="pf-header">
+  <ol class="pf-crumbs"><li>Administração</li><li aria-current="page">Usuários</li></ol>
+  <div class="pf-header__row">
+    <div>
+      <h1 class="pf-header__title">Usuários</h1>
+      <p class="pf-header__meta">Quem opera o painel e o que cada papel pode fazer. Operadores não são excluídos: são desativados.</p>
+    </div>
+    <div class="pf-header__actions"><a class="pf-btn pf-btn--primary" href="/painel/usuarios/novo">{{icone "mais"}} Criar operador</a></div>
+  </div>
+</header>
+{{template "alerta" (alertaInfo "Papéis" "Atendimento opera clientes, consentimento, eventos e processamento. Analista vê só segmentos e catálogo, sem dados de clientes. Administrador faz tudo isso e cuida de usuários, auditoria e operação.")}}
+<div class="pf-tablewrap">
+  <table class="pf-table" data-teste="lista-operadores">
+    <caption class="pf-sr">Operadores do painel, por login</caption>
+    <thead><tr><th scope="col">Login</th><th scope="col">Nome</th><th scope="col">Papel</th><th scope="col">Situação</th><th scope="col">Criado em</th></tr></thead>
+    <tbody>
+    {{range .Dados}}
+      <tr data-href="/painel/usuarios/{{.ID}}" data-teste="linha-operador">
+        <td><span class="pf-cell-main"><a href="/painel/usuarios/{{.ID}}" class="pf-mono">{{.Login}}</a></span></td>
+        <td>{{.Nome}}</td>
+        <td><span class="pf-tag pf-tag--accent">{{rotulo (estado .Papel)}}</span></td>
+        <td>{{if .Ativo}}<span class="pf-tag pf-tag--ok">{{icone "ok"}}Ativo</span>{{else}}{{template "tag" "INATIVO"}}{{end}}{{if .TrocarSenha}} <span class="pf-tag pf-tag--warn">{{icone "atencao"}}Senha provisória</span>{{end}}</td>
+        <td>{{data .CriadoEm}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}

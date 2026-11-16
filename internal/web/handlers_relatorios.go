@@ -20,9 +20,9 @@ import (
 
 const textoPeriodoInvalido = "Escolha o período de 6 ou 12 meses."
 
-func (p *painel) rotasRelatorios(mux *http.ServeMux, sessao func(http.HandlerFunc) http.Handler) {
-	mux.Handle("GET /painel/relatorios", sessao(p.telaRelatorios))
-	mux.Handle("GET /painel/relatorios.csv", sessao(p.exportarRelatorio))
+func (p *painel) rotasRelatorios(mux *http.ServeMux, sessao func(entity.Permissao, http.HandlerFunc) http.Handler) {
+	mux.Handle("GET /painel/relatorios", sessao(entity.PermRelatorios, p.telaRelatorios))
+	mux.Handle("GET /painel/relatorios.csv", sessao(entity.PermRelatorios, p.exportarRelatorio))
 }
 
 // gerar lê o período da query (vazio = padrão) e chama o caso de uso; período inválido vira 422.

@@ -1,0 +1,71 @@
+{{define "conteudo"}}{{with .Dados}}
+<header class="pf-header">
+  <ol class="pf-crumbs"><li>Administração</li><li aria-current="page">Auditoria</li></ol>
+  <div class="pf-header__row">
+    <div>
+      <h1 class="pf-header__title">Auditoria</h1>
+      <p class="pf-header__meta">O que cada operador fez no painel, do mais recente para o mais antigo. Sem nome nem e-mail: só login, ação, ID do alvo e resultado. Os registros ficam guardados por 6 meses.</p>
+    </div>
+  </div>
+</header>
+
+<form class="pf-filters" method="get" action="/painel/auditoria" role="search" aria-label="Filtrar a auditoria">
+  <div class="pf-field pf-field--estreito">
+    <label class="pf-field__label" for="operador">Operador</label>
+    <select class="pf-select" id="operador" name="operador">
+      {{range .Operadores}}<option value="{{.Valor}}"{{if .Atual}} selected{{end}}>{{.Rotulo}}</option>{{end}}
+    </select>
+  </div>
+  <div class="pf-field pf-field--estreito">
+    <label class="pf-field__label" for="acao">Ação</label>
+    <select class="pf-select" id="acao" name="acao">
+      {{range .Acoes}}<option value="{{.Valor}}"{{if .Atual}} selected{{end}}>{{.Rotulo}}</option>{{end}}
+    </select>
+  </div>
+  <div class="pf-field pf-field--estreito">
+    <label class="pf-field__label" for="de">De</label>
+    <input class="pf-input" id="de" name="de" type="date" value="{{.De}}"{{if .ErroPeriodo}} aria-invalid="true" aria-describedby="periodo-erro"{{end}}>
+  </div>
+  <div class="pf-field pf-field--estreito">
+    <label class="pf-field__label" for="ate">Até</label>
+    <input class="pf-input" id="ate" name="ate" type="date" value="{{.Ate}}"{{if .ErroPeriodo}} aria-invalid="true" aria-describedby="periodo-erro"{{end}}>
+    {{if .ErroPeriodo}}<span class="pf-field__error" id="periodo-erro" aria-live="assertive">{{icone "barra"}}{{.ErroPeriodo}}</span>{{end}}
+  </div>
+  <div class="pf-filters__acoes">
+    <button type="submit" class="pf-btn">{{icone "busca"}} Filtrar</button>
+    {{if .FiltroAtivo}}<a class="pf-btn pf-btn--quiet" href="/painel/auditoria">Limpar filtros</a>{{end}}
+  </div>
+</form>
+
+{{if .Pagina.Registros}}
+<div class="pf-tablewrap">
+  <table class="pf-table" data-teste="lista-auditoria">
+    <caption class="pf-sr">Registros de auditoria, do mais recente para o mais antigo</caption>
+    <thead><tr><th scope="col">Quando</th><th scope="col">Operador</th><th scope="col">Ação</th><th scope="col">Alvo</th><th scope="col">Resultado</th></tr></thead>
+    <tbody>
+    {{range .Pagina.Registros}}
+      <tr data-teste="linha-auditoria">
+        <td class="pf-num">{{dataHora .Data}}</td>
+        <td>{{if .Operador}}<span class="pf-mono">{{.Operador}}</span>{{else}}<span class="pf-muted">login desconhecido</span>{{end}}</td>
+        <td>{{rotuloAcao .Acao}}</td>
+        <td>{{if eq (estado .AlvoTipo) "cliente"}}<a href="/painel/clientes/{{.AlvoID}}">Cliente</a> {{template "uuid" .AlvoID}}{{else if eq (estado .AlvoTipo) "operador"}}<a href="/painel/usuarios/{{.AlvoID}}">Operador</a> {{template "uuid" .AlvoID}}{{else if .AlvoTipo}}{{rotulo (estado .AlvoTipo)}} {{template "uuid" .AlvoID}}{{else}}<span class="pf-muted">—</span>{{end}}</td>
+        <td>{{if eq (estado .Resultado) "SUCESSO"}}<span class="pf-tag pf-tag--ok">{{icone "ok"}}Sucesso</span>{{else if eq (estado .Resultado) "NEGADO"}}<span class="pf-tag pf-tag--warn">{{icone "atencao"}}Negado</span>{{else}}<span class="pf-tag pf-tag--critical">{{icone "falha"}}Falha</span>{{end}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  <div class="pf-table__foot">
+    <span class="pf-num">{{.Inicio}}–{{.Fim}} de {{.Pagina.Total}}</span>
+    <span class="pf-row">
+      {{if .Anterior}}<a class="pf-btn pf-btn--sm" href="{{.Anterior}}" rel="prev">Anterior</a>{{else}}<span class="pf-btn pf-btn--sm" aria-disabled="true">Anterior</span>{{end}}
+      {{if .Proxima}}<a class="pf-btn pf-btn--sm" href="{{.Proxima}}" rel="next">Próxima</a>{{else}}<span class="pf-btn pf-btn--sm" aria-disabled="true">Próxima</span>{{end}}
+    </span>
+  </div>
+</div>
+{{else}}
+<div class="pf-panel"><div class="pf-empty" data-teste="vazio-auditoria">
+  <h2 class="pf-empty__title">Nenhum registro{{if .FiltroAtivo}} com esses filtros{{end}}</h2>
+  <p class="pf-empty__text">{{if .FiltroAtivo}}Troque o operador, a ação ou o período.{{else}}As ações do painel aparecem aqui assim que alguém entrar.{{end}}</p>
+</div></div>
+{{end}}
+{{end}}{{end}}

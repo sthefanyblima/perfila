@@ -10,6 +10,7 @@
       <input type="hidden" name="_csrf" value="{{.Token}}">
       <input type="hidden" name="volta" value="{{.Volta}}">
       {{if .Expirou}}{{template "alerta" (alertaInfo "Sessão expirada" "Sua sessão expirou. Entre de novo para continuar.")}}{{end}}
+      {{if .Encerrada}}{{template "alerta" (alertaInfo "Sessão encerrada" "Sua sessão foi encerrada. Entre de novo.")}}{{end}}
       {{if .Erro}}<div class="pf-alert pf-alert--critical" role="alert" data-teste="erro-entrar"><span class="pf-alert__badge" aria-hidden="true">{{icone "barra"}}</span><div><p class="pf-alert__text">{{.Erro}}</p></div></div>{{end}}
       <div class="pf-field">
         <label class="pf-field__label" for="usuario">Usuário</label>

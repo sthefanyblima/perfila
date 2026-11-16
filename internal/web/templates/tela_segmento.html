@@ -1,0 +1,71 @@
+{{define "conteudo"}}{{with .Dados}}{{$d := .}}
+<header class="pf-header">
+  <ol class="pf-crumbs"><li>Configuração</li><li><a href="/painel/segmentos">Segmentos</a></li><li aria-current="page">{{if .Novo}}Novo segmento{{else}}{{.Seg.Nome}}{{end}}</li></ol>
+  <div class="pf-header__row">
+    <div>
+      <h1 class="pf-header__title">{{if .Novo}}Novo segmento{{else}}Segmento {{.Seg.Nome}}{{end}}</h1>
+      {{if not .Novo}}<div class="pf-header__meta">{{if .Seg.Ativo}}<span class="pf-tag pf-tag--ok">{{icone "ok"}}Ativo</span>{{else}}{{template "tag" "INATIVO"}}{{end}}</div>{{end}}
+    </div>
+  </div>
+</header>
+{{with .Erro}}{{template "alerta" .}}{{end}}
+<form class="pf-stack" method="post" action="/painel/segmentos/previa" data-teste="form-segmento">
+  {{template "csrf" $.CSRF}}
+  {{if not .Novo}}<input type="hidden" name="id" value="{{.Seg.ID}}">{{end}}
+  <section class="pf-panel" aria-labelledby="titulo-dados">
+    <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-dados">Dados do segmento</h2></div>
+    <div class="pf-panel__body pf-form">
+      <div class="pf-grid-form">
+        {{template "campo-texto" (campo "nome" "Nome" .Seg.Nome (index .Erros "nome") "Até 40 caracteres, sem ponto e vírgula nem dois-pontos. Aparece no motivo da recomendação.")}}
+        {{template "campo-texto" (campo "prioridade" "Prioridade" .Prioridade (index .Erros "prioridade") "De 1 a 999. Menor é avaliado primeiro; o padrão fica sempre por último.")}}
+      </div>
+      {{template "campo-texto" (campo "descricao" "Descrição" .Seg.Descricao (index .Erros "descricao") "Opcional, até 200 caracteres.")}}
+    </div>
+  </section>
+  <section class="pf-panel" aria-labelledby="titulo-criterio">
+    <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-criterio">Critério</h2></div>
+    <div class="pf-panel__body pf-form">
+      {{if not .Novo}}<p class="pf-small">Critério gravado: {{if .Original}}<code class="pf-mono" data-teste="criterio-original">{{.Original}}</code>{{else}}<span class="pf-crit__always">vazio, casa sempre</span>{{end}}</p>{{end}}
+      {{if and (not .Novo) .Seg.EhPadrao (not .Linhas)}}
+        <p class="pf-muted">Este é o segmento padrão: o critério fica vazio, para todo cliente ter um segmento. Ele não pode ser desativado.</p>
+      {{else}}
+        <p class="pf-muted">Todas as condições precisam ser verdadeiras. Use ponto ou vírgula nos decimais.</p>
+        <div class="pf-condicoes" data-condicoes>
+        {{range $i, $l := .Linhas}}
+          <fieldset class="pf-condicao" data-teste="{{if $l.Campo}}condicao{{else}}condicao-vazia{{end}}">
+            <legend class="pf-sr">Condição {{soma $i 1}}</legend>
+            {{if $i}}<span class="pf-crit__and" aria-hidden="true">E</span>{{end}}
+            <label class="pf-sr" for="campo-{{$i}}">Campo da condição {{soma $i 1}}</label>
+            <select class="pf-select" id="campo-{{$i}}" name="campo"><option value="">Campo</option>{{range $d.Campos}}<option value="{{.Valor}}"{{if eq .Valor $l.Campo}} selected{{end}}>{{.Rotulo}}</option>{{end}}</select>
+            <label class="pf-sr" for="operador-{{$i}}">Operador da condição {{soma $i 1}}</label>
+            <select class="pf-select" id="operador-{{$i}}" name="operador"><option value="">Operador</option>{{range $d.Operadores}}<option value="{{.Valor}}"{{if eq .Valor $l.Operador}} selected{{end}}>{{.Rotulo}}</option>{{end}}</select>
+            <label class="pf-sr" for="valor-{{$i}}">Valor da condição {{soma $i 1}}</label>
+            <input class="pf-input pf-input--mono" id="valor-{{$i}}" name="valor" value="{{$l.Valor}}" inputmode="decimal" placeholder="Valor" autocomplete="off">
+          </fieldset>
+        {{end}}
+        </div>
+        {{with index .Erros "criterio"}}<span class="pf-field__error" aria-live="assertive" data-teste="erro-criterio">{{icone "barra"}}{{.}}</span>{{end}}
+        <div><button type="submit" class="pf-btn pf-btn--sm" name="acao" value="linha" data-adicionar-condicao>{{icone "mais"}} Adicionar condição</button></div>
+      {{end}}
+    </div>
+  </section>
+  <section class="pf-panel" aria-labelledby="titulo-teste">
+    <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-teste">Testar critério</h2><span class="pf-muted pf-small">Valores digitados aqui; nenhum dado de cliente é usado.</span></div>
+    <div class="pf-panel__body pf-form">
+      <div class="pf-grid-form">
+        {{template "campo-texto" (campo "teste_frequencia" "Compras" .Teste.Frequencia "" "")}}
+        {{template "campo-texto" (campo "teste_ticket" "Ticket médio" .Teste.Ticket "" "")}}
+        {{template "campo-texto" (campo "teste_score" "Engajamento (0 a 1)" .Teste.Score "" "")}}
+      </div>
+      {{with index .Erros "teste"}}<span class="pf-field__error" aria-live="assertive">{{icone "barra"}}{{.}}</span>{{end}}
+      {{if .Teste.Feito}}<p role="status" data-teste="resultado-teste">{{if .Teste.Casa}}<span class="pf-tag pf-tag--ok">{{icone "ok"}}Casa</span> O critério casa com estes valores.{{else}}<span class="pf-tag pf-tag--neutral">Não casa</span> O critério não casa com estes valores.{{end}}</p>{{end}}
+      <div><button type="submit" class="pf-btn" formaction="/painel/segmentos/testar" data-teste="acao-testar-criterio">Testar critério</button></div>
+    </div>
+  </section>
+  <div class="pf-form__foot">
+    <button type="submit" class="pf-btn pf-btn--primary" data-teste="acao-ver-previa">Ver prévia</button>
+    <a class="pf-btn pf-btn--quiet" href="/painel/segmentos">Cancelar</a>
+    <span class="pf-muted pf-small">Nada é salvo antes de você confirmar na prévia.</span>
+  </div>
+</form>
+{{end}}{{end}}

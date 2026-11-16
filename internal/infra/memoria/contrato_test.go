@@ -23,6 +23,8 @@ func TestContratoMemoria(t *testing.T) {
 			Recomendacoes:     recomendacoes,
 			Consentimentos:    consentimentos,
 			Produtos:          produtos,
+			Operadores:        memoria.NovoOperadorRepository(),
+			Auditoria:         memoria.NovoAuditoriaRepository(),
 			Relatorios:        memoria.NovoRelatorioRepository(clientes, eventos, perfis, recomendacoes, consentimentos),
 			AdicionarSegmento: func(_ *testing.T, s entity.Segmento) { segmentos.Adicionar(s) },
 			AdicionarProduto:  func(_ *testing.T, p entity.Produto) { produtos.Adicionar(p) },
