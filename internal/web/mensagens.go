@@ -26,6 +26,16 @@ func mensagem(err error, contexto string) (titulo, texto string) {
 		return "Ainda não processado", "Este cliente ainda não foi processado. Use \"Processar agora\"."
 	case errs.ErrDadosInvalidos.Codigo:
 		return "Dados inválidos", "Confira os campos destacados e tente de novo."
+	case errs.ErrSemPermissao.Codigo:
+		return "Sem permissão", "Seu perfil de acesso não permite esta ação. Se precisar dela, fale com quem administra o painel."
+	case errs.ErrOperadorNaoEncontrado.Codigo:
+		return "Operador não encontrado", "Não encontramos esse operador. Volte para a lista de usuários."
+	case errs.ErrLoginEmUso.Codigo:
+		return "Login em uso", "Já existe um operador com esse login. Escolha outro: logins não se repetem, nem de operadores desativados."
+	case errs.ErrPropriaConta.Codigo:
+		return "Ação sobre a própria conta", "Você não pode mudar o próprio papel nem se desativar. Peça a outra pessoa administradora."
+	case errs.ErrCredenciaisInvalidas.Codigo:
+		return "Senha atual incorreta", "Confira a senha atual e tente de novo."
 	}
 	return "Algo falhou do nosso lado", "As etapas concluídas antes da falha ficaram salvas. Tente de novo; se continuar, informe o código da requisição à equipe técnica."
 }
@@ -37,12 +47,15 @@ func statusDe(err error) int {
 		return http.StatusInternalServerError
 	}
 	switch e.Codigo {
-	case errs.ErrClienteNaoEncontrado.Codigo:
+	case errs.ErrClienteNaoEncontrado.Codigo, errs.ErrOperadorNaoEncontrado.Codigo:
 		return http.StatusNotFound
-	case errs.ErrClienteInativo.Codigo, errs.ErrTransicaoInvalida.Codigo, errs.ErrPerfilNaoEncontrado.Codigo:
+	case errs.ErrClienteInativo.Codigo, errs.ErrTransicaoInvalida.Codigo, errs.ErrPerfilNaoEncontrado.Codigo,
+		errs.ErrLoginEmUso.Codigo, errs.ErrPropriaConta.Codigo:
 		return http.StatusConflict
-	case errs.ErrConsentimentoInvalido.Codigo:
+	case errs.ErrConsentimentoInvalido.Codigo, errs.ErrSemPermissao.Codigo:
 		return http.StatusForbidden
+	case errs.ErrCredenciaisInvalidas.Codigo:
+		return http.StatusUnauthorized
 	case errs.ErrDadosInvalidos.Codigo:
 		return http.StatusUnprocessableEntity
 	}
@@ -65,6 +78,18 @@ func aviso(codigo, n string) string {
 		return "Processamento concluído"
 	case "processamento-sem-recomendacao":
 		return "Processamento concluído sem recomendação"
+	case "operador-criado":
+		return "Operador criado"
+	case "papel-alterado":
+		return "Papel alterado"
+	case "operador-desativado":
+		return "Operador desativado"
+	case "operador-ativado":
+		return "Operador ativado"
+	case "senha-redefinida":
+		return "Senha provisória definida"
+	case "senha-trocada":
+		return "Senha trocada"
 	case "expiradas":
 		switch n {
 		case "", "0":

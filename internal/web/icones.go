@@ -24,6 +24,7 @@ func icone(nome string) template.HTML {
 		"menu":      `<path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/>`,
 		"info":      `<circle cx="8" cy="8" r="6"/><path d="M8 7.2v4"/><path d="M8 4.8v.1"/>`,
 		"sair":      `<path d="M6 2.5H3.5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1H6"/><path d="M10 11l3-3-3-3"/><path d="M13 8H6"/>`,
+		"chave":     `<circle cx="5.5" cy="10.5" r="3"/><path d="M7.6 8.4l5.4-5.4"/><path d="M11 5l1.5 1.5"/>`,
 	}[nome]
 	if !ok {
 		return ""

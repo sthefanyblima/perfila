@@ -24,6 +24,13 @@ var (
 	ErrPerfilNaoEncontrado        = &Erro{"perfil_nao_encontrado", "perfil ausente ou ainda sem segmento"}
 	ErrSemProdutoElegivel         = &Erro{"sem_produto_elegivel", "nenhum produto elegível para recomendação"}
 	ErrConsentimentoNaoEncontrado = &Erro{"consentimento_nao_encontrado", "registro de consentimento inexistente"}
+
+	// Operadores do painel (v1.5, Spec 3.5, RN-11, RN-12).
+	ErrCredenciaisInvalidas  = &Erro{"nao_autenticado", "login ou senha incorretos, ou operador inativo"}
+	ErrSemPermissao          = &Erro{"sem_permissao", "o papel do operador não tem esta permissão"}
+	ErrOperadorNaoEncontrado = &Erro{"operador_nao_encontrado", "operador inexistente"}
+	ErrLoginEmUso            = &Erro{"login_em_uso", "login já usado por outro operador"}
+	ErrPropriaConta          = &Erro{"propria_conta", "o administrador não muda o próprio papel nem se desativa"}
 )
 
 // Codigo devolve o código do erro de domínio contido em err, ou "" se não houver.

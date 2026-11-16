@@ -41,9 +41,9 @@ Implantação (UML8): o **Nginx** (TLS, única porta de entrada) distribui para 
 ### Desenvolvimento (Go 1.22+)
 
 ```bash
-make verify   # gofmt, vet, testes com -race, 154 cenários BDD e teste de arquitetura
+make verify   # gofmt, vet, testes com -race, 209 cenários BDD e teste de arquitetura
 make demo     # fluxo do diagrama de sequência em memória, passo a passo
-make serve    # API e painel em modo memória: http://localhost:8080/painel (operador / dev-senha)
+make serve    # API e painel em modo memória: http://localhost:8080/painel (admin / dev-senha-admin)
 make demo-api # roteiro de curl contra o make serve (em outro terminal)
 make cover    # cobertura de domínio + aplicação
 make pg-teste # sobe um PostgreSQL descartável no Docker e roda o verify contra ele
@@ -57,13 +57,14 @@ make implantar         # gera segredos (1ª vez) e sobe nginx + app1 + app2 + db
 make demo-implantacao  # roteiro da API pelo Nginx em HTTPS, gravando no PostgreSQL
 make bdd-implantacao   # 4 cenários @implantacao (inclui parar uma réplica e o painel pelo Nginx)
 make expirar           # administrador: expira recomendações vencidas
-make exemplos          # carrega os 14 clientes de exemplo (só com o banco sem clientes)
+make exemplos          # carrega os 14 clientes de exemplo (só com o banco sem clientes; nunca operadores)
 make derrubar          # derruba (os dados ficam no volume omega_db)
 ```
 
 - A única porta publicada é `https://localhost:8443`, com certificado autoassinado gerado na primeira subida.
 - O token da API fica em `deploy/config.env` e a senha do banco em `deploy/.env`. Os dois são gerados aleatoriamente e ficam fora do git.
-- O painel fica em `https://localhost:8443/painel`, usuário `operador`; a senha aleatória está em `deploy/.env` (`grep PAINEL_SENHA deploy/.env`) e só o hash bcrypt vai para o `config.env` (Q-28).
+- O painel fica em `https://localhost:8443/painel`. Na primeira subida, sem nenhum operador no banco, o usuário `operador` vira o administrador inicial (Q-35); a senha aleatória está em `deploy/.env` (`grep PAINEL_SENHA deploy/.env`) e só o hash bcrypt vai para o `config.env` (Q-28). Os demais operadores são criados por ele na tela Usuários.
+- A auditoria do painel guarda 6 meses (`AUDITORIA_RETENCAO_DIAS`); agende `omega-server expurgar-auditoria` como a expiração de recomendações (Q-39).
 - O cabeçalho `X-Omega-Replica` mostra qual réplica atendeu.
 - No Windows sem `make` nem Go, os comandos equivalentes estão em `docs/ROTEIRO_DEMONSTRACAO.md`, seção 4.
 
@@ -77,8 +78,9 @@ make derrubar          # derruba (os dados ficam no volume omega_db)
 | `RECOMENDACAO_VALIDADE_DIAS` | 30 | validade da recomendação (RN-08) |
 | `ENGAJAMENTO_META_EVENTOS` | 30 | meta de eventos em 30 dias para o score (RN-05) |
 | `LOG_LEVEL` | info | debug, info, warn ou error |
-| `PAINEL_USUARIO` | operador | login do operador do painel |
-| `PAINEL_SENHA_HASH`, `PAINEL_CHAVE_SESSAO` | vazias = painel desligado | hash bcrypt (`omega-server hash-senha`) e chave HMAC de 64 dígitos hexadecimais (Q-22, Q-29) |
+| `PAINEL_CHAVE_SESSAO` | vazia = painel desligado | chave HMAC da sessão, 64 dígitos hexadecimais; liga o painel (Q-22, Q-35) |
+| `PAINEL_USUARIO`, `PAINEL_SENHA_HASH` | operador, vazia | administrador inicial, criado só com o banco sem operadores; hash bcrypt de `omega-server hash-senha` (12 caracteres no mínimo). Com operadores gravados, são ignorados (Q-35) |
+| `AUDITORIA_RETENCAO_DIAS` | 180 | retenção da auditoria do painel (RN-13, Q-39) |
 | `PAINEL_FINALIDADE`, `PAINEL_VERSAO_TERMO` | segmentacao, v1 | sugeridos ao conceder o consentimento (Q-25) |
 
 O ambiente prevalece sobre o arquivo. Exemplo em `deploy/config.env.example`.
@@ -109,10 +111,23 @@ Interface web em `/painel`, servida pelo próprio `omega-server`, seguindo o des
 | Consentimento | registro atual e linha do tempo com cada concessão e revogação: finalidade, versão do termo e origem (API, painel com o operador, portal). Só inclusão; cliente sem movimentos mostra a linha pelas datas (Q-34) |
 | Segmentos e Catálogo | somente leitura |
 | Operação | saúde do banco e expiração de recomendações vencidas |
+| Usuários | operadores e papéis: criar com senha provisória, mudar papel, desativar, ativar e redefinir senha. Ninguém é excluído; o administrador não muda a própria conta (Q-35) |
+| Auditoria | quem fez o quê: entradas, acessos negados, leituras de ficha e toda ação que muda dados, sem nome nem e-mail; filtros por operador, ação e período (Q-39) |
+| Minha senha | troca da própria senha (12 caracteres no mínimo); obrigatória depois de uma senha provisória (Q-40) |
+
+**Papéis (RN-11, Q-37).** Cada operador tem um papel, conferido no banco a cada página: desativar alguém ou mudar o papel vale na hora (Q-38).
+
+| Papel | Alcança |
+|---|---|
+| Atendimento | clientes, consentimento, eventos e processamento; Segmentos e Catálogo para leitura |
+| Analista | só Segmentos e Catálogo, sem nenhum dado de cliente (relatórios ficam para depois, D-04) |
+| Administrador | tudo isso, mais Usuários, Auditoria e Operação |
+
+Operadores de exemplo, **só no `make serve`** (modo memória; senhas de desenvolvimento, nunca na implantação, Q-41): `admin` / `dev-senha-admin` (administrador), `atendimento` / `dev-senha-atendimento` e `analista` / `dev-senha-analista`.
 
 Demonstração (Q-30, Q-32): 7 segmentos (vip, premium, fiel, engajado, explorador, ocasional, padrao), catálogo de 7 categorias e 14 clientes com história ao longo de meses: Ana (premium, com recomendações expiradas), Bruno (engajado), Carla e Davi (ocasional; Davi sem produto elegível), Elisa (nunca concedeu), Fábio (revogou), Gabi (inativa, histórico só leitura), Heitor (vip), Isabela (fiel), João (explorador), Karina (concedeu v1 pela API, revogou e concedeu v2 pelo painel: histórico completo), Lucas (ainda não processado), Marina (só recomendação expirada) e Nina (padrão). No `make serve` eles entram sozinhos; na implantação, com `make exemplos`.
 
-Sessão assinada sem estado (funciona com as duas réplicas), CSRF em todo envio, 5 tentativas de entrada por IP em 5 minutos, CSP `'self'`. Funciona sem JavaScript (formulários com redirecionamento e páginas de confirmação); com JavaScript, troca só a área do painel e usa diálogos nativos.
+Sessão assinada sem estado (funciona com as duas réplicas) e conferida no banco a cada página, CSRF em todo envio, 5 tentativas de entrada por IP em 5 minutos, CSP `'self'`. Funciona sem JavaScript (formulários com redirecionamento e páginas de confirmação); com JavaScript, troca só a área do painel e usa diálogos nativos.
 
 ## LGPD
 
@@ -122,8 +137,8 @@ Nenhum caso de uso que processa dado pessoal roda sem consentimento válido (C-0
 
 ```text
 CLAUDE.md                   constituição para o agente (C-01..C-12) e mapa de contexto
-OPEN_QUESTIONS.md           decisões Q-01..Q-29, com o porquê
-specs/                      spec.md (v1.3) · plan.md (roadmap) · tasks.md · bdd-rules.md
+OPEN_QUESTIONS.md           decisões Q-01..Q-41, com o porquê
+specs/                      spec.md (v1.5) · plan.md (roadmap) · tasks.md · bdd-rules.md
 docs/uml/                   UML1..UML8 em texto (Mermaid) + imagens originais e corrigidas (img/v1)
 docs/design/                design system Perfila Console (princípios, telas, textos, tokens, componentes)
 docs/                       checklist LGPD · roteiro de demonstração · relatório parcial · auditoria

@@ -17,11 +17,16 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
+
+	"perfila/internal/domain/entity"
 	"perfila/internal/domain/port"
+	"perfila/internal/shared/errs"
 )
 
-// Sessão sem estado no servidor (Q-22): o cookie carrega operador, validade e token CSRF,
-// assinados com HMAC-SHA256. Qualquer réplica valida a mesma sessão. Spec: 3.7.1.
+// Sessão sem estado no servidor (Q-22): o cookie carrega o ID e o login do operador, o carimbo
+// da senha, a validade e o token CSRF, assinados com HMAC-SHA256. Qualquer réplica valida a
+// mesma sessão e confere o operador no banco a cada requisição (Q-38). Spec: 3.7.1.
 const (
 	cookieSessao   = "perfila_sessao"
 	cookieEntrar   = "perfila_entrar" // CSRF do formulário Entrar (antes de existir sessão)
@@ -36,14 +41,20 @@ var (
 )
 
 type sessao struct {
-	Operador string
-	Expira   time.Time
-	CSRF     string
+	OperadorID uuid.UUID
+	Operador   string // login: logs e auditoria
+	Carimbo    int64  // SenhaAtualizadaEm em microssegundos
+	Expira     time.Time
+	CSRF       string
+}
+
+func novaSessao(o entity.Operador, expira time.Time) sessao {
+	return sessao{OperadorID: o.ID, Operador: o.Login, Carimbo: o.SenhaAtualizadaEm.UnixMicro(), Expira: expira, CSRF: tokenAleatorio()}
 }
 
 func assinar(chave []byte, s sessao) string {
-	corpo := base64.RawURLEncoding.EncodeToString([]byte(s.Operador)) + "|" +
-		strconv.FormatInt(s.Expira.Unix(), 10) + "|" + s.CSRF
+	corpo := s.OperadorID.String() + "|" + base64.RawURLEncoding.EncodeToString([]byte(s.Operador)) + "|" +
+		strconv.FormatInt(s.Carimbo, 10) + "|" + strconv.FormatInt(s.Expira.Unix(), 10) + "|" + s.CSRF
 	return corpo + "." + base64.RawURLEncoding.EncodeToString(mac(chave, corpo))
 }
 
@@ -64,15 +75,17 @@ func validar(chave []byte, valor string, agora time.Time) (sessao, error) {
 		return sessao{}, errSessaoAusente
 	}
 	partes := strings.Split(corpo, "|")
-	if len(partes) != 3 {
+	if len(partes) != 5 {
 		return sessao{}, errSessaoAusente
 	}
-	op, err1 := base64.RawURLEncoding.DecodeString(partes[0])
-	exp, err2 := strconv.ParseInt(partes[1], 10, 64)
-	if err1 != nil || err2 != nil || partes[2] == "" {
+	id, err0 := uuid.Parse(partes[0])
+	op, err1 := base64.RawURLEncoding.DecodeString(partes[1])
+	carimbo, err2 := strconv.ParseInt(partes[2], 10, 64)
+	exp, err3 := strconv.ParseInt(partes[3], 10, 64)
+	if err0 != nil || err1 != nil || err2 != nil || err3 != nil || partes[4] == "" {
 		return sessao{}, errSessaoAusente
 	}
-	s := sessao{Operador: string(op), Expira: time.Unix(exp, 0).UTC(), CSRF: partes[2]}
+	s := sessao{OperadorID: id, Operador: string(op), Carimbo: carimbo, Expira: time.Unix(exp, 0).UTC(), CSRF: partes[4]}
 	if !agora.Before(s.Expira) {
 		return s, errSessaoVencida
 	}
@@ -92,20 +105,52 @@ func gravarCookie(w http.ResponseWriter, nome, valor string, expira time.Time) {
 
 type chaveContexto struct{}
 
-func comSessao(ctx context.Context, s sessao) context.Context {
-	return context.WithValue(ctx, chaveContexto{}, s)
+// contextoSessao é o que a requisição autenticada carrega: a sessão e o operador conferido.
+type contextoSessao struct {
+	s  sessao
+	op entity.Operador
+}
+
+func comSessao(ctx context.Context, s sessao, op entity.Operador) context.Context {
+	return context.WithValue(ctx, chaveContexto{}, contextoSessao{s: s, op: op})
 }
 
 func sessaoDe(r *http.Request) sessao {
-	s, _ := r.Context().Value(chaveContexto{}).(sessao)
-	return s
+	c, _ := r.Context().Value(chaveContexto{}).(contextoSessao)
+	return c.s
+}
+
+// operadorAtual é o operador conferido no banco nesta requisição (papel atual, Q-38).
+func operadorAtual(r *http.Request) entity.Operador {
+	c, _ := r.Context().Value(chaveContexto{}).(contextoSessao)
+	return c.op
 }
 
 func operadorDe(r *http.Request) string { return sessaoDe(r).Operador }
 
-// exigirSessao leva a Entrar sem sessão válida (guardando o destino), renova a validade a cada
-// uso e confere o CSRF em todo POST. Em requisição htmx, a ida para Entrar é HX-Redirect.
-func (p *painel) exigirSessao(next http.HandlerFunc) http.Handler {
+// redirecionar usa HX-Redirect em requisição htmx (a página inteira muda) e 303 nas demais.
+func redirecionar(w http.ResponseWriter, r *http.Request, destino string, statusHtmx int) {
+	if r.Header.Get("HX-Request") != "" {
+		w.Header().Set("HX-Redirect", destino)
+		w.WriteHeader(statusHtmx)
+		return
+	}
+	http.Redirect(w, r, destino, http.StatusSeeOther)
+}
+
+// inicio é a primeira tela do papel: Clientes para quem pode, senão Segmentos (Spec 3.7.1).
+func inicio(o entity.Operador) string {
+	if o.Papel.Pode(entity.PermClientes) {
+		return "/painel/clientes"
+	}
+	return "/painel/segmentos"
+}
+
+// exigirSessao leva a Entrar sem sessão válida (guardando o destino), confere o operador no banco
+// (inativo ou com outra senha encerra a sessão, Q-38), confere o CSRF em todo POST, leva a Minha
+// senha quem tem senha provisória, aplica a permissão da rota (RN-11) e renova a validade.
+// perm vazia = rota sem permissão (Minha senha, Sair).
+func (p *painel) exigirSessao(perm entity.Permissao, next http.HandlerFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		agora := p.d.Clock.Agora()
 		var s sessao
@@ -118,14 +163,22 @@ func (p *painel) exigirSessao(next http.HandlerFunc) http.Handler {
 			if errors.Is(err, errSessaoVencida) {
 				destino += "&expirou=1"
 			}
-			if r.Header.Get("HX-Request") != "" {
-				w.Header().Set("HX-Redirect", destino)
-				w.WriteHeader(http.StatusUnauthorized)
-				return
-			}
-			http.Redirect(w, r, destino, http.StatusSeeOther)
+			redirecionar(w, r, destino, http.StatusUnauthorized)
 			return
 		}
+		op, err := p.d.Autenticar.Conferir(r.Context(), s.OperadorID, time.UnixMicro(s.Carimbo))
+		if errors.Is(err, errs.ErrCredenciaisInvalidas) {
+			r = r.WithContext(comSessao(r.Context(), s, entity.Operador{}))
+			p.auditar(r, entity.AcaoSessaoEncerrada, entity.AlvoNenhum, uuid.Nil, nil)
+			gravarCookie(w, cookieSessao, "", time.Unix(1, 0))
+			redirecionar(w, r, "/painel/entrar?encerrada=1", http.StatusUnauthorized)
+			return
+		}
+		if err != nil {
+			p.falha(w, r, err, "")
+			return
+		}
+		r = r.WithContext(comSessao(r.Context(), s, op))
 		if r.Method == http.MethodPost {
 			recebido := r.Header.Get("X-CSRF-Token")
 			if recebido == "" {
@@ -138,8 +191,27 @@ func (p *painel) exigirSessao(next http.HandlerFunc) http.Handler {
 		}
 		s.Expira = agora.Add(duracaoSessao)
 		gravarCookie(w, cookieSessao, assinar(p.d.ChaveSessao, s), s.Expira)
-		next(w, r.WithContext(comSessao(r.Context(), s)))
+		if op.TrocarSenha && r.URL.Path != "/painel/minha-senha" && r.URL.Path != "/painel/sair" {
+			redirecionar(w, r, "/painel/minha-senha", http.StatusOK)
+			return
+		}
+		if perm != "" && !op.Papel.Pode(perm) {
+			p.semPermissao(w, r)
+			return
+		}
+		next(w, r)
 	})
+}
+
+// semPermissao responde 403 com a tela de erro e registra o acesso negado (RN-13), com o cliente
+// como alvo quando a rota tem um.
+func (p *painel) semPermissao(w http.ResponseWriter, r *http.Request) {
+	tipo, alvo := entity.AlvoNenhum, uuid.Nil
+	if id, err := uuid.Parse(r.PathValue("id")); err == nil && strings.HasPrefix(r.URL.Path, "/painel/clientes/") {
+		tipo, alvo = entity.AlvoCliente, id
+	}
+	p.auditar(r, entity.AcaoAcessoNegado, tipo, alvo, errs.ErrSemPermissao)
+	p.renderErro(w, r, http.StatusForbidden, "Sem permissão", "Seu perfil de acesso não permite abrir esta página. Se precisar dela, fale com quem administra o painel.")
 }
 
 // voltaPara devolve o caminho a retomar depois de entrar; POST volta para a página da ficha.

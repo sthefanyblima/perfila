@@ -16,14 +16,14 @@ import (
 	"perfila/internal/shared/errs"
 )
 
-func (p *painel) rotasFicha(mux *http.ServeMux, sessao func(http.HandlerFunc) http.Handler) {
-	mux.Handle("GET /painel/clientes/{id}", sessao(p.fichaVisaoGeral))
-	mux.Handle("POST /painel/clientes/{id}/processamento", sessao(p.processar))
-	mux.Handle("GET /painel/clientes/{id}/eventos", sessao(p.fichaEventos))
-	mux.Handle("POST /painel/clientes/{id}/eventos", sessao(p.registrarEvento))
-	mux.Handle("GET /painel/clientes/{id}/consentimento", sessao(p.fichaConsentimento))
-	mux.Handle("GET /painel/clientes/{id}/consentimento/{acao}", sessao(p.confirmarConsentimento))
-	mux.Handle("POST /painel/clientes/{id}/consentimento/{acao}", sessao(p.alterarConsentimento))
+func (p *painel) rotasFicha(mux *http.ServeMux, sessao func(entity.Permissao, http.HandlerFunc) http.Handler) {
+	mux.Handle("GET /painel/clientes/{id}", sessao(entity.PermClientes, p.fichaVisaoGeral))
+	mux.Handle("POST /painel/clientes/{id}/processamento", sessao(entity.PermProcessamento, p.processar))
+	mux.Handle("GET /painel/clientes/{id}/eventos", sessao(entity.PermClientes, p.fichaEventos))
+	mux.Handle("POST /painel/clientes/{id}/eventos", sessao(entity.PermEventos, p.registrarEvento))
+	mux.Handle("GET /painel/clientes/{id}/consentimento", sessao(entity.PermClientes, p.fichaConsentimento))
+	mux.Handle("GET /painel/clientes/{id}/consentimento/{acao}", sessao(entity.PermConsentimento, p.confirmarConsentimento))
+	mux.Handle("POST /painel/clientes/{id}/consentimento/{acao}", sessao(entity.PermConsentimento, p.alterarConsentimento))
 }
 
 // etapaVista é uma etapa do PipelineTrace.
@@ -319,9 +319,23 @@ func motivoLegivel(m string) string {
 	return strings.ToUpper(s[:1]) + s[1:]
 }
 
+// lerFicha carrega uma aba da ficha e registra a leitura na auditoria (RN-13): leitura sem
+// registro não é mostrada.
+func (p *painel) lerFicha(w http.ResponseWriter, r *http.Request, aba string) (dadosFicha, bool) {
+	d, ok := p.carregarFicha(w, r, aba)
+	if !ok {
+		return d, false
+	}
+	if err := p.auditar(r, entity.AcaoLerFicha, entity.AlvoCliente, d.Cliente.ID, nil); err != nil {
+		p.falha(w, r, err, "")
+		return dadosFicha{}, false
+	}
+	return d, true
+}
+
 // GET /painel/clientes/{id} — visão geral.
 func (p *painel) fichaVisaoGeral(w http.ResponseWriter, r *http.Request) {
-	if d, ok := p.carregarFicha(w, r, "visao"); ok {
+	if d, ok := p.lerFicha(w, r, "visao"); ok {
 		p.renderFicha(w, r, http.StatusOK, d)
 	}
 }
@@ -344,6 +358,7 @@ func (p *painel) processar(w http.ResponseWriter, r *http.Request) {
 	}
 	res, errProc := p.d.Processar.Executar(r.Context(), id)
 	p.acao(r, "processar", id.String())
+	p.auditar(r, entity.AcaoProcessar, entity.AlvoCliente, id, errProc)
 	if errProc == nil {
 		codigo := "processamento-concluido"
 		if res.Recomendacao == nil {
