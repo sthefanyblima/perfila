@@ -16,7 +16,7 @@ import (
 
 var _ port.PublicoRepository = (*PgPublicoRepository)(nil)
 
-// PgPublicoRepository grava `exportacoes_publico` e `membros_publico` (migração 009). Spec: RN-17, Q-51.
+// PgPublicoRepository grava `exportacoes_publico` e `membros_publico` (migração 011). Spec: RN-21, Q-64.
 type PgPublicoRepository struct{ db *sql.DB }
 
 func NovoPgPublicoRepository(db *sql.DB) *PgPublicoRepository { return &PgPublicoRepository{db} }
@@ -107,7 +107,7 @@ func (r *PgPublicoRepository) BuscarArquivo(ctx context.Context, exportacaoID uu
 	return e, conteudo, nil
 }
 
-// ApagarArquivosVencidos apaga o conteúdo vencido; o registro fica como prova. Spec: Q-51.
+// ApagarArquivosVencidos apaga o conteúdo vencido; o registro fica como prova. Spec: Q-64.
 func (r *PgPublicoRepository) ApagarArquivosVencidos(ctx context.Context, agora time.Time) (int, error) {
 	res, err := r.db.ExecContext(ctx, `UPDATE exportacoes_publico SET arquivo = NULL
 		WHERE arquivo IS NOT NULL AND arquivo_expira_em <= $1`, agora.UTC())

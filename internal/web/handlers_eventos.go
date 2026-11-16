@@ -90,7 +90,7 @@ func (p *painel) fichaConsentimento(w http.ResponseWriter, r *http.Request) {
 
 func acaoValida(a string) bool { return a == "conceder" || a == "revogar" }
 
-// finalidadeDe lê a finalidade da query ou do formulário; sem ela, segmentacao (v1.9, Q-48).
+// finalidadeDe lê a finalidade da query ou do formulário; sem ela, segmentacao (v1.11, Q-61).
 func finalidadeDe(r *http.Request) entity.Finalidade {
 	if f := strings.TrimSpace(r.FormValue("finalidade")); f != "" {
 		return entity.Finalidade(f)
@@ -99,7 +99,7 @@ func finalidadeDe(r *http.Request) entity.Finalidade {
 }
 
 // GET /painel/clientes/{id}/consentimento/{acao}?finalidade= — confirmação sem JavaScript (o
-// diálogo, com JS). Spec: 3.7.1, Q-48.
+// diálogo, com JS). Spec: 3.7.1, Q-61.
 func (p *painel) confirmarConsentimento(w http.ResponseWriter, r *http.Request) {
 	acao, f := r.PathValue("acao"), finalidadeDe(r)
 	if !acaoValida(acao) || !f.Valida() {
@@ -116,7 +116,7 @@ func (p *painel) confirmarConsentimento(w http.ResponseWriter, r *http.Request) 
 
 // POST /painel/clientes/{id}/consentimento/{acao} — UC-08 Conceder ou Revogar da finalidade do
 // formulário, depois PRG para a ficha com o selo novo. Transição recusada pelo domínio volta à
-// confirmação com o motivo. Spec: 3.7.1, RN-10, Q-48.
+// confirmação com o motivo. Spec: 3.7.1, RN-10, Q-61.
 func (p *painel) alterarConsentimento(w http.ResponseWriter, r *http.Request) {
 	acao := r.PathValue("acao")
 	id, ok := idDaRota(r)

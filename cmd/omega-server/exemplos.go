@@ -31,7 +31,7 @@ type exemplos struct {
 type passo struct {
 	dias      float64
 	acao      string            // cadastrar, conceder, compra, navegar, processar, revogar, expirar, desativar
-	fin       entity.Finalidade // conceder e revogar: vazio = segmentacao (v1.9, Q-48)
+	fin       entity.Finalidade // conceder e revogar: vazio = segmentacao (v1.11, Q-61)
 	categoria string
 	valor     float64
 	termo     string
@@ -61,7 +61,7 @@ func rev(d float64) passo        { return passo{dias: d, acao: "revogar"} }
 func exp(d float64) passo        { return passo{dias: d, acao: "expirar"} }
 func desat(d float64) passo      { return passo{dias: d, acao: "desativar"} }
 
-// pub e revPub concedem e revogam a finalidade publicidade_terceiros (v1.9, Q-48, RN-17).
+// pub e revPub concedem e revogam a finalidade publicidade_terceiros (v1.11, Q-61, RN-21).
 func pub(d float64, termo string) passo {
 	return passo{dias: d, acao: "conceder", termo: termo, fin: entity.FinalidadePublicidadeTerceiros}
 }
@@ -87,7 +87,7 @@ func (e exemplos) lista() []exemplo {
 			comp(100, "livros", 610), comp(60, "livros", 700), proc(59), comp(20, "livros", 640), comp(5, "livros", 550), nav(4, 3), proc(4)}},
 		{"Bruno Sintético", "c-002@exemplo.test", []passo{ // engajado
 			cad(90), conc(89, "v1"), pub(60, "v1").pelo(entity.OrigemAPI), comp(80, "games", 200), proc(79), nav(25, engajado), proc(2)}},
-		{"Carla Sintética", "c-003@exemplo.test", []passo{ // ocasional; concedeu e revogou a publicidade (v1.9)
+		{"Carla Sintética", "c-003@exemplo.test", []passo{ // ocasional; concedeu e revogou a publicidade (v1.11)
 			cad(45), conc(44, "v1"), pub(43, "v1"), comp(30, "eletronicos", 350), nav(29, 2), revPub(10).pelo(entity.OrigemPainel), proc(1)}},
 		{"Davi Sintético", "c-004@exemplo.test", []passo{ // ocasional, sem produto elegível (moveis)
 			cad(40), conc(39, "v1"), comp(12, "moveis", 120), proc(11)}},

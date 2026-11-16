@@ -15,7 +15,7 @@ import (
 )
 
 // RelatorioAgregadoSegmentosUseCase conta, por segmento ativo, quem tem segmentacao válida, sem
-// nenhum identificador; grupos com menos de entity.TamanhoMinimoGrupo ficam ocultos. Spec: RN-18, Q-52.
+// nenhum identificador; grupos com menos de entity.TamanhoMinimoGrupo ficam ocultos. Spec: RN-22, Q-65.
 type RelatorioAgregadoSegmentosUseCase struct {
 	segmentos port.SegmentoRepository
 	perfis    port.PerfilRepository
@@ -29,7 +29,7 @@ func NovoRelatorioAgregadoSegmentosUseCase(segmentos port.SegmentoRepository, pe
 	return &RelatorioAgregadoSegmentosUseCase{segmentos: segmentos, perfis: perfis, clientes: clientes, validador: validador}
 }
 
-// Executar devolve uma linha por segmento ativo, em ordem de Prioridade. Spec: RN-18.
+// Executar devolve uma linha por segmento ativo, em ordem de Prioridade. Spec: RN-22.
 func (uc *RelatorioAgregadoSegmentosUseCase) Executar(ctx context.Context) ([]entity.LinhaAgregada, error) {
 	segs, err := uc.segmentos.ListarAtivos(ctx)
 	if err != nil {
@@ -99,7 +99,7 @@ func maisComum(contagem map[string]int) string {
 }
 
 // CSV monta o arquivo do agregado; grupo oculto sai como "menos de 5" com os outros campos vazios.
-// Spec: RN-18.
+// Spec: RN-22.
 func (uc *RelatorioAgregadoSegmentosUseCase) CSV(linhas []entity.LinhaAgregada) []byte {
 	var buf bytes.Buffer
 	w := csv.NewWriter(&buf)

@@ -13,11 +13,11 @@ import (
 	"perfila/internal/shared/errs"
 )
 
-// TamanhoMinimoGrupo é o menor grupo detalhado no relatório agregado. Spec: RN-18, Q-52.
+// TamanhoMinimoGrupo é o menor grupo detalhado no relatório agregado. Spec: RN-22, Q-65.
 const TamanhoMinimoGrupo = 5
 
 // HashEmail é o SHA-256, em hexadecimal minúsculo, do e-mail sem nenhum espaço e em minúsculas.
-// Pseudonimiza, não anonimiza: o resultado continua sendo dado pessoal. Spec: RN-17, Q-49.
+// Pseudonimiza, não anonimiza: o resultado continua sendo dado pessoal. Spec: RN-21, Q-62.
 func HashEmail(email string) string {
 	normalizado := strings.Map(func(r rune) rune {
 		if unicode.IsSpace(r) {
@@ -29,7 +29,7 @@ func HashEmail(email string) string {
 	return hex.EncodeToString(soma[:])
 }
 
-// ExportacaoPublico registra cada arquivo de público gerado, sem dado pessoal. Spec: 3.2, RN-17, Q-51.
+// ExportacaoPublico registra cada arquivo de público gerado, sem dado pessoal. Spec: 3.2, RN-21, Q-64.
 type ExportacaoPublico struct {
 	ID              uuid.UUID
 	SegmentoID      uuid.UUID
@@ -45,7 +45,7 @@ type ExportacaoPublico struct {
 }
 
 // MembroPublico liga um cliente a um arquivo de inclusão pelo hash do e-mail (pseudônimo, ainda
-// dado pessoal). Spec: 3.2, 3.4.3, RN-17.
+// dado pessoal). Spec: 3.2, 3.4.3, RN-21.
 type MembroPublico struct {
 	ID                  uuid.UUID
 	ExportacaoID        uuid.UUID
@@ -68,7 +68,7 @@ func NovoMembro(id, exportacaoID, segmentoID, clienteID uuid.UUID, hashEmail str
 		HashEmail: hashEmail, Status: MembroExportado, DataInclusao: agora.UTC()}, nil
 }
 
-// MarcarRemocao aplica EXPORTADO → REMOCAO_PENDENTE. Spec: 3.4.3, Q-50.
+// MarcarRemocao aplica EXPORTADO → REMOCAO_PENDENTE. Spec: 3.4.3, Q-63.
 func (m *MembroPublico) MarcarRemocao(agora time.Time) error {
 	if m.Status != MembroExportado {
 		return fmt.Errorf("%w: marcar remoção a partir de %s", errs.ErrTransicaoInvalida, m.Status)
@@ -94,7 +94,7 @@ func (m *MembroPublico) Remover(remocaoID uuid.UUID, agora time.Time) error {
 	return nil
 }
 
-// LotePublico é o que vai para o destino: só hashes e o nome do segmento. Spec: RN-17.
+// LotePublico é o que vai para o destino: só hashes e o nome do segmento. Spec: RN-21.
 type LotePublico struct {
 	Tipo         TipoExportacao
 	SegmentoNome string
@@ -102,7 +102,7 @@ type LotePublico struct {
 	Hashes       []string
 }
 
-// ReciboEnvio é o que o destino devolve. Spec: RN-17, Q-49.
+// ReciboEnvio é o que o destino devolve. Spec: RN-21, Q-62.
 type ReciboEnvio struct {
 	Destino     TipoDestino
 	NomeArquivo string
@@ -110,7 +110,7 @@ type ReciboEnvio struct {
 	Hash        string
 }
 
-// LinhaAgregada é uma linha do relatório por segmento, sem identificador. Spec: RN-18, Q-52.
+// LinhaAgregada é uma linha do relatório por segmento, sem identificador. Spec: RN-22, Q-65.
 type LinhaAgregada struct {
 	SegmentoNome       string
 	Quantidade         int

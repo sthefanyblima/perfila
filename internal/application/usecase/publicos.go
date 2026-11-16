@@ -18,13 +18,13 @@ import (
 )
 
 // CandidatoPublico é um cliente que entra no público: só o ID (para o registro interno) e o
-// hash do e-mail (o que vai no arquivo). Spec: RN-17.
+// hash do e-mail (o que vai no arquivo). Spec: RN-21.
 type CandidatoPublico struct {
 	ClienteID uuid.UUID
 	HashEmail string
 }
 
-// PublicoGerado é a prévia do público de um segmento; não grava nada. Spec: UC-06 parcial, RN-17.
+// PublicoGerado é a prévia do público de um segmento; não grava nada. Spec: UC-06 parcial, RN-21.
 type PublicoGerado struct {
 	Segmento          entity.Segmento
 	Membros           []CandidatoPublico // em ordem de hash
@@ -32,7 +32,7 @@ type PublicoGerado struct {
 	RemocoesPendentes int
 }
 
-// GerarPublicoUseCase aplica a seleção da RN-17. Spec: 3.5, RN-17, C-03.
+// GerarPublicoUseCase aplica a seleção da RN-21. Spec: 3.5, RN-21, C-03.
 type GerarPublicoUseCase struct {
 	clientes  port.ClienteRepository
 	perfis    port.PerfilRepository
@@ -48,7 +48,7 @@ func NovoGerarPublicoUseCase(clientes port.ClienteRepository, perfis port.Perfil
 }
 
 // Executar: segmento inexistente ou inativo é ErrDadosInvalidos. O consentimento das duas
-// finalidades é conferido antes de ler o cadastro (C-03). Spec: RN-17.
+// finalidades é conferido antes de ler o cadastro (C-03). Spec: RN-21.
 func (uc *GerarPublicoUseCase) Executar(ctx context.Context, segmentoID uuid.UUID) (PublicoGerado, error) {
 	seg, err := uc.segmentoAtivo(ctx, segmentoID)
 	if err != nil {
@@ -90,7 +90,7 @@ func (uc *GerarPublicoUseCase) segmentoAtivo(ctx context.Context, id uuid.UUID) 
 	return seg, nil
 }
 
-// qualifica: segmentacao e publicidade_terceiros CONCEDIDO e cliente ativo. Spec: RN-17.
+// qualifica: segmentacao e publicidade_terceiros CONCEDIDO e cliente ativo. Spec: RN-21.
 func (uc *GerarPublicoUseCase) qualifica(ctx context.Context, clienteID uuid.UUID) (entity.Cliente, bool, error) {
 	for _, f := range entity.Finalidades() {
 		ok, err := uc.validador.ConsentimentoValidoPara(ctx, clienteID, f)
@@ -109,7 +109,7 @@ func (uc *GerarPublicoUseCase) qualifica(ctx context.Context, clienteID uuid.UUI
 }
 
 // ExportarPublicoUseCase gera os arquivos de inclusão e de remoção, guarda o registro e entrega o
-// arquivo dentro do prazo. Spec: 3.5, RN-17, Q-50, Q-51.
+// arquivo dentro do prazo. Spec: 3.5, RN-21, Q-63, Q-64.
 type ExportarPublicoUseCase struct {
 	gerar    *GerarPublicoUseCase
 	publicos port.PublicoRepository
@@ -128,7 +128,7 @@ func NovoExportarPublicoUseCase(gerar *GerarPublicoUseCase, publicos port.Public
 }
 
 // Exportar gera o arquivo de inclusão. Quem já estava EXPORTADO no segmento e não entra mais passa
-// a REMOCAO_PENDENTE; quem entra e ainda não era membro vira membro novo. Spec: RN-17.
+// a REMOCAO_PENDENTE; quem entra e ainda não era membro vira membro novo. Spec: RN-21.
 func (uc *ExportarPublicoUseCase) Exportar(ctx context.Context, segmentoID uuid.UUID) (entity.ExportacaoPublico, error) {
 	agora := uc.clock.Agora().UTC()
 	if _, err := uc.publicos.ApagarArquivosVencidos(ctx, agora); err != nil {
@@ -181,7 +181,7 @@ func (uc *ExportarPublicoUseCase) Exportar(ctx context.Context, segmentoID uuid.
 }
 
 // ExportarRemocoes gera o arquivo de remoção com os pendentes do segmento e os passa a REMOVIDO.
-// Spec: RN-17, Q-50.
+// Spec: RN-21, Q-63.
 func (uc *ExportarPublicoUseCase) ExportarRemocoes(ctx context.Context, segmentoID uuid.UUID) (entity.ExportacaoPublico, error) {
 	agora := uc.clock.Agora().UTC()
 	if _, err := uc.publicos.ApagarArquivosVencidos(ctx, agora); err != nil {
@@ -242,7 +242,7 @@ func (uc *ExportarPublicoUseCase) registrar(ctx context.Context, e entity.Export
 	return e, nil
 }
 
-// Baixar entrega o arquivo dentro do prazo; depois, ErrArquivoIndisponivel. Spec: Q-51.
+// Baixar entrega o arquivo dentro do prazo; depois, ErrArquivoIndisponivel. Spec: Q-64.
 func (uc *ExportarPublicoUseCase) Baixar(ctx context.Context, exportacaoID uuid.UUID) (entity.ReciboEnvio, error) {
 	agora := uc.clock.Agora().UTC()
 	if _, err := uc.publicos.ApagarArquivosVencidos(ctx, agora); err != nil {
@@ -263,7 +263,7 @@ func (uc *ExportarPublicoUseCase) Historico(ctx context.Context, segmentoID uuid
 	return uc.publicos.ListarExportacoes(ctx, segmentoID)
 }
 
-// PropagarRevogacaoUseCase tira o cliente dos públicos já exportados (art. 18 §6º). Spec: RN-17, Q-50.
+// PropagarRevogacaoUseCase tira o cliente dos públicos já exportados (art. 18 §6º). Spec: RN-21, Q-63.
 type PropagarRevogacaoUseCase struct {
 	publicos port.PublicoRepository
 	clock    port.Clock
@@ -276,7 +276,7 @@ func NovoPropagarRevogacaoUseCase(publicos port.PublicoRepository, clock port.Cl
 }
 
 // Executar passa os membros EXPORTADO do cliente a REMOCAO_PENDENTE e devolve quantos marcou.
-// A falha vai para o log, para quem revogou não perder a revogação (Q-50).
+// A falha vai para o log, para quem revogou não perder a revogação (Q-63).
 func (uc *PropagarRevogacaoUseCase) Executar(ctx context.Context, clienteID uuid.UUID) (int, error) {
 	n, err := uc.marcar(ctx, clienteID)
 	if err != nil {

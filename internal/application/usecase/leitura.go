@@ -129,8 +129,8 @@ func (uc *ListarClientesUseCase) nomeDoSegmento(ctx context.Context, clienteID u
 // FichaCliente é o cadastro e o consentimento: o que o painel mostra sem consentimento (Q-21).
 type FichaCliente struct {
 	Cliente       entity.Cliente
-	Consentimento entity.ConsentimentoLGPD        // o de segmentacao, que libera a ficha (RN-01, v1.9)
-	Finalidades   []entity.ConsentimentoLGPD      // um por finalidade, na ordem de entity.Finalidades() (v1.9, Q-48)
+	Consentimento entity.ConsentimentoLGPD        // o de segmentacao, que libera a ficha (RN-01, v1.11)
+	Finalidades   []entity.ConsentimentoLGPD      // um por finalidade, na ordem de entity.Finalidades() (v1.11, Q-61)
 	Historico     []entity.MovimentoConsentimento // ordem cronológica; vazio = sem movimentos (v1.4, RN-10)
 }
 

@@ -19,7 +19,7 @@ var _ port.DestinoPublicitarioGateway = DestinoArquivoCSV{}
 
 // DestinoArquivoCSV é o destino publicitário do MVP: gera o arquivo de público personalizado
 // (identificador com hash) para a equipe subir na plataforma. Não envia nada a terceiros.
-// Spec: RN-17, Q-49.
+// Spec: RN-21, Q-62.
 type DestinoArquivoCSV struct{}
 
 // Enviar monta o CSV `email_sha256,segmento`, uma linha por hash, em ordem crescente e sem

@@ -1,7 +1,7 @@
--- 009: consentimento por finalidade e públicos para campanha (Spec v1.9, Q-48 a Q-51).
+-- 011: consentimento por finalidade e públicos para campanha (Spec v1.11, Q-61 a Q-64).
 -- 007 e 008 ficam reservadas para as branches de operadores e de configuração pelo painel.
 
--- Q-48: os registros existentes passam a valer só para "segmentacao"; um registro por
+-- Q-61: os registros existentes passam a valer só para "segmentacao"; um registro por
 -- (cliente, finalidade), dentro do enumerado. Os movimentos (só inclusão, RN-10) não mudam.
 UPDATE consentimentos_lgpd SET finalidade = 'segmentacao';
 
@@ -10,8 +10,8 @@ ALTER TABLE consentimentos_lgpd
     ADD CONSTRAINT consentimentos_lgpd_cliente_finalidade UNIQUE (cliente_id, finalidade),
     ADD CONSTRAINT consentimentos_lgpd_finalidade CHECK (finalidade IN ('segmentacao', 'publicidade_terceiros'));
 
--- RN-17: registro de cada arquivo gerado, sem dado pessoal. O conteúdo fica só até
--- arquivo_expira_em (Q-51) e depois é apagado; o registro fica como prova.
+-- RN-21: registro de cada arquivo gerado, sem dado pessoal. O conteúdo fica só até
+-- arquivo_expira_em (Q-64) e depois é apagado; o registro fica como prova.
 CREATE TABLE exportacoes_publico (
     id                uuid        PRIMARY KEY,
     segmento_id       uuid        NOT NULL REFERENCES segmentos (id),
@@ -29,7 +29,7 @@ CREATE TABLE exportacoes_publico (
 
 CREATE INDEX exportacoes_publico_segmento ON exportacoes_publico (segmento_id, data DESC);
 
--- RN-17, 3.4.3: cada cliente de um arquivo de inclusão, pelo hash do e-mail (pseudônimo).
+-- RN-21, 3.4.3: cada cliente de um arquivo de inclusão, pelo hash do e-mail (pseudônimo).
 CREATE TABLE membros_publico (
     id                    uuid        PRIMARY KEY,
     exportacao_id         uuid        NOT NULL REFERENCES exportacoes_publico (id),

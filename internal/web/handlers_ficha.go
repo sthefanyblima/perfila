@@ -38,7 +38,7 @@ type formEvento struct {
 	Erros                                  map[string]string
 }
 
-// formConsentimento: a finalidade vem do botão (campo oculto, Q-48); só o termo é editável.
+// formConsentimento: a finalidade vem do botão (campo oculto, Q-61); só o termo é editável.
 type formConsentimento struct {
 	Finalidade, VersaoTermo string
 	ErroVersao              string
@@ -50,8 +50,8 @@ type dadosFicha struct {
 	Cliente        entity.Cliente
 	Consentimento  entity.ConsentimentoLGPD
 	Movimentos     []entity.MovimentoConsentimento // da segmentacao, ordem cronológica (RN-10); vazio = linha pelas datas
-	Publicidade    entity.ConsentimentoLGPD        // v1.9 (Q-48): o registro de publicidade_terceiros
-	MovPublicidade []entity.MovimentoConsentimento // v1.9: os movimentos de publicidade_terceiros
+	Publicidade    entity.ConsentimentoLGPD        // v1.11 (Q-61): o registro de publicidade_terceiros
+	MovPublicidade []entity.MovimentoConsentimento // v1.11: os movimentos de publicidade_terceiros
 	Valido         bool                            // consentimento CONCEDIDO: comportamento pode ser lido (inativo: só leitura, Q-31)
 	Bloqueio       *alerta                         // sem consentimento: nada de comportamento é lido
 	Inativo        *alerta                         // cadastro inativo com consentimento: histórico só para leitura
@@ -76,7 +76,7 @@ type dadosFicha struct {
 
 func (d dadosFicha) PodeConceder() bool { return d.Consentimento.Status != entity.StatusConcedido }
 
-// EhPublicidade: a confirmação aberta é da finalidade publicidade_terceiros (v1.9, Q-48).
+// EhPublicidade: a confirmação aberta é da finalidade publicidade_terceiros (v1.11, Q-61).
 func (d dadosFicha) EhPublicidade() bool {
 	return d.Concessao.Finalidade == string(entity.FinalidadePublicidadeTerceiros)
 }
@@ -212,7 +212,7 @@ func (p *painel) carregarFicha(w http.ResponseWriter, r *http.Request, aba strin
 	if len(ficha.Finalidades) > 1 {
 		d.Publicidade = ficha.Finalidades[1]
 	}
-	for _, m := range ficha.Historico { // cada linha do tempo com a sua finalidade (Q-48)
+	for _, m := range ficha.Historico { // cada linha do tempo com a sua finalidade (Q-61)
 		if m.FinalidadeEfetiva() == entity.FinalidadePublicidadeTerceiros {
 			d.MovPublicidade = append(d.MovPublicidade, m)
 		} else {

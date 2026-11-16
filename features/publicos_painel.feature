@@ -1,8 +1,8 @@
 # language: pt
-@UC-06 @RN-17 @Q-48 @Q-53 @web
+@UC-06 @RN-21 @Q-61 @Q-66 @web
 Funcionalidade: Públicos e consentimento por finalidade no painel
   A pessoa operadora concede e revoga cada finalidade na ficha, gera o público de um
-  segmento com confirmação, baixa o arquivo e vê as remoções pendentes (Spec 3.7.1, v1.9)
+  segmento com confirmação, baixa o arquivo e vê as remoções pendentes (Spec 3.7.1, v1.11)
 
   Contexto:
     Dado que a data atual é "2026-11-13T12:00:00Z"
@@ -39,7 +39,7 @@ Funcionalidade: Públicos e consentimento por finalidade no painel
     Então a página mostra que entram 1 e ficam de fora 1
     E a página não mostra "c-001@exemplo.test"
 
-  @Q-53
+  @Q-66
   Cenário: Gerar o arquivo pede confirmação com o efeito escrito
     Dado que o cliente "c-001" com o e-mail "c-001@exemplo.test" está no segmento "vip" com as finalidades "segmentacao,publicidade_terceiros"
     Quando o operador abre a confirmação do público do segmento "vip"
@@ -54,7 +54,7 @@ Funcionalidade: Públicos e consentimento por finalidade no painel
     Então o download é um CSV com o cabeçalho "email_sha256,segmento" e 1 linha
     E o download não contém "c-001@exemplo.test"
 
-  @lgpd @Q-51
+  @lgpd @Q-64
   Cenário: O arquivo vencido não é mais baixado
     Dado que o cliente "c-001" com o e-mail "c-001@exemplo.test" está no segmento "vip" com as finalidades "segmentacao,publicidade_terceiros"
     E que o operador gerou o arquivo do público do segmento "vip"
@@ -63,7 +63,7 @@ Funcionalidade: Públicos e consentimento por finalidade no painel
     Então a resposta tem status 410
     E a página mostra "Este arquivo não está mais disponível"
 
-  @lgpd @Q-50
+  @lgpd @Q-63
   Cenário: Revogar a publicidade pelo painel deixa a remoção pendente
     Dado que o cliente "c-001" com o e-mail "c-001@exemplo.test" está no segmento "vip" com as finalidades "segmentacao,publicidade_terceiros"
     E que o operador gerou o arquivo do público do segmento "vip"
@@ -72,7 +72,7 @@ Funcionalidade: Públicos e consentimento por finalidade no painel
     Então a página mostra 1 remoção pendente
     E a página oferece "gerar-remocao"
 
-  @lgpd @RN-18
+  @lgpd @RN-22
   Cenário: O relatório agregado não detalha grupos pequenos
     Dado que 4 clientes estão no segmento "vip" com ticket médio 600 e a categoria preferida "livros"
     Quando a página "/painel/publicos/relatorio" é aberta

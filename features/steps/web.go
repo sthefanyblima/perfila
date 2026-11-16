@@ -30,7 +30,7 @@ type estadoWeb struct {
 	pagina   string
 	log      bytes.Buffer
 	cadastro string // caminho da ficha do último cliente cadastrado
-	download string // link do último arquivo de público gerado pelo painel (v1.9)
+	download string // link do último arquivo de público gerado pelo painel (v1.11)
 }
 
 var (

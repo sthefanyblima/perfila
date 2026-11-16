@@ -165,12 +165,12 @@ func (m *Mundo) clienteInativo(nome string) error {
 }
 
 // consentimentoNoEstado monta o estado inicial da segmentacao (a finalidade dos cenários
-// anteriores à v1.9) usando as próprias transições do domínio.
+// anteriores à v1.11) usando as próprias transições do domínio.
 func (m *Mundo) consentimentoNoEstado(nome, estado string) error {
 	return m.consentimentoNoEstadoPara(nome, string(entity.FinalidadeSegmentacao), estado)
 }
 
-// consentimentoNoEstadoPara monta o estado inicial de uma finalidade. Spec: Q-48.
+// consentimentoNoEstadoPara monta o estado inicial de uma finalidade. Spec: Q-61.
 func (m *Mundo) consentimentoNoEstadoPara(nome, finalidade, estado string) error {
 	cid, f := id(nome), entity.Finalidade(finalidade)
 	agora := m.clock.Agora()

@@ -16,7 +16,7 @@ type ConsentimentoLGPD struct {
 	ID                uuid.UUID
 	ClienteID         uuid.UUID
 	Status            StatusConsentimento // [ADIÇÃO] substitui Concedido bool (D-02)
-	Finalidade        Finalidade          // v1.9: enumerada e parte da chave (Q-48)
+	Finalidade        Finalidade          // v1.11: enumerada e parte da chave (Q-61)
 	VersaoTermo       string
 	DataConsentimento time.Time
 	DataRevogacao     *time.Time // [ADIÇÃO]
@@ -24,7 +24,7 @@ type ConsentimentoLGPD struct {
 }
 
 // NovoConsentimento cria o registro de uma finalidade no estado inicial NAO_CONCEDIDO.
-// Spec: 3.4.1, D-02, Q-48.
+// Spec: 3.4.1, D-02, Q-61.
 func NovoConsentimento(id, clienteID uuid.UUID, finalidade Finalidade, agora time.Time) ConsentimentoLGPD {
 	return ConsentimentoLGPD{
 		ID:              id,
@@ -37,7 +37,7 @@ func NovoConsentimento(id, clienteID uuid.UUID, finalidade Finalidade, agora tim
 
 // Conceder aplica as transições NAO_CONCEDIDO→CONCEDIDO e REVOGADO→CONCEDIDO.
 // A transição é checada antes da guarda; a guarda exige a finalidade do registro (dentro do
-// enumerado) e a versão do termo. Spec: 3.4.1, Q-48.
+// enumerado) e a versão do termo. Spec: 3.4.1, Q-61.
 func (c *ConsentimentoLGPD) Conceder(finalidade Finalidade, versaoTermo string, agora time.Time) error {
 	if c.Status != StatusNaoConcedido && c.Status != StatusRevogado {
 		return fmt.Errorf("%w: conceder a partir de %s", errs.ErrTransicaoInvalida, c.Status)

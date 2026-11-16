@@ -227,7 +227,7 @@ func (r *PgPerfilRepository) BuscarPorCliente(ctx context.Context, clienteID uui
 	return p, nil
 }
 
-// ListarPorSegmento devolve os perfis do segmento, em ordem de ClienteID. Spec: 3.6, RN-17, RN-18.
+// ListarPorSegmento devolve os perfis do segmento, em ordem de ClienteID. Spec: 3.6, RN-21, RN-22.
 func (r *PgPerfilRepository) ListarPorSegmento(ctx context.Context, segmentoID uuid.UUID) ([]entity.PerfilCliente, error) {
 	linhas, err := r.db.QueryContext(ctx, `
 		SELECT id, cliente_id, frequencia_compras, ticket_medio, categoria_preferida, score_engajamento
@@ -380,7 +380,7 @@ type executor interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 }
 
-// Salvar faz upsert por (ClienteID, Finalidade) e preserva o ID original. Spec: Q-48.
+// Salvar faz upsert por (ClienteID, Finalidade) e preserva o ID original. Spec: Q-61.
 func (r *PgConsentimentoRepository) Salvar(ctx context.Context, c entity.ConsentimentoLGPD) error {
 	return salvarConsentimento(ctx, r.db, c)
 }
@@ -462,7 +462,7 @@ func (r *PgConsentimentoRepository) BuscarPorCliente(ctx context.Context, client
 	return c, nil
 }
 
-// ListarPorCliente devolve os registros existentes, em ordem de finalidade. Spec: 3.6, Q-48.
+// ListarPorCliente devolve os registros existentes, em ordem de finalidade. Spec: 3.6, Q-61.
 func (r *PgConsentimentoRepository) ListarPorCliente(ctx context.Context, clienteID uuid.UUID) ([]entity.ConsentimentoLGPD, error) {
 	linhas, err := r.db.QueryContext(ctx, `
 		SELECT `+colunasConsentimento+` FROM consentimentos_lgpd WHERE cliente_id = $1 ORDER BY finalidade`, clienteID)

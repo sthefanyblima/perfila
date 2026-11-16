@@ -30,7 +30,7 @@ type Repositorios struct {
 	Recomendacoes  port.RecomendacaoRepository
 	Consentimentos port.ConsentimentoRepository
 	Produtos       port.ProdutoRepository
-	Publicos       port.PublicoRepository // v1.9, RN-17
+	Publicos       port.PublicoRepository // v1.11, RN-21
 
 	AdicionarSegmento func(t *testing.T, s entity.Segmento)
 	AdicionarProduto  func(t *testing.T, p entity.Produto)
@@ -322,7 +322,7 @@ func testarConsentimento(t *testing.T, r Repositorios) {
 	ok(t, err)
 	igual(t, "Salvar não gera movimento", movs, []entity.MovimentoConsentimento{})
 
-	// Q-48: a outra finalidade é outro registro, independente.
+	// Q-61: a outra finalidade é outro registro, independente.
 	_, err = r.Consentimentos.BuscarPorCliente(ctx, c.ID, pub)
 	erroEsperado(t, err, errs.ErrConsentimentoNaoEncontrado)
 	publicidade := entity.NovoConsentimento(uuid.New(), c.ID, pub, agora)

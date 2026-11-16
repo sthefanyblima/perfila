@@ -14,7 +14,7 @@ import (
 )
 
 // PublicoRepository guarda exportações, conteúdo dos arquivos e membros dos públicos.
-// Spec: 3.6, RN-17, Q-51.
+// Spec: 3.6, RN-21, Q-64.
 type PublicoRepository struct {
 	mu          sync.RWMutex
 	exportacoes map[uuid.UUID]entity.ExportacaoPublico
@@ -78,7 +78,7 @@ func (r *PublicoRepository) BuscarArquivo(_ context.Context, exportacaoID uuid.U
 	return r.exportacoes[exportacaoID], append([]byte{}, c...), nil
 }
 
-// ApagarArquivosVencidos apaga o conteúdo com ArquivoExpiraEm até agora; o registro fica. Spec: Q-51.
+// ApagarArquivosVencidos apaga o conteúdo com ArquivoExpiraEm até agora; o registro fica. Spec: Q-64.
 func (r *PublicoRepository) ApagarArquivosVencidos(_ context.Context, agora time.Time) (int, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()

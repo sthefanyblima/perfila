@@ -174,7 +174,7 @@ func (r *PerfilRepository) BuscarPorCliente(_ context.Context, clienteID uuid.UU
 	return p, nil
 }
 
-// ListarPorSegmento devolve os perfis do segmento, em ordem de ClienteID. Spec: 3.6, RN-17, RN-18.
+// ListarPorSegmento devolve os perfis do segmento, em ordem de ClienteID. Spec: 3.6, RN-21, RN-22.
 func (r *PerfilRepository) ListarPorSegmento(_ context.Context, segmentoID uuid.UUID) ([]entity.PerfilCliente, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -334,7 +334,7 @@ func (r *RecomendacaoRepository) Todas() []entity.RecomendacaoProduto {
 
 type ConsentimentoRepository struct {
 	mu         sync.RWMutex
-	dados      map[chaveConsentimento]entity.ConsentimentoLGPD // chave: (ClienteID, Finalidade), Q-48
+	dados      map[chaveConsentimento]entity.ConsentimentoLGPD // chave: (ClienteID, Finalidade), Q-61
 	movimentos map[uuid.UUID][]entity.MovimentoConsentimento   // chave: ClienteID; ordem de gravação
 	idsMov     map[uuid.UUID]bool
 }
@@ -398,7 +398,7 @@ func (r *ConsentimentoRepository) BuscarPorCliente(_ context.Context, clienteID 
 	return c, nil
 }
 
-// ListarPorCliente devolve os registros existentes, em ordem de Finalidade. Spec: 3.6, Q-48.
+// ListarPorCliente devolve os registros existentes, em ordem de Finalidade. Spec: 3.6, Q-61.
 func (r *ConsentimentoRepository) ListarPorCliente(_ context.Context, clienteID uuid.UUID) ([]entity.ConsentimentoLGPD, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()

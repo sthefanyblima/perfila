@@ -15,7 +15,7 @@ import (
 	"perfila/internal/domain/entity"
 )
 
-// Estado dos cenários de públicos (Spec v1.9, RN-17, RN-18).
+// Estado dos cenários de públicos (Spec v1.11, RN-21, RN-22).
 type estadoPublicos struct {
 	log        *bytes.Buffer
 	gerado     usecase.PublicoGerado

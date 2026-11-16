@@ -12,7 +12,7 @@ import (
 	"perfila/internal/shared/errs"
 )
 
-// Spec: RN-17 Q-49 — só hashes e o nome do segmento, em ordem, sem repetição.
+// Spec: RN-21 Q-62 — só hashes e o nome do segmento, em ordem, sem repetição.
 func TestDestinoCSV(t *testing.T) {
 	quando := time.Date(2026, 11, 13, 12, 0, 0, 0, time.UTC)
 	b, a := entity.HashEmail("c-002@exemplo.test"), entity.HashEmail("c-001@exemplo.test")

@@ -41,15 +41,15 @@ const (
 )
 
 // Finalidade é o uso autorizado pelo consentimento; há um registro por (cliente, finalidade).
-// Spec: 3.2, RN-02, Q-48 (v1.9).
+// Spec: 3.2, RN-02, Q-61 (v1.11).
 type Finalidade string
 
 const (
 	FinalidadeSegmentacao          Finalidade = "segmentacao"           // perfil, segmento e recomendação (uso interno)
-	FinalidadePublicidadeTerceiros Finalidade = "publicidade_terceiros" // públicos para plataformas de anúncio (RN-17)
+	FinalidadePublicidadeTerceiros Finalidade = "publicidade_terceiros" // públicos para plataformas de anúncio (RN-21)
 )
 
-// Finalidades devolve as finalidades na ordem de exibição. Spec: Q-48.
+// Finalidades devolve as finalidades na ordem de exibição. Spec: Q-61.
 func Finalidades() []Finalidade {
 	return []Finalidade{FinalidadeSegmentacao, FinalidadePublicidadeTerceiros}
 }
@@ -59,7 +59,7 @@ func (f Finalidade) Valida() bool {
 	return f == FinalidadeSegmentacao || f == FinalidadePublicidadeTerceiros
 }
 
-// TipoExportacao diz se o arquivo de público inclui ou remove clientes. Spec: RN-17.
+// TipoExportacao diz se o arquivo de público inclui ou remove clientes. Spec: RN-21.
 type TipoExportacao string
 
 const (
@@ -67,7 +67,7 @@ const (
 	ExportacaoRemocao  TipoExportacao = "REMOCAO"
 )
 
-// StatusMembro é o estado da máquina 3.4.3. Spec: RN-17, Q-50.
+// StatusMembro é o estado da máquina 3.4.3. Spec: RN-21, Q-63.
 type StatusMembro string
 
 const (
@@ -76,7 +76,7 @@ const (
 	MembroRemovido        StatusMembro = "REMOVIDO"
 )
 
-// TipoDestino identifica o destino publicitário; no MVP, só o arquivo CSV. Spec: RN-17, Q-49.
+// TipoDestino identifica o destino publicitário; no MVP, só o arquivo CSV. Spec: RN-21, Q-62.
 type TipoDestino string
 
 const DestinoArquivoCSV TipoDestino = "arquivo_csv"

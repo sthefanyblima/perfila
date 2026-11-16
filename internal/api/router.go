@@ -154,7 +154,7 @@ func (h handlers) revogarConsentimento(w http.ResponseWriter, r *http.Request) {
 		escreverErro(w, r, h.d.Log, err)
 		return
 	}
-	// v1.9 (Q-48): sem corpo revoga a segmentacao, como antes; com corpo, a finalidade pedida.
+	// v1.11 (Q-61): sem corpo revoga a segmentacao, como antes; com corpo, a finalidade pedida.
 	finalidade := entity.FinalidadeSegmentacao
 	corpo, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 1<<20))
 	if err != nil {
@@ -194,7 +194,7 @@ func (h handlers) responderConsentimento(w http.ResponseWriter, r *http.Request)
 		escreverErro(w, r, h.d.Log, err)
 		return
 	}
-	// O topo continua sendo a segmentacao (Q-48); `finalidades` traz as duas.
+	// O topo continua sendo a segmentacao (Q-61); `finalidades` traz as duas.
 	resp := consentimentoDTO(todas[0])
 	for _, c := range todas {
 		resp.Finalidades = append(resp.Finalidades, consentimentoDTO(c))

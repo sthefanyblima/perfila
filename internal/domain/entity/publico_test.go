@@ -9,7 +9,7 @@ import (
 	"perfila/internal/shared/errs"
 )
 
-// Spec: RN-17 Q-49 — normalização antes do hash.
+// Spec: RN-21 Q-62 — normalização antes do hash.
 func TestHashEmail(t *testing.T) {
 	const esperado = "9c4cd21419f4d9f66ea792856912326980a93ed91c0f9b487dc9df386b13a7ef"
 	for _, e := range []string{"c-001@exemplo.test", "  C-001@Exemplo.TEST ", "c-0 01@exemplo.test\t"} {
@@ -51,7 +51,7 @@ func TestMembroPublicoTransicoes(t *testing.T) {
 	}
 }
 
-// Spec: 3.4.1 Q-48 — a guarda confere a finalidade do registro.
+// Spec: 3.4.1 Q-61 — a guarda confere a finalidade do registro.
 func TestConsentimentoPorFinalidade(t *testing.T) {
 	c := NovoConsentimento(uuid.New(), uuid.New(), FinalidadePublicidadeTerceiros, agoraTeste)
 	for _, f := range []Finalidade{"", "marketing", "Segmentacao", FinalidadeSegmentacao} {

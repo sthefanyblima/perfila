@@ -27,9 +27,9 @@ type Config struct {
 	PainelUsuario     string
 	PainelSenhaHash   string // bcrypt; vazia = painel desligado
 	PainelChaveSessao []byte // 32 bytes (64 dígitos hexadecimais); vazia = painel desligado
-	PainelVersaoTermo string // PAINEL_FINALIDADE deixou de existir na v1.9 (Q-48): é ignorada
+	PainelVersaoTermo string // PAINEL_FINALIDADE deixou de existir na v1.11 (Q-61): é ignorada
 
-	// Públicos para campanha (v1.9, Q-51).
+	// Públicos para campanha (v1.11, Q-64).
 	PublicosArquivoHoras int // por quanto tempo o arquivo pode ser baixado, de 1 a 168
 }
 

@@ -6,7 +6,7 @@ import (
 	"github.com/cucumber/godog"
 )
 
-// Passos do consentimento por finalidade (Spec v1.9, Q-48). Os passos sem finalidade continuam
+// Passos do consentimento por finalidade (Spec v1.11, Q-61). Os passos sem finalidade continuam
 // valendo para "segmentacao".
 func registrarPassosFinalidade(sc *godog.ScenarioContext, m *Mundo) {
 	sc.Step(`^que o consentimento do cliente "([^"]*)" para "([^"]*)" está no estado "([^"]*)"$`, m.consentimentoNoEstadoPara)

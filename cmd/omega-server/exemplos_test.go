@@ -84,7 +84,7 @@ func TestCarregarExemplos(t *testing.T) {
 		if fabio, _ := r.consentimentos.ListarMovimentos(ctx, porEmail["c-006@exemplo.test"].ID); len(fabio) != 2 || fabio[1].Origem != entity.OrigemSistema {
 			t.Errorf("Fábio: histórico %+v", fabio)
 		}
-		// Q-48: publicidade concedida para Ana, Bruno, Heitor e Isabela; Carla concedeu e revogou, e a
+		// Q-61: publicidade concedida para Ana, Bruno, Heitor e Isabela; Carla concedeu e revogou, e a
 		// segmentação dela não mudou; quem não concedeu fica sem registro (NAO_CONCEDIDO).
 		for email, quer := range map[string]entity.StatusConsentimento{
 			"c-001@exemplo.test": entity.StatusConcedido, "c-002@exemplo.test": entity.StatusConcedido,

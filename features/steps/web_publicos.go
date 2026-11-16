@@ -11,7 +11,7 @@ import (
 	"github.com/cucumber/godog"
 )
 
-// Passos @web dos públicos e do consentimento por finalidade (Spec 3.7.1, v1.9).
+// Passos @web dos públicos e do consentimento por finalidade (Spec 3.7.1, v1.11).
 var reBaixar = regexp.MustCompile(`href="(/painel/publicos/exportacoes/[0-9a-f-]{36}/arquivo)"[^>]*data-teste="acao-baixar"`)
 
 func registrarPassosPublicosWeb(sc *godog.ScenarioContext, m *Mundo) {

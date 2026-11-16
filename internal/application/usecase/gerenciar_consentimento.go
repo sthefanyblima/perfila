@@ -18,7 +18,7 @@ type GerenciarConsentimentoUseCase struct {
 	clientes       port.ClienteRepository
 	consentimentos port.ConsentimentoRepository
 	clock          port.Clock
-	propagar       *PropagarRevogacaoUseCase // v1.9, RN-17; nil = sem públicos
+	propagar       *PropagarRevogacaoUseCase // v1.11, RN-21; nil = sem públicos
 }
 
 // NovoGerenciarConsentimentoUseCase injeta as dependências (C-08). propagar pode ser nil quando
@@ -29,7 +29,7 @@ func NovoGerenciarConsentimentoUseCase(clientes port.ClienteRepository, consenti
 }
 
 // Conceder cria o registro da finalidade se não existir, aplica a transição e grava registro e
-// movimento CONCESSAO juntos. Finalidade fora do enumerado: ErrDadosInvalidos. Spec: UC-08, RN-10, Q-48.
+// movimento CONCESSAO juntos. Finalidade fora do enumerado: ErrDadosInvalidos. Spec: UC-08, RN-10, Q-61.
 func (uc *GerenciarConsentimentoUseCase) Conceder(ctx context.Context, clienteID uuid.UUID, finalidade entity.Finalidade, versaoTermo string) error {
 	if !finalidade.Valida() {
 		return fmt.Errorf("%w: finalidade %q", errs.ErrDadosInvalidos, finalidade)
@@ -45,7 +45,7 @@ func (uc *GerenciarConsentimentoUseCase) Conceder(ctx context.Context, clienteID
 }
 
 // Revogar aplica CONCEDIDO → REVOGADO na finalidade e grava registro e movimento REVOGACAO juntos;
-// a outra finalidade não muda. Spec: UC-08, RN-03, RN-10, Q-48.
+// a outra finalidade não muda. Spec: UC-08, RN-03, RN-10, Q-61.
 func (uc *GerenciarConsentimentoUseCase) Revogar(ctx context.Context, clienteID uuid.UUID, finalidade entity.Finalidade) error {
 	if !finalidade.Valida() {
 		return fmt.Errorf("%w: finalidade %q", errs.ErrDadosInvalidos, finalidade)
@@ -60,7 +60,7 @@ func (uc *GerenciarConsentimentoUseCase) Revogar(ctx context.Context, clienteID 
 	if err := uc.registrar(ctx, c, entity.MovimentoRevogacao); err != nil {
 		return err
 	}
-	// RN-17, Q-50: tira o cliente dos públicos exportados. A falha já foi para o log pela própria
+	// RN-21, Q-63: tira o cliente dos públicos exportados. A falha já foi para o log pela própria
 	// propagação e não desfaz a revogação; a próxima exportação do segmento marca a remoção.
 	if uc.propagar != nil {
 		_, _ = uc.propagar.Executar(ctx, clienteID)
@@ -87,7 +87,7 @@ func (uc *GerenciarConsentimentoUseCase) registrar(ctx context.Context, c entity
 }
 
 // Consultar [ADIÇÃO]: sem registro da finalidade, devolve um consentimento sintético em
-// NAO_CONCEDIDO daquela finalidade. Spec: UC-08, Q-48.
+// NAO_CONCEDIDO daquela finalidade. Spec: UC-08, Q-61.
 func (uc *GerenciarConsentimentoUseCase) Consultar(ctx context.Context, clienteID uuid.UUID, finalidade entity.Finalidade) (entity.ConsentimentoLGPD, error) {
 	if !finalidade.Valida() {
 		return entity.ConsentimentoLGPD{}, fmt.Errorf("%w: finalidade %q", errs.ErrDadosInvalidos, finalidade)
@@ -95,8 +95,8 @@ func (uc *GerenciarConsentimentoUseCase) Consultar(ctx context.Context, clienteI
 	return uc.carregar(ctx, clienteID, finalidade)
 }
 
-// ConsultarFinalidades [ADIÇÃO] v1.9: um registro por finalidade, na ordem de entity.Finalidades(),
-// sintético onde não houver. Spec: UC-08, Q-48.
+// ConsultarFinalidades [ADIÇÃO] v1.11: um registro por finalidade, na ordem de entity.Finalidades(),
+// sintético onde não houver. Spec: UC-08, Q-61.
 func (uc *GerenciarConsentimentoUseCase) ConsultarFinalidades(ctx context.Context, clienteID uuid.UUID) ([]entity.ConsentimentoLGPD, error) {
 	out := make([]entity.ConsentimentoLGPD, 0, len(entity.Finalidades()))
 	for _, f := range entity.Finalidades() {

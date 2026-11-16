@@ -11,7 +11,7 @@ import (
 	"perfila/internal/shared/errs"
 )
 
-// Spec: 3.6, RN-17, RN-18 — só os perfis do segmento, em ordem de ClienteID.
+// Spec: 3.6, RN-21, RN-22 — só os perfis do segmento, em ordem de ClienteID.
 func testarPerfisPorSegmento(t *testing.T, r Repositorios) {
 	ctx := context.Background()
 	vip := entity.Segmento{ID: uuid.New(), Nome: "vip", Criterio: "ticketMedio >= 500", Prioridade: 1, Ativo: true}
@@ -39,7 +39,7 @@ func testarPerfisPorSegmento(t *testing.T, r Repositorios) {
 	igual(t, "segmento sem perfis", vazio, []entity.PerfilCliente{})
 }
 
-// Spec: RN-17, 3.4.3, Q-51 — exportação atômica, membros por estado, arquivo com prazo.
+// Spec: RN-21, 3.4.3, Q-64 — exportação atômica, membros por estado, arquivo com prazo.
 func testarPublico(t *testing.T, r Repositorios) {
 	ctx := context.Background()
 	seg := entity.Segmento{ID: uuid.New(), Nome: "vip", Criterio: "ticketMedio >= 500", Prioridade: 1, Ativo: true}
@@ -101,7 +101,7 @@ func testarPublico(t *testing.T, r Repositorios) {
 	ok(t, err)
 	igual(t, "histórico, mais recente primeiro", hist, []entity.ExportacaoPublico{rem, inc})
 
-	// Retenção (Q-51): no prazo exato o conteúdo vencido é apagado e o registro fica.
+	// Retenção (Q-64): no prazo exato o conteúdo vencido é apagado e o registro fica.
 	n, err := r.Publicos.ApagarArquivosVencidos(ctx, inc.ArquivoExpiraEm)
 	ok(t, err)
 	igual(t, "arquivos apagados", n, 1)

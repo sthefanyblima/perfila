@@ -1,16 +1,16 @@
 # language: pt
-@UC-06 @RN-17 @Q-48 @Q-49
+@UC-06 @RN-21 @Q-61 @Q-62
 Funcionalidade: Públicos para campanhas e consentimento por finalidade
   Para anunciar a um segmento em plataformas de terceiros
   O sistema gera o público só com quem concedeu a finalidade "publicidade_terceiros",
-  leva só o e-mail em hash e propaga a revogação aos públicos já entregues (Spec v1.9)
+  leva só o e-mail em hash e propaga a revogação aos públicos já entregues (Spec v1.11)
 
   Contexto:
     Dado que a data atual é "2026-11-13T12:00:00Z"
     E que existe o segmento ativo "vip" com prioridade 1 e critério "ticketMedio >= 500"
     E que existe o segmento ativo "fiel" com prioridade 2 e critério "frequenciaCompras >= 3"
 
-  # ---- Consentimento por finalidade (Q-48) ----
+  # ---- Consentimento por finalidade (Q-61) ----
 
   @aplicacao @lgpd @RN-02
   Cenário: Cada finalidade tem o seu próprio estado
@@ -56,7 +56,7 @@ Funcionalidade: Públicos para campanhas e consentimento por finalidade
     Então o histórico do consentimento do cliente "c-001" tem 1 movimento
     E o último movimento do cliente "c-001" é da finalidade "publicidade_terceiros"
 
-  # ---- Quem entra no público (RN-17) ----
+  # ---- Quem entra no público (RN-21) ----
 
   @aplicacao @lgpd
   Cenário: Só entra no público quem concedeu as duas finalidades
@@ -133,7 +133,7 @@ Funcionalidade: Públicos para campanhas e consentimento por finalidade
     Quando o arquivo da última exportação é baixado
     Então o arquivo baixado é igual ao exportado
 
-  @aplicacao @lgpd @Q-51
+  @aplicacao @lgpd @Q-64
   Cenário: Depois do prazo o arquivo não é mais entregue
     Dado que o cliente "c-001" com o e-mail "c-001@exemplo.test" está no segmento "vip" com as finalidades "segmentacao,publicidade_terceiros"
     E que o operador "analista" exportou o público do segmento "vip"
@@ -141,9 +141,9 @@ Funcionalidade: Públicos para campanhas e consentimento por finalidade
     Quando o arquivo da última exportação é baixado
     Então a operação falha com o erro "arquivo_indisponivel"
 
-  # ---- Remoção propagada (Q-50) ----
+  # ---- Remoção propagada (Q-63) ----
 
-  @aplicacao @lgpd @RN-03 @Q-50
+  @aplicacao @lgpd @RN-03 @Q-63
   Esquema do Cenário: Revogar qualquer finalidade tira o cliente do público exportado
     Dado que o cliente "c-001" com o e-mail "c-001@exemplo.test" está no segmento "vip" com as finalidades "segmentacao,publicidade_terceiros"
     E que o operador "analista" exportou o público do segmento "vip"
@@ -156,7 +156,7 @@ Funcionalidade: Públicos para campanhas e consentimento por finalidade
       | publicidade_terceiros |
       | segmentacao           |
 
-  @aplicacao @lgpd @Q-50
+  @aplicacao @lgpd @Q-63
   Cenário: O arquivo de remoção leva quem revogou e encerra a pendência
     Dado que o cliente "c-001" com o e-mail "c-001@exemplo.test" está no segmento "vip" com as finalidades "segmentacao,publicidade_terceiros"
     E que o operador "analista" exportou o público do segmento "vip"
@@ -166,14 +166,14 @@ Funcionalidade: Públicos para campanhas e consentimento por finalidade
     E o segmento "vip" tem 0 remoções pendentes
     E o membro do cliente "c-001" no segmento "vip" está no estado "REMOVIDO"
 
-  @aplicacao @Q-50
+  @aplicacao @Q-63
   Cenário: Sem remoção pendente não há arquivo de remoção
     Dado que o cliente "c-001" com o e-mail "c-001@exemplo.test" está no segmento "vip" com as finalidades "segmentacao,publicidade_terceiros"
     E que o operador "analista" exportou o público do segmento "vip"
     Quando o operador "analista" exporta as remoções do segmento "vip"
     Então a operação falha com o erro "dados_invalidos"
 
-  @aplicacao @lgpd @Q-50
+  @aplicacao @lgpd @Q-63
   Cenário: Quem mudou de segmento fica pendente de remoção na exportação seguinte
     Dado que o cliente "c-001" com o e-mail "c-001@exemplo.test" está no segmento "vip" com as finalidades "segmentacao,publicidade_terceiros"
     E que o cliente "c-002" com o e-mail "c-002@exemplo.test" está no segmento "vip" com as finalidades "segmentacao,publicidade_terceiros"
@@ -182,7 +182,7 @@ Funcionalidade: Públicos para campanhas e consentimento por finalidade
     Quando o operador "analista" exporta o público do segmento "vip"
     Então o membro do cliente "c-001" no segmento "vip" está no estado "REMOCAO_PENDENTE"
 
-  @dominio @Q-50
+  @dominio @Q-63
   Esquema do Cenário: Transições inválidas do membro do público são rejeitadas
     Dado que existe um membro de público no estado "<estado>"
     Quando tenta-se "<acao>" o membro
@@ -195,9 +195,9 @@ Funcionalidade: Públicos para campanhas e consentimento por finalidade
       | REMOVIDO         | marcar remoção   |
       | REMOVIDO         | remover          |
 
-  # ---- Relatório agregado (RN-18, Q-52) ----
+  # ---- Relatório agregado (RN-22, Q-65) ----
 
-  @aplicacao @lgpd @RN-18 @Q-52
+  @aplicacao @lgpd @RN-22 @Q-65
   Cenário: O agregado esconde grupos com menos de 5 clientes
     Dado que 5 clientes estão no segmento "vip" com ticket médio 600 e a categoria preferida "livros"
     E que 4 clientes estão no segmento "fiel" com ticket médio 80 e a categoria preferida "casa"
@@ -205,14 +205,14 @@ Funcionalidade: Públicos para campanhas e consentimento por finalidade
     Então a linha do segmento "vip" mostra 5 clientes, ticket médio 600 e a categoria "livros"
     E a linha do segmento "fiel" mostra "menos de 5" sem ticket nem categoria
 
-  @aplicacao @lgpd @RN-18
+  @aplicacao @lgpd @RN-22
   Cenário: O agregado conta só quem tem a segmentação válida
     Dado que 5 clientes estão no segmento "vip" com ticket médio 600 e a categoria preferida "livros"
     E que 1 dos clientes do segmento "vip" revogou a segmentação
     Quando o relatório agregado por segmento é gerado
     Então a linha do segmento "vip" mostra "menos de 5" sem ticket nem categoria
 
-  @aplicacao @lgpd @RN-18
+  @aplicacao @lgpd @RN-22
   Cenário: O CSV do agregado não tem identificador
     Dado que 5 clientes estão no segmento "vip" com ticket médio 600 e a categoria preferida "livros"
     Quando o relatório agregado por segmento é exportado em CSV
@@ -223,7 +223,7 @@ Funcionalidade: Públicos para campanhas e consentimento por finalidade
       fiel,menos de 5,,
       """
 
-  # ---- API (Spec 3.7, Q-48) ----
+  # ---- API (Spec 3.7, Q-61) ----
 
   @api @lgpd
   Cenário: A API concede a publicidade sem mexer na segmentação

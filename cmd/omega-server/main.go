@@ -136,7 +136,7 @@ type repositorios struct {
 	segmentos      port.SegmentoRepository
 	recomendacoes  port.RecomendacaoRepository
 	consentimentos port.ConsentimentoRepository
-	publicos       port.PublicoRepository // v1.9, RN-17
+	publicos       port.PublicoRepository // v1.11, RN-21
 	produtos       port.ProdutoRepository
 	saude          func(ctx context.Context) error // nil no modo memória (Q-19)
 	migracoes      string                          // versão do esquema, para a tela de Operação

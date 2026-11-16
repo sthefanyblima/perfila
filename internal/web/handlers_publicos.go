@@ -13,7 +13,7 @@ import (
 	"perfila/internal/shared/errs"
 )
 
-// Públicos para campanha (Spec 3.7.1, v1.9, UC-06 parcial, RN-17, RN-18, Q-53).
+// Públicos para campanha (Spec 3.7.1, v1.11, UC-06 parcial, RN-21, RN-22, Q-66).
 func (p *painel) rotasPublicos(mux *http.ServeMux, sessao func(http.HandlerFunc) http.Handler) {
 	mux.Handle("GET /painel/publicos", sessao(p.telaPublicos))
 	mux.Handle("GET /painel/publicos/{tipo}", sessao(p.confirmarExportacao))
@@ -90,7 +90,7 @@ func (p *painel) telaPublicos(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// GET /painel/publicos/{exportar|remocoes}?segmento= — confirmação com o efeito escrito (Q-53).
+// GET /painel/publicos/{exportar|remocoes}?segmento= — confirmação com o efeito escrito (Q-66).
 func (p *painel) confirmarExportacao(w http.ResponseWriter, r *http.Request) {
 	tipo := r.PathValue("tipo")
 	if !tipoValido(tipo) {
@@ -142,7 +142,7 @@ func (p *painel) exportar(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, fmt.Sprintf("/painel/publicos?segmento=%s&exportacao=%s&aviso=arquivo-gerado", segID, e.ID), http.StatusSeeOther)
 }
 
-// GET /painel/publicos/exportacoes/{id}/arquivo — o CSV dentro do prazo (Q-51).
+// GET /painel/publicos/exportacoes/{id}/arquivo — o CSV dentro do prazo (Q-64).
 func (p *painel) baixarArquivo(w http.ResponseWriter, r *http.Request) {
 	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
@@ -164,7 +164,7 @@ func (p *painel) baixarArquivo(w http.ResponseWriter, r *http.Request) {
 	escreverCSV(w, recibo.NomeArquivo, recibo.Conteudo)
 }
 
-// GET /painel/publicos/relatorio — agregado por segmento, sem identificador (RN-18).
+// GET /painel/publicos/relatorio — agregado por segmento, sem identificador (RN-22).
 func (p *painel) telaRelatorio(w http.ResponseWriter, r *http.Request) {
 	linhas, err := p.d.Relatorio.Executar(r.Context())
 	if err != nil {
@@ -174,7 +174,7 @@ func (p *painel) telaRelatorio(w http.ResponseWriter, r *http.Request) {
 	p.render(w, r, http.StatusOK, "relatorio", pagina{Titulo: "Relatório agregado", Nav: "relatorio", Dados: linhas})
 }
 
-// GET /painel/publicos/relatorio.csv — o mesmo agregado em CSV (RN-18).
+// GET /painel/publicos/relatorio.csv — o mesmo agregado em CSV (RN-22).
 func (p *painel) relatorioCSV(w http.ResponseWriter, r *http.Request) {
 	linhas, err := p.d.Relatorio.Executar(r.Context())
 	if err != nil {
@@ -191,7 +191,7 @@ func escreverCSV(w http.ResponseWriter, nome string, conteudo []byte) {
 	_, _ = w.Write(conteudo)
 }
 
-// withOperador põe a origem painel e o login da sessão no contexto (RN-10, RN-17).
+// withOperador põe a origem painel e o login da sessão no contexto (RN-10, RN-21).
 func withOperador(r *http.Request) context.Context {
 	return usecase.ComOrigem(r.Context(), entity.OrigemPainel, sessaoDe(r).Operador)
 }

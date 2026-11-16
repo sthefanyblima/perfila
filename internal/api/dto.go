@@ -22,7 +22,7 @@ type ConcederConsentimentoRequest struct {
 	VersaoTermo string `json:"versaoTermo"`
 }
 
-// RevogarConsentimentoRequest [ADIÇÃO] v1.9: opcional; sem corpo, segmentacao (Q-48).
+// RevogarConsentimentoRequest [ADIÇÃO] v1.11: opcional; sem corpo, segmentacao (Q-61).
 type RevogarConsentimentoRequest struct {
 	Finalidade string `json:"finalidade"`
 }
@@ -59,7 +59,7 @@ type ConsentimentoResponse struct {
 	DataConsentimento *time.Time `json:"dataConsentimento,omitempty"`
 	DataRevogacao     *time.Time `json:"dataRevogacao,omitempty"`
 	DataAtualizacao   time.Time  `json:"dataAtualizacao"`
-	// Finalidades [ADIÇÃO] v1.9: um item por finalidade (Q-48); só na resposta de topo.
+	// Finalidades [ADIÇÃO] v1.11: um item por finalidade (Q-61); só na resposta de topo.
 	Finalidades []ConsentimentoResponse `json:"finalidades,omitempty"`
 }
 

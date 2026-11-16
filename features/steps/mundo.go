@@ -30,7 +30,7 @@ type Mundo struct {
 	recomendacoes  *memoria.RecomendacaoRepository
 	consentimentos *memoria.ConsentimentoRepository
 	produtos       *memoria.ProdutoRepository
-	publicos       *memoria.PublicoRepository // v1.9, RN-17
+	publicos       *memoria.PublicoRepository // v1.11, RN-21
 
 	metaEventos  int
 	validadeDias int
@@ -53,14 +53,14 @@ type Mundo struct {
 
 	api estadoAPI
 
-	pub estadoPublicos // v1.9, RN-17
+	pub estadoPublicos // v1.11, RN-21
 }
 
 // Padrões da Spec 3.8.
 const (
 	metaPadrao     = 30
 	validadePadrao = 30
-	horasArquivo   = 24 // PUBLICOS_ARQUIVO_HORAS (Q-51)
+	horasArquivo   = 24 // PUBLICOS_ARQUIVO_HORAS (Q-64)
 )
 
 func novoMundo() *Mundo {

@@ -79,8 +79,8 @@ func NovoMovimento(id uuid.UUID, c ConsentimentoLGPD, tipo TipoMovimento, origem
 	}, nil
 }
 
-// FinalidadeEfetiva é a finalidade a que o movimento pertence: os movimentos anteriores à v1.9,
-// com texto livre fora do enumerado, contam como segmentacao (o texto original fica). Spec: RN-10, Q-48.
+// FinalidadeEfetiva é a finalidade a que o movimento pertence: os movimentos anteriores à v1.11,
+// com texto livre fora do enumerado, contam como segmentacao (o texto original fica). Spec: RN-10, Q-61.
 func (m MovimentoConsentimento) FinalidadeEfetiva() Finalidade {
 	if f := Finalidade(m.Finalidade); f.Valida() {
 		return f

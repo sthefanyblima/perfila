@@ -110,7 +110,7 @@ func TestMigracoes(t *testing.T) {
 		versoes = append(versoes, v)
 	}
 	linhas.Close()
-	if !reflect.DeepEqual(versoes, []string{"001_inicial", "002_dados_demonstracao", "003_recomendacoes_ativas_por_cliente", "004_listagem_de_clientes", "005_demonstracao_ampliada", "006_movimentos_consentimento", "009_finalidades_e_publicos"}) {
+	if !reflect.DeepEqual(versoes, []string{"001_inicial", "002_dados_demonstracao", "003_recomendacoes_ativas_por_cliente", "004_listagem_de_clientes", "005_demonstracao_ampliada", "006_movimentos_consentimento", "011_finalidades_e_publicos"}) {
 		t.Fatalf("migrações registradas: %v", versoes)
 	}
 	aplicadas, err := pg.Migrar(ctx, db)
@@ -142,7 +142,7 @@ func TestMigracoes(t *testing.T) {
 	}
 }
 
-// Spec: RN-02, Q-48 — a 009 põe "segmentacao" nos registros antigos (texto livre), passa a chave
+// Spec: RN-02, Q-61 — a 011 põe "segmentacao" nos registros antigos (texto livre), passa a chave
 // para (cliente, finalidade) e recusa finalidade fora do enumerado; os movimentos não mudam.
 func TestMigracaoFinalidades(t *testing.T) {
 	db := bancoDeTeste(t, "teste_finalidades")
@@ -153,11 +153,11 @@ func TestMigracaoFinalidades(t *testing.T) {
 		Email: "c-001@exemplo.test", DataCadastro: agora, Ativo: true}); err != nil {
 		t.Fatal(err)
 	}
-	// Simula um banco anterior à 009, com a finalidade em texto livre e a chave só por cliente.
+	// Simula um banco anterior à 011, com a finalidade em texto livre e a chave só por cliente.
 	if _, err := db.Exec(`DROP TABLE membros_publico; DROP TABLE exportacoes_publico;
 		ALTER TABLE consentimentos_lgpd DROP CONSTRAINT consentimentos_lgpd_cliente_finalidade,
 			DROP CONSTRAINT consentimentos_lgpd_finalidade, ADD CONSTRAINT consentimentos_lgpd_cliente_id_key UNIQUE (cliente_id);
-		DELETE FROM schema_migracoes WHERE versao = '009_finalidades_e_publicos'`); err != nil {
+		DELETE FROM schema_migracoes WHERE versao = '011_finalidades_e_publicos'`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := db.Exec(`INSERT INTO consentimentos_lgpd (id, cliente_id, status, finalidade, versao_termo,
@@ -170,7 +170,7 @@ func TestMigracaoFinalidades(t *testing.T) {
 	cons := pg.NovoPgConsentimentoRepository(db)
 	c, err := cons.BuscarPorCliente(ctx, id, entity.FinalidadeSegmentacao)
 	if err != nil || !c.EstaValido() || c.VersaoTermo != "v1" {
-		t.Fatalf("registro antigo depois da 009: %+v %v", c, err)
+		t.Fatalf("registro antigo depois da 011: %+v %v", c, err)
 	}
 	p := entity.NovoConsentimento(uuid.New(), id, entity.FinalidadePublicidadeTerceiros, agora)
 	if err := cons.Salvar(ctx, p); err != nil {

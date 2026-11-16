@@ -3,7 +3,7 @@
 > **Fonte:** Módulo 3 · imagem original: [`img/UML2_classes.jpg`](img/UML2_classes.jpg)
 > **Imagem corrigida (v1, gerada do Mermaid abaixo):** [`img/v1/UML2_classes_dominio.png`](img/v1/UML2_classes_dominio.png) · [`img/v1/UML2_classes_aplicacao.png`](img/v1/UML2_classes_aplicacao.png)
 > **Fonte da verdade para:** entidades, campos, métodos e nomes (Spec 1, C-04).
-> **Versão:** v1.9 (finalidade e públicos) · **Decisões relacionadas:** D-02, D-05, D-06, D-08, D-10, D-14, D-15, D-19, Q-34, Q-48 a Q-52.
+> **Versão:** v1.11 (finalidade e públicos) · **Decisões relacionadas:** D-02, D-05, D-06, D-08, D-10, D-14, D-15, D-19, Q-34, Q-61 a Q-65.
 
 O modelo abaixo é o **implementado** em `internal/domain/entity`. Campos e métodos marcados `«ADIÇÃO»` não existem na imagem original e foram acrescentados pela Spec.
 
@@ -27,12 +27,12 @@ classDiagram
     -ID uuid
     -ClienteID uuid
     -Status StatusConsentimento «ADIÇÃO D-02»
-    -Finalidade Finalidade «v1.9 Q-48»
+    -Finalidade Finalidade «v1.11 Q-61»
     -VersaoTermo string
     -DataConsentimento time
     -DataRevogacao *time «ADIÇÃO»
     -DataAtualizacao time «ADIÇÃO»
-    +NovoConsentimento(id, clienteID, finalidade, agora) «v1.9»
+    +NovoConsentimento(id, clienteID, finalidade, agora) «v1.11»
     +Conceder(finalidade, versaoTermo, agora) error
     +Revogar(agora) error
     +EstaValido() bool
@@ -125,7 +125,7 @@ classDiagram
     -DataRemocaoPendente *time
     -RemocaoID *uuid
     -DataRemocao *time
-    +NovoMembro(id, exportacaoID, segmentoID, clienteID, hashEmail, agora) «v1.9»
+    +NovoMembro(id, exportacaoID, segmentoID, clienteID, hashEmail, agora) «v1.11»
     +MarcarRemocao(agora) error
     +Remover(remocaoID, agora) error
   }
@@ -152,8 +152,8 @@ classDiagram
     -Oculta bool
   }
 
-  Cliente "1" --> "0..2" ConsentimentoLGPD : possui, um por finalidade (Q-48)
-  ExportacaoPublico "1" --> "0..*" MembroPublico : inclui (RN-17)
+  Cliente "1" --> "0..2" ConsentimentoLGPD : possui, um por finalidade (Q-61)
+  ExportacaoPublico "1" --> "0..*" MembroPublico : inclui (RN-21)
   MembroPublico "0..*" --> "1" Cliente : pseudônimo de
   ExportacaoPublico "0..*" --> "1" Segmento : de
   Cliente "1" --> "0..*" MovimentoConsentimento : histórico (Q-34)
@@ -164,9 +164,9 @@ classDiagram
   RecomendacaoProduto "0..*" --> "1" Produto : refere-se a
 ```
 
-Enumerações (C-05): `TipoEvento` = navegacao | compra | interacao · `StatusConsentimento` = NAO_CONCEDIDO | CONCEDIDO | REVOGADO · `StatusRecomendacao` = GERADA | ATIVA | EXPIRADA · `TipoMovimento` = CONCESSAO | REVOGACAO · `OrigemMovimento` = api | painel | portal | sistema | migracao (v1.4, Q-34) · `Finalidade` = segmentacao | publicidade_terceiros · `TipoExportacao` = INCLUSAO | REMOCAO · `StatusMembro` = EXPORTADO | REMOCAO_PENDENTE | REMOVIDO · `TipoDestino` = arquivo_csv (v1.9, Q-48 a Q-51).
+Enumerações (C-05): `TipoEvento` = navegacao | compra | interacao · `StatusConsentimento` = NAO_CONCEDIDO | CONCEDIDO | REVOGADO · `StatusRecomendacao` = GERADA | ATIVA | EXPIRADA · `TipoMovimento` = CONCESSAO | REVOGACAO · `OrigemMovimento` = api | painel | portal | sistema | migracao (v1.4, Q-34) · `Finalidade` = segmentacao | publicidade_terceiros · `TipoExportacao` = INCLUSAO | REMOCAO · `StatusMembro` = EXPORTADO | REMOCAO_PENDENTE | REMOVIDO · `TipoDestino` = arquivo_csv (v1.11, Q-61 a Q-64).
 
-**v1.9 (Q-48):** há um `ConsentimentoLGPD` por (cliente, finalidade), cada um com a máquina do UML5. **Públicos (RN-17):** `ExportacaoPublico` é o registro de cada arquivo, sem dado pessoal; `MembroPublico` liga o cliente ao arquivo pelo `HashEmail` (pseudônimo, ainda dado pessoal) e tem a máquina EXPORTADO → REMOCAO_PENDENTE → REMOVIDO (Spec 3.4.3). Função de domínio `HashEmail(email)`: SHA-256 do e-mail sem espaços e em minúsculas. `LinhaAgregada` (RN-18) não tem identificador.
+**v1.11 (Q-61):** há um `ConsentimentoLGPD` por (cliente, finalidade), cada um com a máquina do UML5. **Públicos (RN-21):** `ExportacaoPublico` é o registro de cada arquivo, sem dado pessoal; `MembroPublico` liga o cliente ao arquivo pelo `HashEmail` (pseudônimo, ainda dado pessoal) e tem a máquina EXPORTADO → REMOCAO_PENDENTE → REMOVIDO (Spec 3.4.3). Função de domínio `HashEmail(email)`: SHA-256 do e-mail sem espaços e em minúsculas. `LinhaAgregada` (RN-22) não tem identificador.
 
 `MovimentoConsentimento` «ADIÇÃO v1.4, Q-34» é a prova de cada transição de `ConsentimentoLGPD` (RN-10): só de inclusão, sem métodos de alteração. O registro `ConsentimentoLGPD` continua sendo a fonte do estado.
 
@@ -190,9 +190,9 @@ classDiagram
   }
   class GerenciarConsentimentoUseCase {
     +Conceder(ctx, clienteID, finalidade, versao) error
-    +Revogar(ctx, clienteID, finalidade) error «v1.9»
+    +Revogar(ctx, clienteID, finalidade) error «v1.11»
     +Consultar(ctx, clienteID, finalidade) «ADIÇÃO»
-    +ConsultarFinalidades(ctx, clienteID) []ConsentimentoLGPD, error «ADIÇÃO v1.9»
+    +ConsultarFinalidades(ctx, clienteID) []ConsentimentoLGPD, error «ADIÇÃO v1.11»
     +Historico(ctx, clienteID) []MovimentoConsentimento, error «ADIÇÃO Q-34»
   }
   class CadastrarClienteUseCase {
@@ -202,19 +202,19 @@ classDiagram
     +Executar(ctx) int, error «ADIÇÃO D-08»
   }
   class GerarPublicoUseCase {
-    +Executar(ctx, segmentoID) PublicoGerado, error «ADIÇÃO v1.9»
+    +Executar(ctx, segmentoID) PublicoGerado, error «ADIÇÃO v1.11»
   }
   class ExportarPublicoUseCase {
-    +Exportar(ctx, segmentoID) ExportacaoPublico, error «ADIÇÃO v1.9»
+    +Exportar(ctx, segmentoID) ExportacaoPublico, error «ADIÇÃO v1.11»
     +ExportarRemocoes(ctx, segmentoID) ExportacaoPublico, error
     +Baixar(ctx, exportacaoID) ReciboEnvio, error
     +Historico(ctx, segmentoID) []ExportacaoPublico, error
   }
   class PropagarRevogacaoUseCase {
-    +Executar(ctx, clienteID) int, error «ADIÇÃO v1.9»
+    +Executar(ctx, clienteID) int, error «ADIÇÃO v1.11»
   }
   class RelatorioAgregadoSegmentosUseCase {
-    +Executar(ctx) []LinhaAgregada, error «ADIÇÃO v1.9»
+    +Executar(ctx) []LinhaAgregada, error «ADIÇÃO v1.11»
   }
   class PerfilamentoService {
     +GerarPerfil(clienteID, eventos) PerfilCliente
@@ -227,7 +227,7 @@ classDiagram
   }
   class ValidadorLGPD {
     +ConsentimentoValido(ctx, clienteID) bool, error
-    +ConsentimentoValidoPara(ctx, clienteID, finalidade) bool, error «v1.9»
+    +ConsentimentoValidoPara(ctx, clienteID, finalidade) bool, error «v1.11»
   }
 
   GerarPerfilUseCase ..> ColetarDadosUseCase : «include»
@@ -236,11 +236,11 @@ classDiagram
   GerarRecomendacaoUseCase ..> RecomendacaoService
   ColetarDadosUseCase ..> ValidadorLGPD : RN-01
   ExportarPublicoUseCase ..> GerarPublicoUseCase
-  GerarPublicoUseCase ..> ValidadorLGPD : RN-17
-  GerenciarConsentimentoUseCase ..> PropagarRevogacaoUseCase : Revogar (RN-17)
+  GerarPublicoUseCase ..> ValidadorLGPD : RN-21
+  GerenciarConsentimentoUseCase ..> PropagarRevogacaoUseCase : Revogar (RN-21)
 ```
 
-Ports (interfaces) — declarados no **domínio** (`internal/domain/port`, C-02): `ClienteRepository`, `EventoRepository`, `PerfilRepository`, `SegmentoRepository`, `RecomendacaoRepository`, `ConsentimentoRepository`, `ProdutoRepository` «ADIÇÃO D-05», `PublicoRepository` «ADIÇÃO v1.9», `ConsentimentoGateway`, `IntegracaoGateway`, `DestinoPublicitarioGateway` «ADIÇÃO v1.9», `Clock`. Assinaturas completas na Spec 3.6.
+Ports (interfaces) — declarados no **domínio** (`internal/domain/port`, C-02): `ClienteRepository`, `EventoRepository`, `PerfilRepository`, `SegmentoRepository`, `RecomendacaoRepository`, `ConsentimentoRepository`, `ProdutoRepository` «ADIÇÃO D-05», `PublicoRepository` «ADIÇÃO v1.11», `ConsentimentoGateway`, `IntegracaoGateway`, `DestinoPublicitarioGateway` «ADIÇÃO v1.11», `Clock`. Assinaturas completas na Spec 3.6.
 
 ## Diferenças em relação à imagem original
 
@@ -258,8 +258,8 @@ Ports (interfaces) — declarados no **domínio** (`internal/domain/port`, C-02)
 | `Segmento 1 — 1 PerfilCliente` | `PerfilCliente 0..* → 0..1 Segmento` | D-06 |
 | `ListarAtivos(): [[Segmento` | `ListarAtivos(ctx) ([]Segmento, error)` | erro de digitação no diagrama |
 | — (sem catálogo) | `ProdutoRepository` | D-05 |
-| `Finalidade string`, um consentimento por cliente | `Finalidade` enumerada e um registro por (cliente, finalidade) | Q-48: a finalidade passa a filtrar o uso (L-04) |
-| — (UC-06 sem classes) | `ExportacaoPublico`, `MembroPublico`, `LotePublico`, `ReciboEnvio`, `LinhaAgregada` e os casos de uso de públicos | Q-49 a Q-52 |
+| `Finalidade string`, um consentimento por cliente | `Finalidade` enumerada e um registro por (cliente, finalidade) | Q-61: a finalidade passa a filtrar o uso (L-04) |
+| — (UC-06 sem classes) | `ExportacaoPublico`, `MembroPublico`, `LotePublico`, `ReciboEnvio`, `LinhaAgregada` e os casos de uso de públicos | Q-62 a Q-65 |
 | — (só o último registro do consentimento) | `MovimentoConsentimento`, `ConsentimentoRepository.Registrar` e `ListarMovimentos`, UC-08 `Historico` | Q-34: prova de cada concessão e revogação (L-06) |
 
 ## Rastreabilidade
