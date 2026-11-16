@@ -78,6 +78,7 @@ func Executar(t *testing.T, nova Fabrica) {
 		{"CaixaSaidaSimulada", testarCaixaSaida},
 		{"PerfilPorSegmento", testarPerfisPorSegmento},
 		{"Publico", testarPublico},
+		{"AuditoriaAcoes", testarAuditoriaAcoes}, // v1.12
 	}
 	for _, c := range casos {
 		t.Run(c.nome, func(t *testing.T) { c.fn(t, nova(t)) })

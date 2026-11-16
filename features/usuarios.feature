@@ -156,3 +156,42 @@ Funcionalidade: Operadores, papéis e auditoria
       | 179  | 1         |
       | 180  | 1         |
       | 181  | 0         |
+
+  # ---- Pedidos do titular, importação e públicos na trilha (v1.12, Q-68) ----
+
+  @RN-13 @Q-68 @lgpd
+  Esquema do Cenário: Os pedidos do titular e os públicos ficam na trilha com o alvo
+    Dado que existe o operador "admin" com o papel "ADMINISTRADOR" e a senha "senha-admin-123"
+    E que existe o cliente "c-001" ativo
+    E que existe o segmento ativo "vip" com prioridade 1 e critério "ticketMedio >= 500"
+    Quando o painel registra a ação "<acao>" do operador "admin" sobre o <tipo> "<alvo>" com o resultado "<resultado>"
+    Então o último registro da auditoria é "<acao>" do operador "admin" sobre o <tipo> "<alvo>" com o resultado "<resultado>"
+
+    Exemplos:
+      | acao                      | tipo     | alvo  | resultado |
+      | corrigir_cadastro         | cliente  | c-001 | SUCESSO   |
+      | exportar_dados_titular    | cliente  | c-001 | SUCESSO   |
+      | eliminar_dados_titular    | cliente  | c-001 | FALHA     |
+      | exportar_publico          | segmento | vip   | SUCESSO   |
+      | exportar_remocoes_publico | segmento | vip   | SUCESSO   |
+      | baixar_arquivo_publico    | segmento | vip   | NEGADO    |
+
+  @RN-13 @RN-16 @RN-18 @Q-68
+  Esquema do Cenário: A retenção e a importação ficam na trilha sem alvo
+    Dado que existe o operador "admin" com o papel "ADMINISTRADOR" e a senha "senha-admin-123"
+    Quando o painel registra a ação "<acao>" do operador "admin" sem alvo com o resultado "<resultado>"
+    Então o último registro da auditoria é "<acao>" do operador "admin" sem alvo com o resultado "<resultado>"
+
+    Exemplos:
+      | acao             | resultado |
+      | aplicar_retencao | SUCESSO   |
+      | importar_eventos | SUCESSO   |
+      | importar_eventos | FALHA     |
+
+  @RN-13 @RN-20 @Q-68
+  Cenário: Atender um pedido do portal não é uma ação à parte da eliminação
+    Dado que existe o operador "admin" com o papel "ADMINISTRADOR" e a senha "senha-admin-123"
+    E que existe o cliente "c-001" ativo
+    Quando o painel registra a ação "atender_pedido" do operador "admin" sobre o cliente "c-001" com o resultado "SUCESSO"
+    Então a operação falha com o erro "dados_invalidos"
+    E a auditoria tem 0 registros

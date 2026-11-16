@@ -116,7 +116,7 @@ func TestMigracoes(t *testing.T) {
 		versoes = append(versoes, v)
 	}
 	linhas.Close()
-	if !reflect.DeepEqual(versoes, []string{"001_inicial", "002_dados_demonstracao", "003_recomendacoes_ativas_por_cliente", "004_listagem_de_clientes", "005_demonstracao_ampliada", "006_movimentos_consentimento", "007_operadores_auditoria", "008_configuracao_pelo_painel", "009_eliminacao_titular", "010_portal_titular", "011_finalidades_e_publicos"}) {
+	if !reflect.DeepEqual(versoes, []string{"001_inicial", "002_dados_demonstracao", "003_recomendacoes_ativas_por_cliente", "004_listagem_de_clientes", "005_demonstracao_ampliada", "006_movimentos_consentimento", "007_operadores_auditoria", "008_configuracao_pelo_painel", "009_eliminacao_titular", "010_portal_titular", "011_finalidades_e_publicos", "012_auditoria_pedidos"}) {
 		t.Fatalf("migrações registradas: %v", versoes)
 	}
 	aplicadas, err := pg.Migrar(ctx, db)

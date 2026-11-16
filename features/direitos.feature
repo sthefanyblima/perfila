@@ -300,3 +300,57 @@ Funcionalidade: Direitos do titular e retenção após a revogação
     Quando o operador corrige o cadastro do cliente "c-001" para o nome "Bia Sintética" e o e-mail "bia@exemplo.test"
     Então o log registra o pedido "correcao" atendido para o cliente "c-001"
     E o log do painel não contém "Ana Sintética", "Bia Sintética" nem "bia@exemplo.test"
+
+  # ---- Pedidos atendidos na trilha de auditoria (v1.12, RN-13, Q-68) ----
+
+  @web @lgpd @RN-13 @Q-68
+  Esquema do Cenário: Cada pedido atendido pela ficha fica na auditoria, sem nome nem e-mail
+    Dado que o operador entrou no painel
+    E que o cliente "c-001" revogou o consentimento em "2026-11-10T10:00:00Z"
+    Quando <acao>
+    Então a auditoria tem um registro "<registro>" do operador "operador" sobre o cliente "c-001" com o resultado "SUCESSO"
+    E nenhum registro da auditoria contém "Ana Sintética" nem "bia@exemplo.test"
+
+    Exemplos:
+      | acao                                                                                                       | registro               |
+      | o operador corrige o cadastro do cliente "c-001" para o nome "Bia Sintética" e o e-mail "bia@exemplo.test" | corrigir_cadastro      |
+      | o operador baixa os dados do cliente "c-001"                                                               | exportar_dados_titular |
+      | o operador confirma a eliminação dos dados do cliente "c-001" digitando "ana sintetica"                    | eliminar_dados_titular |
+
+  @web @RN-13 @RN-17 @Q-68
+  Cenário: Nome errado na confirmação fica na auditoria como falha
+    Dado que o operador entrou no painel
+    Quando o operador confirma a eliminação dos dados do cliente "c-001" digitando "Outra Pessoa"
+    Então o último registro da auditoria é "eliminar_dados_titular" do operador "operador" sobre o cliente "c-001" com o resultado "FALHA"
+
+  @web @RN-13 @Q-68
+  Cenário: Correção recusada no formulário não chega à auditoria
+    Dado que o operador entrou no painel
+    Quando o operador corrige o cadastro do cliente "c-001" para o nome "" e o e-mail "ana.souza@exemplo.test"
+    Então a resposta tem status 422
+    E a auditoria não tem registro "corrigir_cadastro"
+
+  @web @lgpd @RN-13 @RN-18 @Q-68
+  Cenário: Aplicar a retenção pela Operação fica na auditoria, sem alvo
+    Dado que o operador entrou no painel
+    E que o cliente "c-001" tem dados de comportamento desde "2026-01-10T10:00:00Z"
+    E que o cliente "c-001" revogou o consentimento em "2026-03-01T10:00:00Z"
+    Quando o operador confirma a aplicação da retenção
+    Então o último registro da auditoria é "aplicar_retencao" do operador "operador" sem alvo com o resultado "SUCESSO"
+
+  @web @lgpd @RN-13 @Q-68
+  Cenário: Sem o registro na auditoria, os dados do titular não são baixados
+    Dado que o operador entrou no painel
+    E que a gravação da auditoria está fora do ar
+    Quando o operador baixa os dados do cliente "c-001"
+    Então a resposta tem status 500
+    E a resposta não é um arquivo anexo
+
+  @web @RN-13 @Q-68
+  Cenário: Com a auditoria fora do ar, a correção vale e a falha vai para o log
+    Dado que o operador entrou no painel
+    E que a gravação da auditoria está fora do ar
+    Quando o operador corrige o cadastro do cliente "c-001" para o nome "Bia Sintética" e o e-mail "bia@exemplo.test"
+    Então a resposta leva a "/painel/clientes/c-001/direitos"
+    E o cadastro do cliente "c-001" tem o e-mail "bia@exemplo.test"
+    E o log do painel registra a falha da auditoria "corrigir_cadastro"

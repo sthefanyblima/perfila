@@ -3,7 +3,7 @@
 > **Fonte:** Módulo 3 · imagem original: [`img/UML2_classes.jpg`](img/UML2_classes.jpg)
 > **Imagem corrigida (v1, gerada do Mermaid abaixo):** [`img/v1/UML2_classes_dominio.png`](img/v1/UML2_classes_dominio.png) · [`img/v1/UML2_classes_aplicacao.png`](img/v1/UML2_classes_aplicacao.png)
 > **Fonte da verdade para:** entidades, campos, métodos e nomes (Spec 1, C-04).
-> **Versão:** v1.11 (operadores e auditoria da v1.5; direitos do titular; portal do titular; finalidade e públicos) · **Decisões relacionadas:** D-02, D-05, D-06, D-08, D-10, D-14, D-15, D-19, Q-34, Q-35 a Q-39, Q-48 a Q-52, Q-55 a Q-59, Q-61 a Q-65.
+> **Versão:** v1.12 (operadores e auditoria da v1.5; direitos do titular; portal do titular; finalidade e públicos; auditoria dos pedidos, da importação e dos públicos) · **Decisões relacionadas:** D-02, D-05, D-06, D-08, D-10, D-14, D-15, D-19, Q-34, Q-35 a Q-39, Q-48 a Q-52, Q-55 a Q-59, Q-61 a Q-65, Q-68, Q-69.
 
 O modelo abaixo é o **implementado** em `internal/domain/entity`. Campos e métodos marcados `«ADIÇÃO»` não existem na imagem original e foram acrescentados pela Spec.
 
@@ -227,11 +227,11 @@ classDiagram
   Cliente "1" --> "0..*" PedidoEliminacao : pede (Q-58)
 ```
 
-Enumerações (C-05): `TipoEvento` = navegacao | compra | interacao · `StatusConsentimento` = NAO_CONCEDIDO | CONCEDIDO | REVOGADO · `StatusRecomendacao` = GERADA | ATIVA | EXPIRADA · `TipoMovimento` = CONCESSAO | REVOGACAO · `OrigemMovimento` = api | painel | portal | sistema | migracao (v1.4, Q-34) · `PapelOperador` = ADMINISTRADOR | ATENDIMENTO | ANALISTA, com `Pode(Permissao) bool` (matriz da RN-11) · `Permissao` = clientes | consentimento | eventos | processamento | configuracao | editar_configuracao (v1.6) | operacao | usuarios | auditoria | relatorios | eliminacao · `AcaoAuditoria` (lista na RN-13) · `TipoAlvo` = cliente | segmento | produto | operador · `ResultadoAuditoria` = SUCESSO | NEGADO | FALHA (v1.5).
+Enumerações (C-05): `TipoEvento` = navegacao | compra | interacao · `StatusConsentimento` = NAO_CONCEDIDO | CONCEDIDO | REVOGADO · `StatusRecomendacao` = GERADA | ATIVA | EXPIRADA · `TipoMovimento` = CONCESSAO | REVOGACAO · `OrigemMovimento` = api | painel | portal | sistema | migracao (v1.4, Q-34) · `PapelOperador` = ADMINISTRADOR | ATENDIMENTO | ANALISTA, com `Pode(Permissao) bool` (matriz da RN-11) · `Permissao` = clientes | consentimento | eventos | processamento | configuracao | editar_configuracao (v1.6) | operacao | usuarios | auditoria | relatorios | eliminacao · `AcaoAuditoria` (lista na RN-13; v1.12, Q-68: + corrigir_cadastro | exportar_dados_titular | eliminar_dados_titular | aplicar_retencao | importar_eventos | exportar_publico | exportar_remocoes_publico | baixar_arquivo_publico) · `TipoAlvo` = cliente | segmento | produto | operador · `ResultadoAuditoria` = SUCESSO | NEGADO | FALHA (v1.5).
 
 Funções puras da configuração (v1.6, RN-14, Q-33): `ValidarCriterio(criterio) error`, `ValidarSegmentos(lista) error` e `NormalizarCategoria(categoria) string` no pacote `entity`; `EscolherSegmento(lista, perfil)` no pacote `service` (a RN-06 sobre uma lista, usada por `Segmentar` e pela prévia).
 
-`Operador` e `RegistroAuditoria` «ADIÇÃO v1.5, Q-35, Q-39» não existem na imagem original: representam quem opera o painel e a trilha do que cada um fez. O registro de auditoria cita o operador pelo login (imutável) e o alvo só por tipo e ID, sem dado pessoal; é só de inclusão.
+`Operador` e `RegistroAuditoria` «ADIÇÃO v1.5, Q-35, Q-39» não existem na imagem original: representam quem opera o painel e a trilha do que cada um fez. O registro de auditoria cita o operador pelo login (imutável) e o alvo só por tipo e ID, sem dado pessoal; é só de inclusão. Desde a v1.12 (Q-68) registra também os pedidos do titular (alvo cliente), a importação e a retenção (sem alvo) e os públicos (alvo segmento), sem tipo de alvo novo.
 
 **v1.11 (Q-61):** há um `ConsentimentoLGPD` por (cliente, finalidade), cada um com a máquina do UML5. **Públicos (RN-21):** `ExportacaoPublico` é o registro de cada arquivo, sem dado pessoal; `MembroPublico` liga o cliente ao arquivo pelo `HashEmail` (pseudônimo, ainda dado pessoal) e tem a máquina EXPORTADO → REMOCAO_PENDENTE → REMOVIDO (Spec 3.4.3). Função de domínio `HashEmail(email)`: SHA-256 do e-mail sem espaços e em minúsculas. `LinhaAgregada` (RN-22) não tem identificador.
 
@@ -326,7 +326,7 @@ classDiagram
   class ExportarPublicoUseCase {
     +Exportar(ctx, segmentoID) ExportacaoPublico, error «ADIÇÃO v1.11»
     +ExportarRemocoes(ctx, segmentoID) ExportacaoPublico, error
-    +Baixar(ctx, exportacaoID) ReciboEnvio, error
+    +Baixar(ctx, exportacaoID) ExportacaoPublico, ReciboEnvio, error «v1.12 Q-69»
     +Historico(ctx, segmentoID) []ExportacaoPublico, error
   }
   class PropagarRevogacaoUseCase {

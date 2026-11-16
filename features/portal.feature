@@ -338,3 +338,12 @@ Funcionalidade: Portal do titular
     Dado que o titular entrou no portal pelo link enviado
     Quando o titular pede o link pelo portal com o e-mail "c-001@exemplo.test"
     Então o log do portal não contém o nome "Ana Sintética", o e-mail "c-001@exemplo.test" nem o link enviado
+
+  @web @RN-13 @RN-20 @Q-68
+  Cenário: Atender o pedido do portal fica na auditoria como a eliminação
+    Dado que o cliente "c-001" revogou o consentimento em "2026-11-10T10:00:00Z"
+    E que o titular do cliente "c-001" pediu a eliminação dos dados
+    E que o operador entrou no painel
+    Quando o operador confirma a eliminação dos dados do cliente "c-001" digitando "Ana Sintética"
+    Então o cliente "c-001" tem 1 pedido de eliminação "ATENDIDO"
+    E a auditoria tem um registro "eliminar_dados_titular" do operador "operador" sobre o cliente "c-001" com o resultado "SUCESSO"

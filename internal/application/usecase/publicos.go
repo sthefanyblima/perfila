@@ -242,20 +242,21 @@ func (uc *ExportarPublicoUseCase) registrar(ctx context.Context, e entity.Export
 	return e, nil
 }
 
-// Baixar entrega o arquivo dentro do prazo; depois, ErrArquivoIndisponivel. Spec: Q-64.
-func (uc *ExportarPublicoUseCase) Baixar(ctx context.Context, exportacaoID uuid.UUID) (entity.ReciboEnvio, error) {
+// Baixar entrega o arquivo dentro do prazo; depois, ErrArquivoIndisponivel. Devolve também a
+// exportação, para a auditoria registrar o segmento; com erro, ela vem vazia. Spec: Q-64, Q-69.
+func (uc *ExportarPublicoUseCase) Baixar(ctx context.Context, exportacaoID uuid.UUID) (entity.ExportacaoPublico, entity.ReciboEnvio, error) {
 	agora := uc.clock.Agora().UTC()
 	if _, err := uc.publicos.ApagarArquivosVencidos(ctx, agora); err != nil {
-		return entity.ReciboEnvio{}, err
+		return entity.ExportacaoPublico{}, entity.ReciboEnvio{}, err
 	}
 	e, conteudo, err := uc.publicos.BuscarArquivo(ctx, exportacaoID)
 	if err != nil {
-		return entity.ReciboEnvio{}, err
+		return entity.ExportacaoPublico{}, entity.ReciboEnvio{}, err
 	}
 	if !e.ArquivoExpiraEm.After(agora) {
-		return entity.ReciboEnvio{}, errs.ErrArquivoIndisponivel
+		return entity.ExportacaoPublico{}, entity.ReciboEnvio{}, errs.ErrArquivoIndisponivel
 	}
-	return entity.ReciboEnvio{Destino: e.Destino, NomeArquivo: e.NomeArquivo, Conteudo: conteudo, Hash: e.HashArquivo}, nil
+	return e, entity.ReciboEnvio{Destino: e.Destino, NomeArquivo: e.NomeArquivo, Conteudo: conteudo, Hash: e.HashArquivo}, nil
 }
 
 // Historico devolve as exportações do segmento, da mais recente para a mais antiga.

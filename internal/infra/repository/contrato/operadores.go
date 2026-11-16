@@ -127,3 +127,37 @@ func testarAuditoria(t *testing.T, r Repositorios) {
 	ok(t, err)
 	igual(t, "restantes", total, 3)
 }
+
+// testarAuditoriaAcoes grava um registro de cada ação da RN-13 (o backend aceita a lista inteira,
+// inclusive as da v1.12) e filtra pelas ações novas. Spec: RN-13, Q-68.
+func testarAuditoriaAcoes(t *testing.T, r Repositorios) {
+	ctx := context.Background()
+	acoes := entity.AcoesAuditoria()
+	for i, acao := range acoes {
+		tipo, alvo := entity.AlvoCliente, uuid.New()
+		switch acao {
+		case entity.AcaoAplicarRetencao, entity.AcaoImportarEventos:
+			tipo, alvo = entity.AlvoNenhum, uuid.Nil
+		case entity.AcaoExportarPublico, entity.AcaoExportarRemocoesPublico, entity.AcaoBaixarArquivoPublico:
+			tipo = entity.AlvoSegmento
+		}
+		reg, err := entity.NovoRegistroAuditoria(uuid.New(), agora.Add(time.Duration(i)*time.Second), "admin", acao,
+			tipo, alvo, entity.ResultadoSucesso)
+		ok(t, err)
+		if err := r.Auditoria.Registrar(ctx, reg); err != nil {
+			t.Fatalf("ação %q recusada: %v", acao, err)
+		}
+	}
+	_, total, err := r.Auditoria.Listar(ctx, port.FiltroAuditoria{})
+	ok(t, err)
+	igual(t, "total", total, len(acoes))
+	for _, acao := range []entity.AcaoAuditoria{entity.AcaoCorrigirCadastro, entity.AcaoExportarDadosTitular,
+		entity.AcaoEliminarDadosTitular, entity.AcaoAplicarRetencao, entity.AcaoImportarEventos,
+		entity.AcaoExportarPublico, entity.AcaoExportarRemocoesPublico, entity.AcaoBaixarArquivoPublico} {
+		lista, n, err := r.Auditoria.Listar(ctx, port.FiltroAuditoria{Acao: acao})
+		ok(t, err)
+		if n != 1 || len(lista) != 1 || lista[0].Acao != acao {
+			t.Fatalf("filtro %q: %d registros %+v", acao, n, lista)
+		}
+	}
+}

@@ -150,7 +150,7 @@ func registrarPassosPublicos(sc *godog.ScenarioContext, m *Mundo) {
 		return nil
 	})
 	sc.Step(`^o arquivo da última exportação é baixado$`, func() error {
-		m.pub.baixado, m.err = m.uc().exportarPublico.Baixar(m.ctx, m.pub.exportacao.ID)
+		_, m.pub.baixado, m.err = m.uc().exportarPublico.Baixar(m.ctx, m.pub.exportacao.ID)
 		return nil
 	})
 	sc.Step(`^o arquivo baixado é igual ao exportado$`, func() error {
@@ -288,7 +288,7 @@ func (m *Mundo) exportar(operador, seg string, remocoes bool) error {
 	}
 	m.pub.arquivo = nil
 	if m.err == nil {
-		r, err := uc.Baixar(m.ctx, m.pub.exportacao.ID)
+		_, r, err := uc.Baixar(m.ctx, m.pub.exportacao.ID)
 		if err != nil {
 			return err
 		}

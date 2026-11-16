@@ -3,7 +3,7 @@
 > **Fonte:** Módulo 5 · imagem original: [`img/UML7_componentes.png`](img/UML7_componentes.png)
 > **Imagem corrigida (v1, gerada do Mermaid abaixo):** [`img/v1/UML7_componentes.png`](img/v1/UML7_componentes.png)
 > **Fonte da verdade para:** camadas, ports e direção das dependências (prevalece sobre UML3 — D-10).
-> **Versão:** v1.11 (operadores e auditoria da v1.5, relatórios da v1.7, importação de eventos da v1.8 portal do titular e públicos, 14/11/2026) · **Decisões relacionadas:** C-01, C-02, D-05, D-12, D-16, Q-20 a Q-26, Q-35 a Q-39, Q-46, Q-47, Q-55 a Q-59, Q-61, Q-62.
+> **Versão:** v1.12 (operadores e auditoria da v1.5, relatórios da v1.7, importação de eventos da v1.8, portal do titular, públicos e auditoria dos pedidos, 16/11/2026) · **Decisões relacionadas:** C-01, C-02, D-05, D-12, D-16, Q-20 a Q-26, Q-35 a Q-39, Q-46, Q-47, Q-55 a Q-59, Q-61, Q-62, Q-68, Q-69.
 
 ## Diagrama (v1.10)
 
@@ -79,6 +79,7 @@ flowchart TB
 11. Ports novos da v1.9 (Q-51, Q-52): `RemoverPorCliente` em `EventoRepository`, `PerfilRepository` e `RecomendacaoRepository`; `ConsentimentoRepository.ListarRevogadosAte`. Os casos de uso dos direitos do titular ficam em `application/usecase` e o painel os chama como os demais.
 12. Ports novos da v1.10 (Q-57, Q-59): `ClienteRepository.BuscarPorEmail`, `TokenAcessoRepository`, `PedidoEliminacaoRepository`, `CaixaSaidaSimulada` e o gateway `Notificador`. O portal é parte do componente Web, com roteador, sessão e chave próprios; como o painel, não importa `infra` (teste de arquitetura, regra "web").
 13. Ports novos da v1.11 (Q-61, Q-62): `PublicoRepository`, `DestinoPublicitarioGateway`, `PerfilRepository.ListarPorSegmento`, `ConsentimentoRepository` por finalidade (`BuscarPorCliente` com a finalidade, `ListarPorCliente`). O destino é o único ponto que saberá falar com uma plataforma de anúncio; o painel nunca o importa (recebe só o `ReciboEnvio` pelo caso de uso).
+14. A v1.12 (Q-68) não cria port nem componente: `Web` grava os pedidos do titular, a confirmação da importação e os públicos pelo mesmo `RegistrarAuditoriaUseCase` → `AuditoriaRepository`, e `Infra` só amplia a lista de ações aceitas (migração 012). `ExportarPublicoUseCase.Baixar` devolve também a `ExportacaoPublico`, para `Web` saber o segmento sem ler o repositório (Q-69).
 
 ## Divergências registradas
 

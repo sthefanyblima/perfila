@@ -28,6 +28,17 @@ func TestNovoRegistroAuditoria(t *testing.T) {
 		{"operador", AcaoCriarOperador, AlvoOperador, alvo, ResultadoFalha, nil},
 		{"segmento", AcaoAcessoNegado, AlvoSegmento, alvo, ResultadoNegado, nil},
 		{"produto", AcaoAcessoNegado, AlvoProduto, alvo, ResultadoNegado, nil},
+		// v1.12 (Q-68): direitos do titular, importação e públicos.
+		{"corrigir cadastro", AcaoCorrigirCadastro, AlvoCliente, alvo, ResultadoSucesso, nil},
+		{"exportar dados do titular", AcaoExportarDadosTitular, AlvoCliente, alvo, ResultadoSucesso, nil},
+		{"eliminar com nome errado", AcaoEliminarDadosTitular, AlvoCliente, alvo, ResultadoFalha, nil},
+		{"retenção sem alvo", AcaoAplicarRetencao, AlvoNenhum, uuid.Nil, ResultadoSucesso, nil},
+		{"importação sem alvo", AcaoImportarEventos, AlvoNenhum, uuid.Nil, ResultadoFalha, nil},
+		{"exportar público", AcaoExportarPublico, AlvoSegmento, alvo, ResultadoSucesso, nil},
+		{"exportar remoções", AcaoExportarRemocoesPublico, AlvoSegmento, alvo, ResultadoSucesso, nil},
+		{"baixar arquivo vencido sem alvo", AcaoBaixarArquivoPublico, AlvoNenhum, uuid.Nil, ResultadoFalha, nil},
+		{"atender pedido não é ação", AcaoAuditoria("atender_pedido"), AlvoCliente, alvo, ResultadoSucesso, errs.ErrDadosInvalidos},
+		{"prévia da importação não é ação", AcaoAuditoria("previa_importacao"), AlvoNenhum, uuid.Nil, ResultadoSucesso, errs.ErrDadosInvalidos},
 		{"ação desconhecida", AcaoAuditoria("listar_clientes"), AlvoNenhum, uuid.Nil, ResultadoSucesso, errs.ErrDadosInvalidos},
 		{"tipo desconhecido", AcaoLerFicha, TipoAlvo("email"), alvo, ResultadoSucesso, errs.ErrDadosInvalidos},
 		{"tipo sem ID", AcaoLerFicha, AlvoCliente, uuid.Nil, ResultadoSucesso, errs.ErrDadosInvalidos},
@@ -51,8 +62,8 @@ func TestNovoRegistroAuditoria(t *testing.T) {
 			}
 		})
 	}
-	if len(AcoesAuditoria()) != 26 {
-		t.Fatalf("RN-13 lista 26 ações (17 da v1.5 e 9 da v1.6), há %d", len(AcoesAuditoria()))
+	if len(AcoesAuditoria()) != 34 {
+		t.Fatalf("RN-13 lista 34 ações (17 da v1.5, 9 da v1.6 e 8 da v1.12), há %d", len(AcoesAuditoria()))
 	}
 }
 

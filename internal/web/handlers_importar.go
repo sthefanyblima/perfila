@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/google/uuid"
+
 	"perfila/internal/application/usecase"
 	"perfila/internal/domain/entity"
 )
@@ -88,6 +90,10 @@ func (p *painel) importar(w http.ResponseWriter, r *http.Request, conteudo []byt
 		} else {
 			d.Resultado, err = p.d.Importar.Previa(r.Context(), entradas)
 		}
+	}
+	if gravar {
+		// Só a confirmação vai para a trilha, sem alvo; as quantidades ficam no log (RN-13, Q-68).
+		p.auditar(r, entity.AcaoImportarEventos, entity.AlvoNenhum, uuid.Nil, err)
 	}
 	var recusa *usecase.ErroArquivo
 	switch {

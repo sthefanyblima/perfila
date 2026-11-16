@@ -40,6 +40,15 @@ const (
 	AcaoEditarProduto     AcaoAuditoria = "editar_produto"
 	AcaoAtivarProduto     AcaoAuditoria = "ativar_produto"
 	AcaoDesativarProduto  AcaoAuditoria = "desativar_produto"
+	// v1.12 (Q-68): direitos do titular, importação e públicos.
+	AcaoCorrigirCadastro        AcaoAuditoria = "corrigir_cadastro"
+	AcaoExportarDadosTitular    AcaoAuditoria = "exportar_dados_titular"
+	AcaoEliminarDadosTitular    AcaoAuditoria = "eliminar_dados_titular"
+	AcaoAplicarRetencao         AcaoAuditoria = "aplicar_retencao"
+	AcaoImportarEventos         AcaoAuditoria = "importar_eventos"
+	AcaoExportarPublico         AcaoAuditoria = "exportar_publico"
+	AcaoExportarRemocoesPublico AcaoAuditoria = "exportar_remocoes_publico"
+	AcaoBaixarArquivoPublico    AcaoAuditoria = "baixar_arquivo_publico"
 )
 
 // CamposAuditaveis é a lista fechada de nomes de campo que a auditoria aceita, na ordem em que
@@ -48,14 +57,16 @@ func CamposAuditaveis() []string {
 	return []string{"nome", "descricao", "criterio", "prioridade", "ativo", "categoria", "preco"}
 }
 
-// AcoesAuditoria devolve todas as ações, na ordem da RN-13 (filtro da tela Auditoria).
+// AcoesAuditoria devolve todas as ações, na ordem da RN-13 (filtro da tela Auditoria). Spec: RN-13, Q-44, Q-68.
 func AcoesAuditoria() []AcaoAuditoria {
 	return []AcaoAuditoria{AcaoEntrar, AcaoSair, AcaoSessaoEncerrada, AcaoAcessoNegado, AcaoLerFicha,
 		AcaoCadastrarCliente, AcaoConcederConsentimento, AcaoRevogarConsentimento, AcaoRegistrarEvento,
 		AcaoProcessar, AcaoExpirarRecomendacoes, AcaoCriarOperador, AcaoMudarPapel, AcaoDesativarOperador,
 		AcaoAtivarOperador, AcaoRedefinirSenha, AcaoTrocarSenha, AcaoCriarSegmento, AcaoEditarSegmento,
 		AcaoAtivarSegmento, AcaoDesativarSegmento, AcaoPreverSegmentacao, AcaoCriarProduto, AcaoEditarProduto,
-		AcaoAtivarProduto, AcaoDesativarProduto}
+		AcaoAtivarProduto, AcaoDesativarProduto, AcaoCorrigirCadastro, AcaoExportarDadosTitular,
+		AcaoEliminarDadosTitular, AcaoAplicarRetencao, AcaoImportarEventos, AcaoExportarPublico,
+		AcaoExportarRemocoesPublico, AcaoBaixarArquivoPublico}
 }
 
 // Valida informa se a ação pertence à lista da RN-13.

@@ -27,7 +27,7 @@ Desenvolvido com **Spec-Driven Development** (a especificação é a fonte da ve
 | Fechamento do escopo | 19/11 | daqui em diante, só correções |
 | Ensaio · evento final | 23/11 · 24/11 | roteiro em `docs/ROTEIRO_DEMONSTRACAO.md` |
 
-**487 cenários BDD** (482 no `make verify` + 5 de implantação), teste de arquitetura e suíte de contrato dos repositórios em memória e em PostgreSQL.
+**513 cenários BDD** (508 no `make verify` + 5 de implantação), teste de arquitetura e suíte de contrato dos repositórios em memória e em PostgreSQL.
 
 ## Arquitetura
 
@@ -129,7 +129,7 @@ Interface web em `/painel`, servida pelo próprio `omega-server`, seguindo o des
 | Catálogo | produtos por categoria. Quem edita cria produtos e muda nome, categoria (gravada em minúsculas, com as existentes sugeridas) e preço (de 0 a 1.000.000); ativa e desativa com confirmação. Nada é excluído (Q-43) |
 | Operação | saúde do banco, expiração de recomendações vencidas e retenção após a revogação (RN-18) |
 | Usuários | operadores e papéis: criar com senha provisória, mudar papel, desativar, ativar e redefinir senha. Ninguém é excluído; o administrador não muda a própria conta (Q-35) |
-| Auditoria | quem fez o quê: entradas, acessos negados, leituras de ficha e toda ação que muda dados, sem nome nem e-mail; filtros por operador, ação e período (Q-39) |
+| Auditoria | quem fez o quê: entradas, acessos negados, leituras de ficha e toda ação que muda dados, sem nome nem e-mail; desde a v1.12, também os pedidos do titular (correção, dados baixados, eliminação), a retenção, a importação confirmada e os arquivos de público gerados e baixados (Q-68); filtros por operador, ação e período (Q-39) |
 | Minha senha | troca da própria senha (12 caracteres no mínimo); obrigatória depois de uma senha provisória (Q-40) |
 
 **Papéis (RN-11, Q-37).** Cada operador tem um papel, conferido no banco a cada página: desativar alguém ou mudar o papel vale na hora (Q-38).
@@ -140,7 +140,7 @@ Interface web em `/painel`, servida pelo próprio `omega-server`, seguindo o des
 | Analista | Segmentos e Catálogo, com edição (v1.6), os Relatórios agregados (v1.7, RN-15) e os Públicos para campanha (v1.11, Q-66); fora o arquivo de público (e-mail em hash), nenhum dado de cliente |
 | Administrador | tudo isso, mais Relatórios, a eliminação de dados do titular (v1.9), Usuários, Auditoria e Operação (com a retenção) |
 
-Cada alteração de segmento ou produto e cada prévia ficam na Auditoria, com os nomes dos campos alterados, nunca os valores (Q-44).
+Cada alteração de segmento ou produto e cada prévia ficam na Auditoria, com os nomes dos campos alterados, nunca os valores (Q-44). Os pedidos do titular, a importação e os públicos também (v1.12, Q-68): a trilha guarda só login, ação, alvo (cliente ou segmento; nenhum na retenção e na importação) e resultado, e as quantidades continuam só no log. Baixar os dados do titular ou o arquivo de um público sem conseguir registrar na trilha dá erro, e nenhum arquivo sai.
 
 Operadores de exemplo, **só no `make serve`** (modo memória; senhas de desenvolvimento, nunca na implantação, Q-41): `admin` / `dev-senha-admin` (administrador), `atendimento` / `dev-senha-atendimento` e `analista` / `dev-senha-analista`.
 

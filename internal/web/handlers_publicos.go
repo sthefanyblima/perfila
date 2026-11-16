@@ -122,11 +122,14 @@ func (p *painel) exportar(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := withOperador(r)
 	var e entity.ExportacaoPublico
+	acao := entity.AcaoExportarPublico
 	if tipo == "remocoes" {
+		acao = entity.AcaoExportarRemocoesPublico
 		e, err = p.d.ExportarPublico.ExportarRemocoes(ctx, segID)
 	} else {
 		e, err = p.d.ExportarPublico.Exportar(ctx, segID)
 	}
+	p.auditar(r, acao, entity.AlvoSegmento, segID, err) // RN-13, Q-68
 	if err != nil {
 		d, ok := p.carregarPublicos(w, r)
 		if !ok {
@@ -142,14 +145,23 @@ func (p *painel) exportar(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, fmt.Sprintf("/painel/publicos?segmento=%s&exportacao=%s&aviso=arquivo-gerado", segID, e.ID), http.StatusSeeOther)
 }
 
-// GET /painel/publicos/exportacoes/{id}/arquivo — o CSV dentro do prazo (Q-64).
+// GET /painel/publicos/exportacoes/{id}/arquivo — o CSV dentro do prazo (Q-64). É leitura: sem o
+// registro na trilha, com o segmento como alvo, nenhum arquivo sai (RN-13, Q-68, Q-69).
 func (p *painel) baixarArquivo(w http.ResponseWriter, r *http.Request) {
 	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
 		p.naoEncontrada(w, r)
 		return
 	}
-	recibo, err := p.d.ExportarPublico.Baixar(r.Context(), id)
+	exportacao, recibo, err := p.d.ExportarPublico.Baixar(r.Context(), id)
+	tipo, alvo := entity.AlvoNenhum, uuid.Nil
+	if err == nil {
+		tipo, alvo = entity.AlvoSegmento, exportacao.SegmentoID
+	}
+	if e := p.auditar(r, entity.AcaoBaixarArquivoPublico, tipo, alvo, err); e != nil && err == nil {
+		p.falha(w, r, e, "")
+		return
+	}
 	if err != nil {
 		titulo, texto := mensagem(err, "")
 		if errs.Codigo(err) == errs.ErrArquivoIndisponivel.Codigo {

@@ -156,12 +156,34 @@ func registrarPassosOperadores(sc *godog.ScenarioContext, m *Mundo) {
 	})
 
 	// Auditoria (RN-13).
-	sc.Step(`^o painel registra a ação "([^"]*)" do operador "([^"]*)" sobre o cliente "([^"]*)" com o resultado "([^"]*)"$`,
-		func(acao, login, cliente, resultado string) error {
-			m.err = m.uc().registrarAuditoria.Executar(m.ctx, login, entity.AcaoAuditoria(acao), entity.AlvoCliente,
-				id(cliente), entity.ResultadoAuditoria(resultado))
-			return m.err
+	// v1.12 (Q-68): alvo cliente ou segmento, ou sem alvo; o erro fica para "a operação falha".
+	sc.Step(`^o painel registra a ação "([^"]*)" do operador "([^"]*)" sobre o (cliente|segmento) "([^"]*)" com o resultado "([^"]*)"$`,
+		func(acao, login, tipo, alvo, resultado string) error {
+			alvoID, err := m.idDoAlvo(tipo, alvo)
+			if err != nil {
+				return err
+			}
+			m.err = m.uc().registrarAuditoria.Executar(m.ctx, login, entity.AcaoAuditoria(acao), entity.TipoAlvo(tipo),
+				alvoID, entity.ResultadoAuditoria(resultado))
+			return nil
 		})
+	sc.Step(`^o painel registra a ação "([^"]*)" do operador "([^"]*)" sem alvo com o resultado "([^"]*)"$`,
+		func(acao, login, resultado string) error {
+			m.err = m.uc().registrarAuditoria.Executar(m.ctx, login, entity.AcaoAuditoria(acao), entity.AlvoNenhum,
+				uuid.Nil, entity.ResultadoAuditoria(resultado))
+			return nil
+		})
+	sc.Step(`^o último registro da auditoria é "([^"]*)" do operador "([^"]*)" sem alvo com o resultado "([^"]*)"$`,
+		func(acao, login, resultado string) error { return m.ultimoRegistro(acao, login, "", "", resultado) })
+	sc.Step(`^a auditoria não tem registro "([^"]*)"$`, func(acao string) error {
+		for _, r := range m.auditoria.Todos() {
+			if string(r.Acao) == acao {
+				return fmt.Errorf("a auditoria tem o registro %+v", r)
+			}
+		}
+		return nil
+	})
+	sc.Step(`^que a gravação da auditoria está fora do ar$`, func() error { m.auditoriaFora = true; return nil })
 	sc.Step(`^a auditoria tem (\d+) registros?$`, func(n int) error {
 		if got := len(m.auditoria.Todos()); got != n {
 			return fmt.Errorf("a auditoria tem %d registros, esperado %d", got, n)
@@ -286,30 +308,41 @@ func (m *Mundo) ultimoRegistro(acao, login, tipo, alvo, resultado string) error 
 }
 
 func (m *Mundo) conferirRegistro(r entity.RegistroAuditoria, acao, login, tipo, alvo, resultado string) error {
-	alvoID := id(alvo)
-	switch tipo {
-	case "operador":
-		o, err := m.operador(alvo)
-		if err != nil {
-			return err
-		}
-		alvoID = o.ID
-	case "segmento": // v1.6
-		s, err := m.segmentoPorNome(alvo)
-		if err != nil {
-			return err
-		}
-		alvoID = s.ID
-	case "produto":
-		p, err := m.produtoPorNome(alvo)
-		if err != nil {
-			return err
-		}
-		alvoID = p.ID
+	alvoID, err := m.idDoAlvo(tipo, alvo)
+	if err != nil {
+		return err
 	}
 	if string(r.Acao) != acao || r.Operador != login || string(r.AlvoTipo) != tipo || r.AlvoID != alvoID ||
 		string(r.Resultado) != resultado {
 		return fmt.Errorf("último registro: %+v", r)
 	}
 	return nil
+}
+
+// idDoAlvo traduz o nome do alvo no cenário para o ID gravado; tipo vazio = sem alvo (uuid.Nil).
+func (m *Mundo) idDoAlvo(tipo, alvo string) (uuid.UUID, error) {
+	alvoID := id(alvo)
+	switch tipo {
+	case "":
+		return uuid.Nil, nil
+	case "operador":
+		o, err := m.operador(alvo)
+		if err != nil {
+			return uuid.Nil, err
+		}
+		alvoID = o.ID
+	case "segmento": // v1.6
+		s, err := m.segmentoPorNome(alvo)
+		if err != nil {
+			return uuid.Nil, err
+		}
+		alvoID = s.ID
+	case "produto":
+		p, err := m.produtoPorNome(alvo)
+		if err != nil {
+			return uuid.Nil, err
+		}
+		alvoID = p.ID
+	}
+	return alvoID, nil
 }
