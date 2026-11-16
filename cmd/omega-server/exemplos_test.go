@@ -3,14 +3,18 @@ package main
 import (
 	"context"
 	"io"
+	"os"
 	"strings"
 	"testing"
 
 	"perfila/internal/application/usecase"
 	"perfila/internal/domain/entity"
 	"perfila/internal/domain/port"
+	"perfila/internal/domain/service"
 	"perfila/internal/infra/config"
+	"perfila/internal/infra/relogio"
 	"perfila/internal/infra/senha"
+	"perfila/internal/shared/errs"
 )
 
 // Spec: Q-30, Q-32 — clientes de exemplo com história, um por situação, carregados uma única vez.
@@ -168,5 +172,44 @@ func TestRelatorioDosExemplos(t *testing.T) {
 	}
 	if !outras || len(rel.Meses) != 12 {
 		t.Errorf("esperava Outras categorias e 12 meses: %+v, %d meses", rel.Categorias, len(rel.Meses))
+	}
+}
+
+// Spec: RN-16, Q-47 — o arquivo de exemplo cita os IDs fixos dos clientes de exemplo e mostra
+// cada situação da importação: aceitas, duplicada e rejeitadas por consentimento, cadastro e formato.
+func TestArquivoDeExemploImporta(t *testing.T) {
+	ctx := context.Background()
+	app, err := montar(ctx, config.Config{AuthToken: "x", LogLevel: "info", RecomendacaoValidadeDias: 30, EngajamentoMetaEventos: 10}, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := app.exemplos.carregar(ctx); err != nil {
+		t.Fatal(err)
+	}
+	conteudo, err := os.ReadFile("../../docs/exemplos/eventos-lote.csv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	entradas, err := usecase.LerCSVEventos(conteudo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := app.exemplos.repos
+	pre := usecase.NovasPrecondicoes(r.clientes, service.NovoValidadorLGPD(r.consentimentos))
+	importar := usecase.NovoImportarEventosUseCase(usecase.NovoColetarDadosUseCase(pre, r.eventos, relogio.Sistema{}), pre, r.eventos, relogio.Sistema{})
+	res, err := importar.Previa(ctx, entradas)
+	if err != nil || res.Aceitas != 4 || res.Duplicadas != 1 || res.Rejeitadas != 5 {
+		t.Fatalf("prévia do exemplo: %d/%d/%d, %v (%+v)", res.Aceitas, res.Duplicadas, res.Rejeitadas, err, res.Linhas)
+	}
+	codigos := map[int]string{}
+	for _, l := range res.Linhas {
+		codigos[l.Numero] = errs.Codigo(l.Erro) + "/" + l.Motivo
+	}
+	quer := map[int]string{6: "/", 7: "consentimento_invalido/", 8: "consentimento_invalido/", 9: "cliente_inativo/",
+		10: "dados_invalidos/valor_compra", 11: "dados_invalidos/timestamp"}
+	for n, q := range quer {
+		if codigos[n] != q {
+			t.Errorf("linha %d: obtido %q, esperado %q", n, codigos[n], q)
+		}
 	}
 }

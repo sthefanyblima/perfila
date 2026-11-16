@@ -1,6 +1,6 @@
 # Tarefas (T-xx)
 
-Perfila · Equipe Omega · Plano SDD v1.0 · atualizado em 12/11/2026 (cronograma: escopo fecha 19/11, evento 24/11)
+Perfila · Equipe Omega · Plano SDD v1.0 · atualizado em 13/11/2026 (cronograma: escopo fecha 19/11, evento 24/11)
 
 Legenda de status: ✅ concluída · 🟡 parcial · ⬜ a fazer. "Prova" é o que precisa estar verde para a tarefa ser aceita (Definição de pronto no `specs/plan.md`, seção 3).
 
@@ -136,3 +136,14 @@ UC-05 e UC-07 em versão parcial: só números agregados, comportamento só com 
 | T-62 | `GerarRelatorioUseCase` com período | T-61 | cenários `@dominio` e `@aplicacao` de `relatorios.feature` | ✅ 21 cenários (8 `@dominio`, 13 `@aplicacao`); `@wip` só nos 4 `@web` |
 | T-63 | Painel: tela Relatórios com indicadores, gráficos SVG e tabelas; CSV agregado | T-62 | cenários `@web` de `relatorios.feature`; `@wip` retirado | ✅ 4 cenários `@web` (25 no total da feature); `TestBarraOcultaNaoRevelaONumero`, `TestCelulaCSVSemFormula` |
 | T-64 | Clientes de volume nos exemplos; README, roteiro, checklist LGPD; fluxo no navegador | T-63 | `TestCarregarExemplos`; painel conferido | ✅ 60 clientes de volume; `TestRelatorioDosExemplos`; L-31 a L-35; tela e CSV conferidos no navegador |
+
+## Importação de eventos em lote — Spec v1.8
+
+Lotes de eventos por CSV no painel e JSON na API, linha a linha, com RN-01 e RN-04 em cada linha, prévia sem gravar e duplicados ignorados (Q-47, RN-16). Numeração a partir de T-65 para não colidir com as branches abertas.
+
+| ID | Tarefa | Depende de | Prova | Status |
+|---|---|---|---|---|
+| T-65 | Spec v1.8, Q-47, UML7 em texto, `03-textos.md` e `02-telas-e-fluxos.md`; `features/importacao.feature` (`@wip` até a tarefa que a implementa) | T-46 | Spec, UML e feature revisados | ✅ 45 cenários escritos (`@wip`) |
+| T-66 | `LerCSVEventos` e `ImportarEventosUseCase` (`Previa`, `Importar`); rota `POST /v1/eventos/lote` | T-65 | cenários `@aplicacao` e `@api` de `importacao.feature`; testes de tabela do CSV | ✅ 38 cenários (34 `@aplicacao`, 4 `@api`); `TestLerCSVEventos`, `TestLerCSVEventosRecusa`, `TestDecimalComPonto`; `@wip` só nos 7 `@web` |
+| T-67 | Painel: tela Importar eventos (enviar, prévia, confirmar, relatório) e modelo CSV | T-66 | cenários `@web` de `importacao.feature`; `@wip` retirado | ✅ 7 cenários `@web` (45 no total da feature); prévia, confirmação, arquivo recusado e celular conferidos no navegador |
+| T-68 | IDs fixos nos clientes de exemplo e `docs/exemplos/eventos-lote.csv`; README, roteiro e checklist LGPD; fluxo no navegador | T-67 | `TestCarregarExemplos`; arquivo de exemplo importado no painel | ✅ `TestArquivoDeExemploImporta` (4 aceitas, 1 duplicada, 5 rejeitadas); L-36 a L-39; arquivo de exemplo importado no navegador |

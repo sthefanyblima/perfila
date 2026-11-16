@@ -30,6 +30,7 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 	registrarPassosOperadores(sc, m)
 	registrarPassosSegmentos(sc, m)
 	registrarPassosSegmentosWeb(sc, m)
+	registrarPassosImportacao(sc, m)
 
 	// ---- comuns ----
 	sc.Step(`^que a data atual é "([^"]*)"$`, m.dataAtual)

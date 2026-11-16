@@ -20,10 +20,11 @@ Desenvolvido com **Spec-Driven Development** (a especificação é a fonte da ve
 | **Painel web do operador** (Spec v1.3, T-31 a T-38) | 12/11 | ✅ 26 cenários `@web` · 21 de aplicação novos · 1 de implantação |
 | **Histórico do consentimento** (Spec v1.4, T-42 a T-46, Q-34) | 12/11 | ✅ 8 cenários de aplicação · 4 `@web` · contrato e migração 006 nos dois backends |
 | **Edição de segmentos e catálogo** (Spec v1.6, T-55 a T-59, Q-33, Q-42 a Q-44) | 13/11 | ✅ 15 cenários de aplicação e domínio · 11 `@web` · contrato e migração 008 nos dois backends |
+| **Importação de eventos em lote** (Spec v1.8, T-65 a T-68, Q-47) | 13/11 | ✅ 34 cenários de aplicação · 4 `@api` · 7 `@web` |
 | Fechamento do escopo | 19/11 | daqui em diante, só correções |
 | Ensaio · evento final | 23/11 · 24/11 | roteiro em `docs/ROTEIRO_DEMONSTRACAO.md` |
 
-**298 cenários BDD** (294 no `make verify` + 4 de implantação), teste de arquitetura e suíte de contrato dos repositórios em memória e em PostgreSQL.
+**343 cenários BDD** (339 no `make verify` + 4 de implantação), teste de arquitetura e suíte de contrato dos repositórios em memória e em PostgreSQL.
 
 ## Arquitetura
 
@@ -42,7 +43,7 @@ Implantação (UML8): o **Nginx** (TLS, única porta de entrada) distribui para 
 ### Desenvolvimento (Go 1.22+)
 
 ```bash
-make verify   # gofmt, vet, testes com -race, 294 cenários BDD e teste de arquitetura
+make verify   # gofmt, vet, testes com -race, 339 cenários BDD e teste de arquitetura
 make demo     # fluxo do diagrama de sequência em memória, passo a passo
 make serve    # API e painel em modo memória: http://localhost:8080/painel (admin / dev-senha-admin)
 make demo-api # roteiro de curl contra o make serve (em outro terminal)
@@ -96,6 +97,7 @@ O ambiente prevalece sobre o arquivo. Exemplo em `deploy/config.env.example`.
 | `GET /v1/clientes/{id}/consentimento` | UC-08 Consultar | token |
 | `POST /v1/clientes/{id}/eventos` | UC-01 Registrar evento | token + consentimento |
 | `POST /v1/clientes/{id}/processamento` | UC-01 → UC-02 → UC-03 → UC-04 (RN-09) | token + consentimento |
+| `POST /v1/eventos/lote` (`?previa=true` só confere) | lote de até 1.000 eventos em JSON, linha a linha (RN-16) | token; consentimento conferido em cada linha |
 | `GET /saude` | saúde, para o balanceador | — |
 
 Erros: JSON `{codigo, mensagem}` com códigos estáveis (Spec 3.5): 401 sem token, 403 `consentimento_invalido`, 404 `cliente_nao_encontrado`, 409 `cliente_inativo` / `transicao_invalida` / `perfil_nao_encontrado`, 422 `dados_invalidos`.
@@ -110,6 +112,7 @@ Interface web em `/painel`, servida pelo próprio `omega-server`, seguindo o des
 | Cadastrar cliente | UC-09; abre a ficha já com o selo "Não concedido" |
 | Ficha | selo de consentimento sempre visível; Visão geral (etapas do processamento, perfil, segmento com os critérios atendidos, recomendação), Eventos e Consentimento. Sem consentimento, nenhum dado de comportamento é lido |
 | Consentimento | registro atual e linha do tempo com cada concessão e revogação: finalidade, versão do termo e origem (API, painel com o operador, portal). Só inclusão; cliente sem movimentos mostra a linha pelas datas (Q-34) |
+| Importar eventos | CSV com cabeçalho (`cliente_id,tipo,origem,timestamp,valor,categoria`), até 1.000 linhas e 256 KiB; prévia sem gravar, confirmação e relatório por linha. Cada linha passa por RN-01 e RN-04; duplicados (cliente, tipo, instante e valor) são ignorados, então reenviar é seguro. O arquivo não fica guardado (RN-16, Q-47). Modelo em "Baixar modelo"; exemplo pronto para a demonstração em `docs/exemplos/eventos-lote.csv` |
 | Relatórios | UC-05 e UC-07 parciais (Q-46): clientes, consentimento por estado e taxa de concessão, distribuição por segmento (clientes, ticket médio, score médio), recomendações ativas e expiradas, categorias mais compradas e evolução mensal de cadastros, eventos e revogações, nos últimos 6 ou 12 meses. Gráficos SVG desenhados no servidor, cada um com a tabela de dados, e exportação em CSV. Só números agregados: comportamento conta só quem tem consentimento válido, e grupos com menos de 5 clientes aparecem como "menos de 5" |
 | Segmentos | ativos por prioridade e inativos. Quem edita (Administrador e Analista) cria, edita, ativa e desativa: o critério é montado por linhas de campo, operador e valor, com o texto gravado visível; "Testar critério" usa três valores digitados. Salvar passa por uma **prévia** que só conta quantos clientes ativos com consentimento ficariam em cada segmento, pelo perfil salvo. O `padrao` não é desativado nem ganha critério; prioridade e nome não se repetem. Quem já foi segmentado muda no próximo processamento (Q-33, Q-42) |
 | Catálogo | produtos por categoria. Quem edita cria produtos e muda nome, categoria (gravada em minúsculas, com as existentes sugeridas) e preço (de 0 a 1.000.000); ativa e desativa com confirmação. Nada é excluído (Q-43) |
@@ -130,7 +133,7 @@ Cada alteração de segmento ou produto e cada prévia ficam na Auditoria, com o
 
 Operadores de exemplo, **só no `make serve`** (modo memória; senhas de desenvolvimento, nunca na implantação, Q-41): `admin` / `dev-senha-admin` (administrador), `atendimento` / `dev-senha-atendimento` e `analista` / `dev-senha-analista`.
 
-Demonstração (Q-30, Q-32): 7 segmentos (vip, premium, fiel, engajado, explorador, ocasional, padrao), catálogo de 7 categorias e 14 clientes com história ao longo de meses: Ana (premium, com recomendações expiradas), Bruno (engajado), Carla e Davi (ocasional; Davi sem produto elegível), Elisa (nunca concedeu), Fábio (revogou), Gabi (inativa, histórico só leitura), Heitor (vip), Isabela (fiel), João (explorador), Karina (concedeu v1 pela API, revogou e concedeu v2 pelo painel: histórico completo), Lucas (ainda não processado), Marina (só recomendação expirada) e Nina (padrão). Para os relatórios terem grupos acima de 5, a carga soma 60 clientes de volume (`Cliente Volume 101` a `160`, `c-101@exemplo.test` em diante) com história gerada de forma determinística: compras em várias categorias, 6 sem consentimento e 6 que revogaram (Q-46). No `make serve` todos entram sozinhos; na implantação, com `make exemplos`.
+Demonstração (Q-30, Q-32): 7 segmentos (vip, premium, fiel, engajado, explorador, ocasional, padrao), catálogo de 7 categorias e 14 clientes com história ao longo de meses: Ana (premium, com recomendações expiradas), Bruno (engajado), Carla e Davi (ocasional; Davi sem produto elegível), Elisa (nunca concedeu), Fábio (revogou), Gabi (inativa, histórico só leitura), Heitor (vip), Isabela (fiel), João (explorador), Karina (concedeu v1 pela API, revogou e concedeu v2 pelo painel: histórico completo), Lucas (ainda não processado), Marina (só recomendação expirada) e Nina (padrão). Para os relatórios terem grupos acima de 5, a carga soma 60 clientes de volume (`Cliente Volume 101` a `160`, `c-101@exemplo.test` em diante) com história gerada de forma determinística: compras em várias categorias, 6 sem consentimento e 6 que revogaram (Q-46). No `make serve` todos entram sozinhos; na implantação, com `make exemplos`. Desde a v1.8, cada um dos 14 clientes com história tem ID fixo derivado do e-mail sintético, para o arquivo de exemplo da importação funcionar em qualquer instalação.
 
 Sessão assinada sem estado (funciona com as duas réplicas) e conferida no banco a cada página, CSRF em todo envio, 5 tentativas de entrada por IP em 5 minutos, CSP `'self'`. Funciona sem JavaScript (formulários com redirecionamento e páginas de confirmação); com JavaScript, troca só a área do painel e usa diálogos nativos.
 

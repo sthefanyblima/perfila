@@ -7,6 +7,9 @@
   <div class="pf-nav__group">
     <span class="pf-nav__heading">Clientes</span>
     <a class="pf-nav__link" href="/painel/clientes" data-teste="menu-clientes"{{if eq .Nav "clientes"}} aria-current="page"{{end}}>Clientes</a>
+    {{- if .Pode.eventos}}
+    <a class="pf-nav__link" href="/painel/eventos/importar" data-teste="menu-importar"{{if eq .Nav "importar"}} aria-current="page"{{end}}>Importar eventos</a>
+    {{- end}}
   </div>
   {{- end}}
   {{- if .Pode.relatorios}}

@@ -217,6 +217,7 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 	hash := senha.Bcrypt{}
 	operadores := usecase.NovoGerenciarOperadoresUseCase(repos.operadores, hash, clock)
 	registrarAuditoria := usecase.NovoRegistrarAuditoriaUseCase(repos.auditoria, clock)
+	importar := usecase.NovoImportarEventosUseCase(coletar, pre, repos.eventos, clock) // RN-16
 	deps := api.Dependencias{
 		AuthToken:     cfg.AuthToken,
 		Precondicoes:  pre,
@@ -224,6 +225,7 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 		Consentimento: consentimento,
 		Coletar:       coletar,
 		Processar:     processar,
+		Importar:      importar,
 		Log:           log,
 		Clock:         clock,
 		Saude:         repos.saude,
@@ -249,6 +251,7 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 			PreverSegmentacao:  usecase.NovoPreverSegmentacaoUseCase(repos.segmentos, repos.consentimentos, repos.clientes, repos.perfis),
 			SalvarProduto:      usecase.NovoSalvarProdutoUseCase(repos.produtos),
 			GerarRelatorio:     usecase.NovoGerarRelatorioUseCase(repos.relatorios, repos.segmentos, clock, fusoRelatorios()),
+			Importar:           importar,
 			MetaEventos:        cfg.EngajamentoMetaEventos,
 			Clock:              clock, Log: log, Saude: repos.saude, Migracoes: repos.migracoes,
 		})

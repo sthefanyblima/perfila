@@ -55,6 +55,7 @@ type Mundo struct {
 	ops                    estadoOperadores
 	cfg                    estadoConfig // v1.6
 	rel                    estadoRelatorio
+	importacao             estadoImportacao
 
 	api estadoAPI
 }
@@ -112,6 +113,7 @@ type casos struct {
 	prever         *usecase.PreverSegmentacaoUseCase
 	salvarProduto  *usecase.SalvarProdutoUseCase
 	gerarRelatorio *usecase.GerarRelatorioUseCase
+	importar       *usecase.ImportarEventosUseCase // RN-16
 }
 
 func (m *Mundo) uc() casos {
@@ -144,6 +146,7 @@ func (m *Mundo) uc() casos {
 	c.salvarProduto = usecase.NovoSalvarProdutoUseCase(m.produtos)
 	c.gerarRelatorio = usecase.NovoGerarRelatorioUseCase(memoria.NovoRelatorioRepository(m.clientes, m.eventos, m.perfis,
 		m.recomendacoes, m.consentimentos), m.segmentos, m.clock, fusoRelatorio)
+	c.importar = usecase.NovoImportarEventosUseCase(coletar, pre, m.eventos, m.clock)
 	return c
 }
 

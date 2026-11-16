@@ -3,7 +3,7 @@
 > **Fonte:** Módulo 5 · imagem original: [`img/UML7_componentes.png`](img/UML7_componentes.png)
 > **Imagem corrigida (v1, gerada do Mermaid abaixo):** [`img/v1/UML7_componentes.png`](img/v1/UML7_componentes.png)
 > **Fonte da verdade para:** camadas, ports e direção das dependências (prevalece sobre UML3 — D-10).
-> **Versão:** v1.5 (operadores e auditoria; relatórios da v1.7, 13/11/2026) · **Decisões relacionadas:** C-01, C-02, D-05, D-12, D-16, Q-20 a Q-26, Q-35 a Q-39, Q-46.
+> **Versão:** v1.8 (operadores e auditoria da v1.5, relatórios da v1.7 e importação de eventos, 13/11/2026) · **Decisões relacionadas:** C-01, C-02, D-05, D-12, D-16, Q-20 a Q-26, Q-35 a Q-39, Q-46, Q-47.
 
 ## Diagrama (v1.5)
 
@@ -11,11 +11,11 @@
 flowchart TB
   subgraph AP["Camada de Apresentação"]
     CMD["[CMD]<br/>inicialização · configuração · subcomandos"]
-    API["[API]<br/>HTTP · DTOs · Autenticação/LGPD middleware"]
-    WEB["[Web] «ADIÇÃO v1.3»<br/>painel /painel · templates · sessão · CSRF<br/>permissão por rota · menu por papel «v1.5»<br/>relatórios: SVG e CSV «ADIÇÃO v1.7»"]
+    API["[API]<br/>HTTP · DTOs · Autenticação/LGPD middleware<br/>lote de eventos JSON «ADIÇÃO v1.8»"]
+    WEB["[Web] «ADIÇÃO v1.3»<br/>painel /painel · templates · sessão · CSRF<br/>permissão por rota · menu por papel «v1.5»<br/>relatórios: SVG e CSV «ADIÇÃO v1.7»<br/>importar eventos CSV «ADIÇÃO v1.8»"]
   end
   subgraph APP["Camada de Aplicação"]
-    UC["[Casos de Uso]<br/>ColetarDados · GerarPerfil · SegmentarCliente<br/>GerarRecomendacao · GerenciarConsentimento<br/>ExpirarRecomendacoes «ADIÇÃO»<br/>ProcessarCliente · ListarClientes · ConsultarCliente<br/>ConsultarResultado · ListarSegmentos · ListarCatalogo «ADIÇÃO v1.3»<br/>AutenticarOperador · GerenciarOperadores<br/>RegistrarAuditoria · ListarAuditoria · ExpurgarAuditoria «ADIÇÃO v1.5»<br/>SalvarSegmento · PreverSegmentacao · SalvarProduto «ADIÇÃO v1.6»<br/>GerarRelatorio «ADIÇÃO v1.7»"]
+    UC["[Casos de Uso]<br/>ColetarDados · GerarPerfil · SegmentarCliente<br/>GerarRecomendacao · GerenciarConsentimento<br/>ExpirarRecomendacoes «ADIÇÃO»<br/>ProcessarCliente · ListarClientes · ConsultarCliente<br/>ConsultarResultado · ListarSegmentos · ListarCatalogo «ADIÇÃO v1.3»<br/>AutenticarOperador · GerenciarOperadores<br/>RegistrarAuditoria · ListarAuditoria · ExpurgarAuditoria «ADIÇÃO v1.5»<br/>SalvarSegmento · PreverSegmentacao · SalvarProduto «ADIÇÃO v1.6»<br/>GerarRelatorio «ADIÇÃO v1.7»<br/>ImportarEventos · LerCSVEventos «ADIÇÃO v1.8»"]
   end
   subgraph DOM["Camada de Domínio"]
     ENT["[Entidades & Objetos de Valor]<br/>Cliente · ConsentimentoLGPD · EventoComportamental<br/>PerfilCliente · Segmento · RecomendacaoProduto · Produto<br/>MovimentoConsentimento «v1.4» · Operador · RegistroAuditoria «v1.5»<br/>Contagem · Media · Percentual «ADIÇÃO v1.7»"]
@@ -73,6 +73,7 @@ flowchart TB
 7. A permissão (RN-11) é conferida em dois lugares, como o consentimento: `Web` confere por rota e esconde o que o papel não pode; os casos de uso de gestão conferem de novo pelo `ator`.
 8. Ports novos da v1.6 (Q-33, Q-42, Q-43): `SegmentoRepository.ListarTodos` e `Salvar`, `ProdutoRepository.BuscarPorID` e `Salvar`, `ConsentimentoRepository.ListarConcedidos`. As regras de configuração (RN-14) ficam no domínio; o PostgreSQL só repete as de unicidade, por causa das duas réplicas. A prévia (`PreverSegmentacao`) começa pelo consentimento e devolve só contagens a `Web`.
 9. Port novo da v1.7 (Q-46): `RelatorioRepository`, só de leitura e só de agregados (contagens e somas); nunca devolve linha de cliente. A proteção de grupos pequenos fica no domínio (`ProtegerContagem` e afins), não na infraestrutura.
+10. A importação em lote da v1.8 (Q-47) não cria port: `ImportarEventosUseCase` grava cada linha por `ColetarDadosUseCase.Registrar` e procura duplicados com `EventoRepository.BuscarPorCliente`. A leitura do CSV fica na aplicação (`LerCSVEventos`, só biblioteca padrão), para o painel e os cenários usarem a mesma regra; a API converte o JSON nas mesmas entradas. O `IntegracaoGateway` continua stub (D-12, Q-03).
 
 ## Divergências registradas
 
@@ -85,6 +86,7 @@ flowchart TB
 | Q-26 | A orquestração de RN-09 ficava no handler da API. | `ProcessarClienteUseCase` na aplicação, usado por API e Web. |
 | Q-36 | O login conferia o bcrypt dentro de `Web`, e a aplicação não pode importar bibliotecas de terceiros além de `uuid` (C-01). | Port `HashSenha` no domínio, implementado em `infra/senha`; login pelo caso de uso `AutenticarOperador`. |
 | Q-46 | UC-05 e UC-07 não têm componente nem port. | [ADIÇÃO] `GerarRelatorioUseCase` na aplicação e `RelatorioRepository` no domínio, implementado em memória e no PostgreSQL. |
+| Q-47 | Eventos de lojas chegam em lote, e nenhum componente recebe lotes. | [ADIÇÃO] `ImportarEventosUseCase` na aplicação, usado por Web (CSV) e API (JSON); sem port novo. |
 
 ## Rastreabilidade
 
