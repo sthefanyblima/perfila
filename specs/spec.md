@@ -286,17 +286,6 @@ Desvios idiomáticos em relação aos diagramas (não são lacunas): `context.Co
 - **RN-08 Ciclo da recomendação.** UC-04 cria e já disponibiliza: GERADA é transitória e a recomendação é persistida uma única vez, já em ATIVA. Há no máximo uma recomendação ATIVA por cliente: antes de gravar a nova, UC-04 aplica `Expirar` às ATIVA anteriores do cliente (Q-18). Validade é DataAtivacao mais `RECOMENDACAO_VALIDADE_DIAS` (padrão 30). Expira quando Validade é menor ou igual a agora, pelo comando `expirar-recomendacoes` (D-08).
 - **RN-09 Processamento.** `ProcessarClienteUseCase` orquestra, nesta ordem, UC-01 (Executar), UC-02, UC-03 e UC-04 (v1.3, Q-26; antes ficava no handler da API) e devolve o resultado consolidado (sequência, passo 23) com o estado de cada etapa: concluída, atenção, falhou ou pendente. Erro em qualquer etapa interrompe o fluxo: a etapa fica como falhou, as seguintes como pendentes, e o que já foi persistido permanece. `ErrSemProdutoElegivel` não interrompe: a etapa 4 fica em atenção, sem recomendação. A API e o painel usam o mesmo caso de uso.
 - **RN-10 Histórico do consentimento (v1.4, Q-34).** Toda transição de 3.4.1 aplicada por UC-08 gera um `MovimentoConsentimento`, gravado junto com o registro do consentimento numa única operação atômica (`ConsentimentoRepository.Registrar`): ou os dois ficam gravados, ou nenhum. Movimentos são só de inclusão: nunca alterados nem apagados. O histórico é a lista dos movimentos do cliente em ordem cronológica (desempate pela ordem de gravação). O registro de `consentimentos_lgpd` continua sendo a fonte do estado (RN-02); o histórico é prova e não decide a validade. Transição inválida ou guarda violada não gera movimento. A origem vem do adaptador que chamou o caso de uso (API: `api`; painel: `painel` com o login do operador; portal do titular, fase 2: `portal`); sem origem informada (subcomandos, exemplos, testes): `sistema`. Movimentos criados pela migração 006 a partir das datas existentes têm origem `migracao`.
-- **RN-17 Eliminação a pedido do titular (v1.9, Q-50).** `EliminarDadosTitularUseCase` atende o art. 18, VI, nesta ordem:
-    1. Cliente existe (`ErrClienteNaoEncontrado`) e ainda não foi eliminado (`ErrClienteEliminado`).
-    2. A confirmação é o nome atual do cliente, comparado sem diferenciar maiúsculas, acentos e espaços nas pontas. Diferente: `ErrDadosInvalidos`, e nada é apagado.
-    3. Consentimento CONCEDIDO: `ErrTransicaoInvalida`. É preciso revogar antes, pelo UC-08, o que deixa o movimento REVOGACAO como prova.
-    4. Apaga os eventos, o perfil e as recomendações do cliente.
-    5. Por último, `Anonimizar` e grava o cadastro.
-    - O consentimento e os movimentos ficam como prova do tratamento (art. 16, I): não têm nome nem e-mail.
-    - A eliminação é irreversível. Repetir depois de uma falha conclui o pedido, porque as remoções não falham sem dados.
-    - Depois dela, nenhuma escrita vale para o cliente: a correção, UC-08 Conceder e Revogar e as pré-condições RN-01 respondem `ErrClienteEliminado`. A busca pelo nome antigo não o encontra, porque o nome não existe mais. A exportação entrega o que restou.
-- **RN-18 Retenção após a revogação (v1.9, Q-51).** O comportamento (eventos, perfil e recomendações) de quem está com o consentimento REVOGADO e `DataRevogacao` há `RETENCAO_DIAS_REVOGADO` dias ou mais (menor ou igual a agora menos o prazo) é apagado por `AplicarRetencaoUseCase`. O cadastro, o consentimento e o histórico ficam. Não atinge quem concedeu de novo (CONCEDIDO), quem nunca concedeu nem quem está dentro do prazo. Devolve quantos clientes tiveram algum dado apagado; executar de novo sem nada vencido devolve 0. Executada pelo subcomando `aplicar-retencao` e pelo painel (Operação).
-
 - **RN-11 Papéis e permissões (v1.5, Q-37).** O que cada papel pode é uma função pura do domínio (`PapelOperador.Pode`):
 
     | Permissão | O que libera no painel | ADMINISTRADOR | ATENDIMENTO | ANALISTA |
@@ -369,6 +358,16 @@ Desvios idiomáticos em relação aos diagramas (não são lacunas): `context.Co
     - **Prévia e confirmação.** A prévia aplica todas as regras e não grava nada. A confirmação aplica tudo de novo (o consentimento ou os eventos podem ter mudado depois da prévia) e grava cada linha aceita por UC-01 `Registrar`. O relatório traz, para cada linha não aceita, o número, a situação (duplicada ou rejeitada), o ID do cliente quando legível, o código do erro e o motivo; e os totais de aceitas, duplicadas e rejeitadas.
     - **Falha de infraestrutura** ao gravar interrompe o lote com o erro (500): as linhas já gravadas permanecem, e o reenvio as reconhece como duplicadas.
     - **Sem guardar o arquivo.** Nem o arquivo nem o lote ficam guardados no servidor; só os eventos aceitos. O registro do lote é a auditoria: operador, quantidades aceitas, duplicadas e rejeitadas, sem ID de cliente nem dado pessoal (C-09).
+- **RN-17 Eliminação a pedido do titular (v1.9, Q-50).** `EliminarDadosTitularUseCase` atende o art. 18, VI, nesta ordem:
+    1. Cliente existe (`ErrClienteNaoEncontrado`) e ainda não foi eliminado (`ErrClienteEliminado`).
+    2. A confirmação é o nome atual do cliente, comparado sem diferenciar maiúsculas, acentos e espaços nas pontas. Diferente: `ErrDadosInvalidos`, e nada é apagado.
+    3. Consentimento CONCEDIDO: `ErrTransicaoInvalida`. É preciso revogar antes, pelo UC-08, o que deixa o movimento REVOGACAO como prova.
+    4. Apaga os eventos, o perfil e as recomendações do cliente.
+    5. Por último, `Anonimizar` e grava o cadastro.
+    - O consentimento e os movimentos ficam como prova do tratamento (art. 16, I): não têm nome nem e-mail.
+    - A eliminação é irreversível. Repetir depois de uma falha conclui o pedido, porque as remoções não falham sem dados.
+    - Depois dela, nenhuma escrita vale para o cliente: a correção, UC-08 Conceder e Revogar e as pré-condições RN-01 respondem `ErrClienteEliminado`. A busca pelo nome antigo não o encontra, porque o nome não existe mais. A exportação entrega o que restou.
+- **RN-18 Retenção após a revogação (v1.9, Q-51).** O comportamento (eventos, perfil e recomendações) de quem está com o consentimento REVOGADO e `DataRevogacao` há `RETENCAO_DIAS_REVOGADO` dias ou mais (menor ou igual a agora menos o prazo) é apagado por `AplicarRetencaoUseCase`. O cadastro, o consentimento e o histórico ficam. Não atinge quem concedeu de novo (CONCEDIDO), quem nunca concedeu nem quem está dentro do prazo. Devolve quantos clientes tiveram algum dado apagado; executar de novo sem nada vencido devolve 0. Executada pelo subcomando `aplicar-retencao` e pelo painel (Operação).
 
 ### 3.4 Máquinas de estado
 
