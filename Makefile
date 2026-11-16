@@ -44,13 +44,15 @@ demo: ## fluxo do diagrama de sequência em memória
 build: ## binário estático do UML8
 	CGO_ENABLED=0 $(GO) build -o bin/omega-server ./cmd/omega-server
 
-# Credenciais de desenvolvimento do painel (Q-29): operador / dev-senha. Nunca use fora da máquina local.
-PAINEL_DEV_HASH = $$2a$$12$$XwydlCAe/Yz4gKKJFY8Dkem4QwOLLvhPfraOmQ3mvP9/CvqoKS3Am
+# Credenciais de desenvolvimento do painel (Q-29, Q-41), só no modo memória: admin / dev-senha-admin
+# (o administrador inicial); atendimento / dev-senha-atendimento e analista / dev-senha-analista
+# entram com os exemplos. Nunca use fora da máquina local.
+PAINEL_DEV_HASH = $$2a$$12$$K99VPCTS2/gKMH2bvoJ/0etMPEZhCWn/M1baHwaVRTIpAyWbWH7UC
 PAINEL_DEV_CHAVE = 00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff
 
-serve: ## API e painel em modo memória na porta 8080 (token: dev-token; painel: operador / dev-senha)
+serve: ## API e painel em modo memória na porta 8080 (token: dev-token; painel: admin / dev-senha-admin)
 	AUTH_TOKEN=$${AUTH_TOKEN:-dev-token} ENGAJAMENTO_META_EVENTOS=$${ENGAJAMENTO_META_EVENTOS:-10} \
-	PAINEL_SENHA_HASH='$(PAINEL_DEV_HASH)' PAINEL_CHAVE_SESSAO=$(PAINEL_DEV_CHAVE) $(GO) run ./cmd/omega-server serve
+	PAINEL_USUARIO=admin PAINEL_SENHA_HASH='$(PAINEL_DEV_HASH)' PAINEL_CHAVE_SESSAO=$(PAINEL_DEV_CHAVE) $(GO) run ./cmd/omega-server serve
 
 COMPOSE = docker compose -f deploy/docker-compose.yml
 
@@ -72,7 +74,7 @@ expirar: ## administrador: expira recomendações vencidas na réplica app1 (UML
 retencao: ## administrador: aplica a retenção após a revogação na réplica app1 (RN-18, Q-51)
 	$(COMPOSE) exec app1 omega-server -config /etc/omega/config.env aplicar-retencao
 
-exemplos: ## carrega os 15 clientes de exemplo na implantação, se o banco não tiver clientes (Q-30, Q-32)
+exemplos: ## carrega os 75 clientes de exemplo (15 com história e 60 de volume) na implantação, se o banco não tiver clientes (Q-30, Q-32)
 	$(COMPOSE) exec app1 omega-server -config /etc/omega/config.env carregar-exemplos
 
 derrubar: ## derruba a implantação (mantém os dados; apague com: $(COMPOSE) down -v)

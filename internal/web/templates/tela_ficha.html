@@ -265,7 +265,9 @@
       <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-eliminacao">Eliminação</h2></div>
       <div class="pf-panel__body">
         <p>Apaga eventos, perfil e recomendações e anonimiza o cadastro. O histórico do consentimento fica guardado como prova. Não pode ser desfeito.</p>
-        {{if .PodeEliminar}}
+        {{if not .PermEliminar}}
+        <p class="pf-muted" data-teste="eliminacao-so-administrador">Só o administrador elimina dados.</p>
+        {{else if .PodeEliminar}}
         <div><a class="pf-btn pf-btn--danger" href="/painel/clientes/{{.Cliente.ID}}/eliminar" data-teste="acao-eliminar">Eliminar dados</a></div>
         {{else}}
         <div class="pf-alert pf-alert--warn" data-teste="aviso-revogar-antes">

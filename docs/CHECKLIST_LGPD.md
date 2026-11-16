@@ -1,6 +1,6 @@
 # Checklist LGPD e auditoria de logs (T-25)
 
-Perfila · Equipe Omega · 14/11/2026 · Spec v1.9 (com o painel web, seção 4b, o histórico do consentimento, Q-34, e os direitos do titular e a retenção, Q-48 a Q-53)
+Perfila · Equipe Omega · 14/11/2026 · Spec v1.9 (com o painel web, seção 4b, o histórico do consentimento, Q-34, os perfis de acesso e a auditoria do painel, Q-35 a Q-41, os relatórios agregados, seção 4c, a importação de eventos, seção 4d, e os direitos do titular e a retenção, Q-48 a Q-53)
 
 Interpretação técnica da equipe sobre a Lei 13.709/2018, **não é parecer jurídico** (CLAUDE.md, seção 4). Cada item aponta a evidência que o prova: um cenário BDD, um teste automático ou um arquivo de configuração. ✅ atendido no MVP · ⚠️ atendido com limitação · ⬜ fora do MVP (requisito futuro).
 
@@ -29,7 +29,7 @@ Interpretação técnica da equipe sobre a Lei 13.709/2018, **não é parecer ju
 |---|---|---|---|---|
 | L-10 | Tráfego do titular cifrado | Nginx com TLS 1.2/1.3 e HSTS; a única porta publicada é a HTTPS (Q-12) | `deploy/nginx/nginx.conf`; cenário "todo o tráfego entra pelo balanceador" (confere TLS) | ⚠️ certificado autoassinado na demonstração; em produção, montar um certificado real |
 | L-11 | Banco inacessível de fora | `db` só na rede interna `dados`, sem porta publicada | `deploy/docker-compose.yml`; cenário "o banco não é acessível pelo dispositivo do cliente" | ✅ |
-| L-12 | Acesso à API autenticado | Bearer `AUTH_TOKEN` comparado em tempo constante; 401 sem token (D-16) | `api.feature` (401) | ⚠️ token estático único; JWT e perfis de acesso fora do MVP |
+| L-12 | Acesso à API autenticado | Bearer `AUTH_TOKEN` comparado em tempo constante; 401 sem token (D-16) | `api.feature` (401) | ⚠️ token estático único para os sistemas que chamam a API; JWT fora do MVP. Pessoas não usam a API: operam pelo painel, que tem usuários e papéis desde a v1.5 (L-23) |
 | L-13 | Segredos fora do código | Senha do banco e `AUTH_TOKEN` gerados aleatoriamente em `deploy/.env` e `deploy/config.env`, ignorados pelo git (Q-14); a URL do banco nunca vai para log ou erro | `scripts/preparar-implantacao.sh`; `.gitignore`; `TestArgumentosEConfig` (senha ausente do erro) | ✅ |
 | L-14 | Menor privilégio | `omega-server` roda como usuário sem privilégio (uid 10001), binário estático | `deploy/Dockerfile` | ✅ |
 | L-15 | Integridade dos dados | Chaves estrangeiras, `UNIQUE(cliente_id)` e `CHECK` nos estados e faixas (Spec 3.8) | `001_inicial.sql`; suíte de contrato | ✅ |
@@ -50,11 +50,33 @@ Interpretação técnica da equipe sobre a Lei 13.709/2018, **não é parecer ju
 |---|---|---|---|---|
 | L-21 | Sem consentimento, o painel não mostra nem lê dados de comportamento | A ficha mostra só cadastro e consentimento; `ConsultarResultadoUseCase` aplica RN-01 antes de ler eventos, perfil, segmento e recomendação (C-03, Q-21) | `painel.feature` (`@lgpd`: ficha e registro de evento sem consentimento), `leitura.feature` | ✅ |
 | L-22 | Mostrar o mínimo de dado pessoal | Lista com e-mail mascarado (`c***@exemplo.test`) e ID truncado; e-mail completo só na ficha | `TestFormatos`; tela Clientes | ✅ |
-| L-23 | Acesso ao painel autenticado | Operador por configuração com senha em bcrypt, sessão assinada (HMAC-SHA256) com 8 h, 5 tentativas por IP em 5 minutos (Q-22); senha e chave geradas fora do git (Q-28) | `painel.feature` (sem sessão, senha errada, tentativas, sessão vencida); `TestSessao`, `TestLimitador` | ⚠️ operador único e limite por réplica; perfis de acesso fora do MVP |
+| L-23 | Acesso ao painel autenticado e por usuário | Desde a v1.5, cada pessoa é um operador no banco, com login próprio, senha em bcrypt (12 caracteres no mínimo) e papel (Q-35, Q-40). A senha é conferida por `AutenticarOperador` com o mesmo erro para login inexistente, senha errada e operador inativo (Q-36). Sessão assinada (HMAC-SHA256) com 8 h, conferida no banco a cada página: desativar alguém ou redefinir a senha derruba a sessão na hora (Q-38). Senha provisória obriga a troca no primeiro acesso. 5 tentativas por IP em 5 minutos (Q-22); a senha do administrador inicial e a chave ficam fora do git (Q-28) | `painel.feature` (sem sessão, senha errada, tentativas, sessão vencida, operador desativado, senha provisória); `usuarios.feature` (credenciais, sessão recusada, troca de senha); `TestSessao`, `TestLimitador`, `TestAdministradorInicial` | ⚠️ limite de tentativas por réplica (até 10 com o balanceamento); sem segundo fator |
 | L-24 | Logs do painel sem dado pessoal | Registra método, caminho (só UUIDs), status e, nas ações, operador, ação e `clienteId`; nunca nome, e-mail, senha nem o termo de busca (Q-24). O IP do `X-Real-IP` só alimenta o limite de tentativas, em memória | cenário "Os logs do painel não contêm nome, e-mail nem o termo de busca" | ✅ |
 | L-25 | Nenhuma requisição a terceiros com o IP de quem opera | Fontes IBM Plex, CSS e htmx servidos pelo próprio binário; CSP `default-src 'self'` | cenário `@web` e `@implantacao` dos cabeçalhos de segurança | ✅ |
 | L-26 | Proteção contra envio forjado e enquadramento | CSRF em todo POST, cookies `HttpOnly`, `Secure`, `SameSite=Strict`; `frame-ancestors 'none'` e `X-Frame-Options: DENY` | cenário "Envio sem o token CSRF é recusado" | ✅ |
 | L-27 | Atos com efeito jurídico deliberados | Conceder e revogar passam por confirmação que diz o efeito (diálogo ou página própria); em revogar, o foco inicial fica em Cancelar | cenário "Revogar exige confirmação" | ✅ |
+| L-28 | Registro das operações com dado pessoal (art. 37) | Trilha de auditoria do painel (RN-13, Q-39): entradas, saídas, sessões encerradas, acessos negados, cada aba de ficha aberta e toda ação que muda dados, com data, login do operador, ação, tipo e ID do alvo e resultado. Sem nome, e-mail, senha nem termo de busca. Só inclusão (o banco recusa `UPDATE`); a ficha não aparece se a leitura não puder ser registrada. Retenção de 180 dias, expurgo por `omega-server expurgar-auditoria`. Tela Auditoria só para o administrador | `painel.feature` (`@RN-13`: ações e leituras na auditoria, auditoria sem dado pessoal, filtro); `usuarios.feature` (registro, só administrador lê, expurgo com 179, 180 e 181 dias); `TestAuditoriaSoInclusao`, `TestExpurgarAuditoria`; contrato `Auditoria` nos dois backends | ✅ só o painel é auditado; a API (sistemas, token único) fica com o log de acesso e os movimentos do consentimento |
+| L-29 | Acesso só ao necessário para a função (art. 6º, III e VII) | Matriz de permissões no domínio (RN-11, Q-37): Atendimento opera clientes, consentimento, eventos e processamento; Analista vê só Segmentos e Catálogo, sem nenhum dado de cliente; Administrador cuida também de Usuários, Auditoria e Operação. O painel confere a permissão em cada rota (403 e registro `acesso_negado`) e não mostra no menu o que o papel não pode; os casos de uso de gestão conferem de novo | `TestPapelPode`; `painel.feature` ("Cada papel só abre o que pode", "O menu mostra só as telas do papel", "Sem permissão, a ação é recusada"); `usuarios.feature` (só o administrador gerencia operadores) | ✅ relatórios para o Analista (UC-05 a UC-07) e eliminação de dados ficam reservados na matriz, sem tela |
+| L-30 | Configuração de segmentos sem expor titulares (art. 6º, III) | A prévia de uma mudança de segmento (Q-42) começa pelos consentimentos concedidos, só lê o perfil salvo de clientes ativos com consentimento válido e devolve apenas contagens por segmento: nenhum nome, e-mail ou ID chega à tela do Analista. "Testar critério" usa só valores digitados. A auditoria das alterações guarda os nomes dos campos de uma lista fechada, nunca valores (Q-44) | cenários "A prévia conta só clientes ativos com consentimento válido, pelo perfil salvo" (`@aplicacao`) e "Salvar passa pela prévia, que mostra só contagens" (`@web`); contrato `AuditoriaCampos` e `CHECK` da coluna `campos` (migração 008) | ✅ |
+
+## 4c. Relatórios agregados (Spec RN-15, v1.7, Q-46)
+
+| # | Requisito | Como o Perfila atende | Evidência | |
+|---|---|---|---|---|
+| L-31 | Relatório não identifica ninguém | Só contagens, somas e médias: o `RelatorioRepository` nunca devolve linha de cliente, e a tela e o CSV não têm nome, e-mail nem ID | contrato `Relatorio` (memória e PostgreSQL); cenários "A tela Relatórios mostra… sem identificar ninguém" e "…exportado em CSV, sem identificadores" | ✅ |
+| L-32 | Comportamento só de quem consente | Segmento, médias, recomendações, categorias e eventos contam só clientes com consentimento CONCEDIDO no momento do relatório; revogados saem, inclusive o que gravaram antes (RN-03) | cenários "Revogados não entram nas métricas de comportamento" e "Clientes sem consentimento contam no cadastro e não no comportamento" | ✅ |
+| L-33 | Grupos pequenos não reidentificam | Grupo de 1 a 4 clientes aparece como "menos de 5"; médias de grupo pequeno ocultas; taxa de concessão oculta se depender de um grupo oculto; categorias com menos de 5 compradores somadas em "Outras", sem nome | `TestProteger*`; cenários `@dominio` e "Grupos pequenos ficam ocultos…"; `TestRelatorioDosExemplos` | ⚠️ supressão só primária: a diferença entre o total e as partes visíveis pode revelar o tamanho de um grupo oculto (nunca um atributo de comportamento, porque as médias também ficam ocultas) |
+| L-34 | Exportação sem vazamento | O CSV traz os mesmos valores protegidos da tela; célula que começa com `=`, `+`, `-` ou `@` ganha apóstrofo; o log registra só operador, ação e período | `TestCelulaCSVSemFormula`; cenário do CSV | ✅ |
+| L-35 | Quem pode ver | Só ANALISTA e ADMINISTRADOR veem os relatórios (permissão `relatorios`, RN-11); o ATENDIMENTO não tem o menu e recebe 403 na rota | Q-46 (8); `TestPapelPode` | ✅ |
+
+## 4d. Importação de eventos em lote (Spec v1.8, RN-16, Q-47)
+
+| # | Requisito | Como o Perfila atende | Evidência | |
+|---|---|---|---|---|
+| L-36 | Lote não contorna o consentimento | Cada linha passa por RN-01 (cliente existe, ativo, consentimento válido) antes de gravar; a recusa é só daquela linha. Na API, sem cliente na rota, o caso de uso confere cada linha (C-03) | `importacao.feature` (`@lgpd`: não concedido, revogado e revogado entre a prévia e a confirmação); `TestArquivoDeExemploImporta` | ✅ |
+| L-37 | O arquivo enviado não fica guardado | A prévia não grava nada; o conteúdo volta ao navegador num campo oculto de página `no-store` e só os eventos aceitos são gravados | cenário "Enviar o arquivo pelo painel mostra a prévia sem gravar"; Spec RN-16 | ✅ |
+| L-38 | Auditoria do lote sem dado pessoal | Log `painel_acao` com operador, `importar_eventos` e as quantidades; na API, `importacao_eventos` só com as quantidades. Nenhum ID de cliente nem conteúdo do arquivo | cenário "A auditoria do lote registra o operador e as quantidades, sem dado pessoal" | ✅ (tabela de auditoria quando o PR de usuários entrar) |
+| L-39 | Reenvio não duplica dados | Duplicado (cliente, tipo, instante e valor) é ignorado e contado à parte | cenários "Reenviar o mesmo arquivo não grava nada de novo" e de duplicados | ✅ |
 
 ## 5. Auditoria de logs (C-09)
 
@@ -71,9 +93,13 @@ Todos os eventos de log do sistema, conferidos no código em 11/11/2026 (`grep` 
 | `retencao_aplicada` (v1.9) | subcomando `aplicar-retencao` | quantidade, prazo em dias | Não |
 | `direito_atendido` (v1.9) | painel e subcomando `aplicar-retencao` | operador, pedido (`correcao`, `exportacao`, `eliminacao`, `retencao`), `clienteId` ou quantidade | Não. Auditoria dos pedidos até a v1.5 (`RegistroAuditoria`) entrar na main (Q-53); cenário "Cada pedido atendido fica no log, sem nome nem e-mail" |
 | `painel_http` | `web.registro` | método, caminho (só UUIDs), status | Não. Sem query string (termo de busca) |
-| `painel_acao` | handlers do painel | operador, ação, `clienteId` | Não. O operador é o login da equipe, não o titular |
+| `painel_acao` | handlers do painel | operador, ação, `clienteId`; nos relatórios (`ver_relatorio`, `exportar_relatorio`), operador, ação e período, sem nenhum número; em `importar_eventos`, só as quantidades (sem `clienteId`) | Não. O operador é o login da equipe, não o titular |
+| `importacao_eventos` | `api.importarLote` | gravado, aceitas, duplicadas, rejeitadas | Não |
 | `painel_erro_interno`, `painel_template` | painel (só falhas 500) | caminho, mensagem do erro | Não |
 | `painel_desligado` | `cmd/omega-server` | aviso fixo | Não |
+| `administrador_inicial_criado`, `operadores_exemplo_carregados` | `cmd/omega-server` (v1.5) | aviso fixo, quantidade | Não. Nem login nem senha |
+| `auditoria_expurgada` | subcomando `expurgar-auditoria` | quantidade, retenção | Não |
+| `auditoria_falhou` | painel (falha ao gravar a auditoria) | ação, mensagem do erro | Não. Os erros citam só IDs |
 | acesso do Nginx | `deploy/nginx/nginx.conf` (`log_format omega`) | horário, método, caminho sem query string, status, tempo, réplica, id da requisição | Não. **Sem IP do cliente** (IP é dado pessoal, Q-14) |
 | PostgreSQL | configuração padrão da imagem | erros, sem texto de parâmetros | Não |
 
@@ -85,6 +111,7 @@ Todos os eventos de log do sistema, conferidos no código em 11/11/2026 (`grep` 
 
 1. Direitos do titular pela API e pelo portal do titular, sem depender da pessoa operadora (L-19; a v1.9 os atende pelo painel). Agendar a retenção (L-20) no servidor.
 2. Filtrar o uso dos dados pela finalidade consentida (L-04). O histórico de versões do termo (L-06) entrou na v1.4; falta expô-lo ao titular (portal, fase 2).
-3. Autenticação por usuário (JWT/OIDC) com perfis Cliente, Administrador e Analista (L-12).
+3. Autenticação por sistema na API (JWT/OIDC) no lugar do token único (L-12). No painel, usuários e papéis entraram na v1.5 (L-23, L-29); falta segundo fator e limite de tentativas compartilhado entre as réplicas.
 4. Certificado emitido por uma autoridade, cifra do volume do banco e TLS interno (L-10, L-16).
-5. Prazo de retenção dos logs definido junto com a política de dados.
+5. Prazo de retenção dos logs definido junto com a política de dados. A auditoria do painel já tem prazo (180 dias, L-28).
+6. Reprocessar todos os clientes depois de mudar um critério (Q-45): trata dado de todos os titulares de uma vez e precisa de confirmação, execução em segundo plano e auditoria próprias.

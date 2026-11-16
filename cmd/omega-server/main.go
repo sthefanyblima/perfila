@@ -4,6 +4,7 @@
 //	omega-server [-config config.env] expirar-recomendacoes  expira recomendações vencidas (RN-08)
 //	omega-server hash-senha                                  lê a senha do operador e imprime o bcrypt (Q-28)
 //	omega-server [-config config.env] carregar-exemplos      cria os clientes de exemplo se não houver nenhum (Q-30)
+//	omega-server [-config config.env] expurgar-auditoria     apaga a auditoria do painel além da retenção (RN-13, Q-39)
 //
 // Raiz de composição (C-08). DATABASE_URL preenchida = PostgreSQL, com as migrações aplicadas
 // ao subir (T-19, Q-07, Q-09); vazia = repositórios em memória com dados sintéticos (D-23),
@@ -25,8 +26,6 @@ import (
 	"syscall"
 	"time"
 
-	"golang.org/x/crypto/bcrypt"
-
 	"perfila/internal/api"
 	"perfila/internal/application/usecase"
 	"perfila/internal/domain/port"
@@ -35,6 +34,7 @@ import (
 	"perfila/internal/infra/memoria"
 	"perfila/internal/infra/relogio"
 	"perfila/internal/infra/repository/pg"
+	"perfila/internal/infra/senha"
 	"perfila/internal/web"
 )
 
@@ -45,7 +45,7 @@ func main() {
 	}
 }
 
-const uso = "uso: omega-server [-config config.env] serve|expirar-recomendacoes|aplicar-retencao|carregar-exemplos|hash-senha"
+const uso = "uso: omega-server [-config config.env] serve|expirar-recomendacoes|aplicar-retencao|carregar-exemplos|expurgar-auditoria|hash-senha"
 
 func executar(args []string, getenv func(string) string, saida io.Writer) error {
 	fs := flag.NewFlagSet("omega-server", flag.ContinueOnError)
@@ -71,14 +71,33 @@ func executar(args []string, getenv func(string) string, saida io.Writer) error 
 
 	switch fs.Arg(0) {
 	case "serve":
+		if cfg.PainelLigado() {
+			if err := prepararOperadores(ctx, cfg, app); err != nil {
+				return err
+			}
+		}
 		if cfg.ModoMemoria() { // no modo memória, os exemplos sempre entram (Q-30)
 			if err := carregarExemplos(ctx, app); err != nil {
 				return err
+			}
+			if cfg.PainelLigado() { // operadores de exemplo: só no modo memória (Q-41)
+				n, err := app.exemplos.carregarOperadoresExemplo(ctx, senha.Bcrypt{})
+				if err != nil {
+					return err
+				}
+				app.log.Info("operadores_exemplo_carregados", "quantidade", n)
 			}
 		}
 		return servir(ctx, cfg, app)
 	case "carregar-exemplos":
 		return carregarExemplos(ctx, app)
+	case "expurgar-auditoria":
+		n, err := app.expurgar.Executar(ctx)
+		if err != nil {
+			return err
+		}
+		app.log.Info("auditoria_expurgada", "quantidade", n, "retencao_dias", cfg.AuditoriaRetencaoDias)
+		return nil
 	case "expirar-recomendacoes":
 		n, err := app.expirar.Executar(ctx)
 		if err != nil {
@@ -105,16 +124,40 @@ func hashSenha(entrada io.Reader, saida io.Writer) error {
 	if err != nil && !errors.Is(err, io.EOF) {
 		return err
 	}
-	senha := strings.TrimRight(linha, "\r\n")
-	if len(senha) < 8 {
-		return errors.New("hash-senha: a senha precisa de pelo menos 8 caracteres")
+	s := strings.TrimRight(linha, "\r\n")
+	if len([]rune(s)) < 12 || len(s) > 72 { // RN-12, Q-40
+		return errors.New("hash-senha: a senha precisa ter de 12 caracteres a 72 bytes")
 	}
-	h, err := bcrypt.GenerateFromPassword([]byte(senha), 12)
+	h, err := senha.Bcrypt{}.Gerar(s)
 	if err != nil {
 		return err
 	}
-	_, err = fmt.Fprintln(saida, string(h))
+	_, err = fmt.Fprintln(saida, h)
 	return err
+}
+
+// prepararOperadores cria o administrador inicial com PAINEL_USUARIO e PAINEL_SENHA_HASH quando
+// não há nenhum operador (atômico entre as réplicas); sem operador e sem o hash, o painel não
+// teria quem entrasse, então o servidor não sobe (RN-12, Q-35).
+func prepararOperadores(ctx context.Context, cfg config.Config, app aplicacao) error {
+	if cfg.PainelSenhaHash != "" {
+		criou, err := app.operadores.CriarAdministradorInicial(ctx, cfg.PainelUsuario, cfg.PainelSenhaHash)
+		if err != nil {
+			return fmt.Errorf("painel: criando o administrador inicial (PAINEL_USUARIO): %w", err)
+		}
+		if criou {
+			app.log.Info("administrador_inicial_criado")
+		}
+		return nil
+	}
+	existentes, err := app.repos.operadores.Listar(ctx)
+	if err != nil {
+		return err
+	}
+	if len(existentes) == 0 {
+		return errors.New("painel: não há operador gravado; defina PAINEL_SENHA_HASH para criar o administrador inicial (Q-35)")
+	}
+	return nil
 }
 
 func carregarExemplos(ctx context.Context, app aplicacao) error {
@@ -128,12 +171,15 @@ func carregarExemplos(ctx context.Context, app aplicacao) error {
 
 // aplicacao é o grafo de dependências montado uma vez.
 type aplicacao struct {
-	log      *slog.Logger
-	handler  http.Handler
-	expirar  *usecase.ExpirarRecomendacoesUseCase
-	retencao *usecase.AplicarRetencaoUseCase
-	exemplos exemplos
-	fechar   func()
+	log        *slog.Logger
+	handler    http.Handler
+	expirar    *usecase.ExpirarRecomendacoesUseCase
+	expurgar   *usecase.ExpurgarAuditoriaUseCase
+	retencao   *usecase.AplicarRetencaoUseCase
+	operadores *usecase.GerenciarOperadoresUseCase
+	repos      repositorios
+	exemplos   exemplos
+	fechar     func()
 }
 
 // repositorios agrupa as implementações dos ports de persistência de um backend.
@@ -145,6 +191,9 @@ type repositorios struct {
 	recomendacoes  port.RecomendacaoRepository
 	consentimentos port.ConsentimentoRepository
 	produtos       port.ProdutoRepository
+	operadores     port.OperadorRepository         // v1.5
+	auditoria      port.AuditoriaRepository        // v1.5
+	relatorios     port.RelatorioRepository        // v1.7: leitura agregada (RN-15)
 	saude          func(ctx context.Context) error // nil no modo memória (Q-19)
 	migracoes      string                          // versão do esquema, para a tela de Operação
 	fechar         func()
@@ -174,6 +223,10 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 	cadastrar := usecase.NovoCadastrarClienteUseCase(repos.clientes, clock)
 	consentimento := usecase.NovoGerenciarConsentimentoUseCase(repos.clientes, repos.consentimentos, clock)
 	expirar := usecase.NovoExpirarRecomendacoesUseCase(repos.recomendacoes, clock)
+	hash := senha.Bcrypt{}
+	operadores := usecase.NovoGerenciarOperadoresUseCase(repos.operadores, hash, clock)
+	registrarAuditoria := usecase.NovoRegistrarAuditoriaUseCase(repos.auditoria, clock)
+	importar := usecase.NovoImportarEventosUseCase(coletar, pre, repos.eventos, clock) // RN-16
 	retencao := usecase.NovoAplicarRetencaoUseCase(repos.consentimentos, repos.eventos, repos.perfis, repos.recomendacoes,
 		clock, cfg.RetencaoDiasRevogado)
 	deps := api.Dependencias{
@@ -183,6 +236,7 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 		Consentimento: consentimento,
 		Coletar:       coletar,
 		Processar:     processar,
+		Importar:      importar,
 		Log:           log,
 		Clock:         clock,
 		Saude:         repos.saude,
@@ -191,8 +245,8 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 	mux.Handle("/", api.NovoRouter(deps))
 	if cfg.PainelLigado() {
 		painel, err := web.NovoRouter(web.Dependencias{
-			Usuario: cfg.PainelUsuario, SenhaHash: []byte(cfg.PainelSenhaHash), ChaveSessao: cfg.PainelChaveSessao,
-			Finalidade: cfg.PainelFinalidade, VersaoTermo: cfg.PainelVersaoTermo,
+			ChaveSessao: cfg.PainelChaveSessao,
+			Finalidade:  cfg.PainelFinalidade, VersaoTermo: cfg.PainelVersaoTermo,
 			Cadastrar: cadastrar, Consentimento: consentimento, Coletar: coletar, Processar: processar,
 			ListarClientes:     usecase.NovoListarClientesUseCase(repos.clientes, repos.consentimentos, repos.perfis, repos.segmentos),
 			ConsultarCliente:   usecase.NovoConsultarClienteUseCase(repos.clientes, consentimento),
@@ -200,6 +254,15 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 			ListarSegmentos:    usecase.NovoListarSegmentosUseCase(repos.segmentos),
 			ListarCatalogo:     usecase.NovoListarCatalogoUseCase(repos.produtos),
 			Expirar:            expirar,
+			Autenticar:         usecase.NovoAutenticarOperadorUseCase(repos.operadores, hash),
+			Operadores:         operadores,
+			RegistrarAuditoria: registrarAuditoria,
+			ListarAuditoria:    usecase.NovoListarAuditoriaUseCase(repos.auditoria),
+			SalvarSegmento:     usecase.NovoSalvarSegmentoUseCase(repos.segmentos),
+			PreverSegmentacao:  usecase.NovoPreverSegmentacaoUseCase(repos.segmentos, repos.consentimentos, repos.clientes, repos.perfis),
+			SalvarProduto:      usecase.NovoSalvarProdutoUseCase(repos.produtos),
+			GerarRelatorio:     usecase.NovoGerarRelatorioUseCase(repos.relatorios, repos.segmentos, clock, fusoRelatorios()),
+			Importar:           importar,
 			AtualizarCadastro:  usecase.NovoAtualizarCadastroUseCase(repos.clientes),
 			ExportarDados: usecase.NovoExportarDadosTitularUseCase(repos.clientes, consentimento, repos.eventos, repos.perfis,
 				repos.segmentos, repos.recomendacoes, repos.produtos, clock),
@@ -219,13 +282,25 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 		log.Warn("painel_desligado", "detalhe", "defina PAINEL_SENHA_HASH e PAINEL_CHAVE_SESSAO para ligar o painel (Q-29)")
 	}
 	return aplicacao{
-		log:      log,
-		handler:  mux,
-		expirar:  expirar,
-		retencao: retencao,
-		exemplos: exemplos{repos: repos, clock: clock, metaEventos: cfg.EngajamentoMetaEventos, validadeDias: cfg.RecomendacaoValidadeDias},
-		fechar:   repos.fechar,
+		log:        log,
+		handler:    mux,
+		expirar:    expirar,
+		retencao:   retencao,
+		expurgar:   usecase.NovoExpurgarAuditoriaUseCase(repos.auditoria, clock, cfg.AuditoriaRetencaoDias),
+		operadores: operadores,
+		repos:      repos,
+		exemplos:   exemplos{repos: repos, clock: clock, metaEventos: cfg.EngajamentoMetaEventos, validadeDias: cfg.RecomendacaoValidadeDias},
+		fechar:     repos.fechar,
 	}, nil
+}
+
+// fusoRelatorios é o fuso dos meses-calendário dos relatórios (RN-15): America/Sao_Paulo, com
+// o deslocamento fixo de -3 h quando a base de fusos não estiver disponível.
+func fusoRelatorios() *time.Location {
+	if loc, err := time.LoadLocation("America/Sao_Paulo"); err == nil {
+		return loc
+	}
+	return time.FixedZone("BRT", -3*60*60)
 }
 
 // repositoriosEmMemoria monta os fakes com segmentos e catálogo sintéticos (D-23).
@@ -233,14 +308,19 @@ func repositoriosEmMemoria() repositorios {
 	segmentos := memoria.NovoSegmentoRepository()
 	produtos := memoria.NovoProdutoRepository()
 	memoria.CarregarDemonstracao(segmentos, produtos)
+	clientes, eventos, perfis := memoria.NovoClienteRepository(), memoria.NovoEventoRepository(), memoria.NovoPerfilRepository()
+	recomendacoes, consentimentos := memoria.NovoRecomendacaoRepository(), memoria.NovoConsentimentoRepository()
 	return repositorios{
-		clientes:       memoria.NovoClienteRepository(),
-		eventos:        memoria.NovoEventoRepository(),
-		perfis:         memoria.NovoPerfilRepository(),
+		clientes:       clientes,
+		eventos:        eventos,
+		perfis:         perfis,
 		segmentos:      segmentos,
-		recomendacoes:  memoria.NovoRecomendacaoRepository(),
-		consentimentos: memoria.NovoConsentimentoRepository(),
+		recomendacoes:  recomendacoes,
+		consentimentos: consentimentos,
 		produtos:       produtos,
+		operadores:     memoria.NovoOperadorRepository(),
+		auditoria:      memoria.NovoAuditoriaRepository(),
+		relatorios:     memoria.NovoRelatorioRepository(clientes, eventos, perfis, recomendacoes, consentimentos),
 		fechar:         func() {},
 	}
 }
@@ -266,6 +346,9 @@ func repositoriosPostgres(ctx context.Context, url string, log *slog.Logger) (re
 		recomendacoes:  pg.NovoPgRecomendacaoRepository(db),
 		consentimentos: pg.NovoPgConsentimentoRepository(db),
 		produtos:       pg.NovoPgProdutoRepository(db),
+		operadores:     pg.NovoPgOperadorRepository(db),
+		auditoria:      pg.NovoPgAuditoriaRepository(db),
+		relatorios:     pg.NovoPgRelatorioRepository(db),
 		saude:          db.PingContext,
 		migracoes:      pg.UltimaMigracao(),
 		fechar:         func() { db.Close() },

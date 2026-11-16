@@ -14,10 +14,10 @@ import (
 	"perfila/internal/domain/entity"
 )
 
-func (p *painel) rotasClientes(mux *http.ServeMux, sessao func(http.HandlerFunc) http.Handler) {
-	mux.Handle("GET /painel/clientes", sessao(p.telaClientes))
-	mux.Handle("GET /painel/clientes/novo", sessao(p.telaNovoCliente))
-	mux.Handle("POST /painel/clientes", sessao(p.cadastrar))
+func (p *painel) rotasClientes(mux *http.ServeMux, sessao func(entity.Permissao, http.HandlerFunc) http.Handler) {
+	mux.Handle("GET /painel/clientes", sessao(entity.PermClientes, p.telaClientes))
+	mux.Handle("GET /painel/clientes/novo", sessao(entity.PermClientes, p.telaNovoCliente))
+	mux.Handle("POST /painel/clientes", sessao(entity.PermClientes, p.cadastrar))
 }
 
 type opcao struct {
@@ -111,6 +111,7 @@ func (p *painel) cadastrar(w http.ResponseWriter, r *http.Request) {
 	}
 	c, err := p.d.Cadastrar.Executar(r.Context(), d.Nome, d.Email)
 	if err != nil {
+		p.auditar(r, entity.AcaoCadastrarCliente, entity.AlvoNenhum, uuid.Nil, err)
 		titulo, texto := mensagem(err, "")
 		d.Erro = &alerta{Tom: "critical", Titulo: titulo, Texto: texto, Agora: true, RequestID: r.Header.Get("X-Request-ID")}
 		p.logarFalha(r, err)
@@ -118,6 +119,7 @@ func (p *painel) cadastrar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p.acao(r, "cadastrar_cliente", c.ID.String())
+	p.auditar(r, entity.AcaoCadastrarCliente, entity.AlvoCliente, c.ID, nil)
 	http.Redirect(w, r, fmt.Sprintf("/painel/clientes/%s?aviso=cliente-cadastrado", c.ID), http.StatusSeeOther)
 }
 

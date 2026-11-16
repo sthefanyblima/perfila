@@ -14,19 +14,20 @@ import (
 	"github.com/google/uuid"
 
 	"perfila/internal/application/usecase"
+	"perfila/internal/domain/entity"
 	"perfila/internal/shared/errs"
 )
 
 // Direitos do titular na ficha e retenção na Operação. Spec: v1.9, 3.7.1, RN-17, RN-18, Q-48 a Q-53.
 
-func (p *painel) rotasDireitos(mux *http.ServeMux, sessao func(http.HandlerFunc) http.Handler) {
-	mux.Handle("GET /painel/clientes/{id}/direitos", sessao(p.fichaDireitos))
-	mux.Handle("POST /painel/clientes/{id}/cadastro", sessao(p.corrigirCadastro))
-	mux.Handle("GET /painel/clientes/{id}/dados", sessao(p.baixarDados))
-	mux.Handle("GET /painel/clientes/{id}/eliminar", sessao(p.confirmarEliminacao))
-	mux.Handle("POST /painel/clientes/{id}/eliminar", sessao(p.eliminar))
-	mux.Handle("GET /painel/operacao/retencao", sessao(p.confirmarRetencao))
-	mux.Handle("POST /painel/operacao/retencao", sessao(p.aplicarRetencao))
+func (p *painel) rotasDireitos(mux *http.ServeMux, sessao func(entity.Permissao, http.HandlerFunc) http.Handler) {
+	mux.Handle("GET /painel/clientes/{id}/direitos", sessao(entity.PermClientes, p.fichaDireitos))
+	mux.Handle("POST /painel/clientes/{id}/cadastro", sessao(entity.PermClientes, p.corrigirCadastro))
+	mux.Handle("GET /painel/clientes/{id}/dados", sessao(entity.PermClientes, p.baixarDados))
+	mux.Handle("GET /painel/clientes/{id}/eliminar", sessao(entity.PermEliminacao, p.confirmarEliminacao))
+	mux.Handle("POST /painel/clientes/{id}/eliminar", sessao(entity.PermEliminacao, p.eliminar))
+	mux.Handle("GET /painel/operacao/retencao", sessao(entity.PermOperacao, p.confirmarRetencao))
+	mux.Handle("POST /painel/operacao/retencao", sessao(entity.PermOperacao, p.aplicarRetencao))
 }
 
 // formCadastro é o painel "Corrigir cadastro" (Q-48).
@@ -44,7 +45,7 @@ func (p *painel) direito(r *http.Request, pedido string, attrs ...slog.Attr) {
 
 // GET /painel/clientes/{id}/direitos — vale com qualquer estado do consentimento.
 func (p *painel) fichaDireitos(w http.ResponseWriter, r *http.Request) {
-	if d, ok := p.carregarFicha(w, r, "direitos"); ok {
+	if d, ok := p.lerFicha(w, r, "direitos"); ok {
 		p.renderFicha(w, r, http.StatusOK, d)
 	}
 }
