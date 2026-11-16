@@ -2,7 +2,7 @@
 
 ## Mapa do painel
 
-Todas as telas ficam sob `/painel` no próprio `omega-server`, atrás do Nginx. A navegação lateral (`SideNav`) tem três grupos:
+Todas as telas ficam sob `/painel` no próprio `omega-server`, atrás do Nginx. A navegação lateral (`SideNav`) tem quatro grupos, e cada grupo só aparece para o papel que pode abri-lo (v1.5, RN-11): Atendimento vê Clientes e Configuração; Analista, Análise (v1.7) e Configuração; Administrador, os quatro.
 
 ```text
 /painel/entrar                         Entrar (sem sessão)
@@ -14,18 +14,30 @@ Clientes
   /painel/clientes/{id}/consentimento  Ficha: consentimento (UC-08)
   /painel/eventos/importar             Importar eventos em lote (UC-01, RN-16, v1.8)
   /painel/eventos/modelo.csv           Modelo do arquivo
-Configuração (somente leitura no MVP)
+Análise (v1.7, Q-46; Administrador e Analista)
+  /painel/relatorios                   Relatórios agregados (UC-05 e UC-07 parciais, RN-15)
+  /painel/relatorios.csv               O mesmo relatório em CSV
+Configuração (leitura para todos; edição para Administrador e Analista desde a v1.6)
   /painel/segmentos                    Segmentos e critérios (RN-06)
+  /painel/segmentos/novo, /{id}        Formulário do segmento, testar critério (RN-14)
+  /painel/segmentos/previa             Prévia (só contagens) e Salvar (Q-42)
+  /painel/segmentos/{id}/desativar     Prévia e confirmação; também /ativar
   /painel/catalogo                     Produtos por categoria (RN-07)
-Operação
+  /painel/catalogo/novo, /{id}         Formulário do produto; desativar com confirmação (Q-43)
+Administração (só Administrador, v1.5)
   /painel/operacao                     Saúde do sistema e expiração de recomendações (RN-08)
+  /painel/usuarios                     Operadores: criar, papel, desativar, ativar, redefinir senha (Q-35)
+  /painel/usuarios/{id}                Um operador: papel, situação e senha provisória
+  /painel/auditoria                    Trilha do painel, com filtros por operador, ação e período (Q-39)
+Rodapé (todos os papéis)
+  /painel/minha-senha                  Trocar a própria senha; obrigatória depois de senha provisória (Q-40)
 ```
 
-Fase 2, fora deste escopo: `/titular` (portal do titular para ver e revogar o próprio consentimento, que exige autenticação do titular) e relatórios de segmento (UC-05 a UC-07).
+Fase 2, fora deste escopo: `/titular` (portal do titular para ver e revogar o próprio consentimento, que exige autenticação do titular) e o restante de UC-05 a UC-07 (campanhas, recortes por segmento, comparação entre períodos).
 
 ## Moldura de toda tela
 
-- `SideNav` à esquerda (`size-sidebar`) em `surface-2`; nome "Perfila" no topo; operador logado e "Sair" no rodapé.
+- `SideNav` à esquerda (`size-sidebar`) em `surface-2`; nome "Perfila" no topo; login e papel do operador, "Minha senha" e "Sair" no rodapé.
 - Área de trabalho em `surface-0`, até `size-content`, com margem lateral `space-6`.
 - `PageHeader`: trilha (Clientes › Nome), título `display`, ações da página à direita (no máximo uma primária).
 - Toasts no canto inferior direito, acima de tudo.
@@ -75,11 +87,15 @@ Arquivo recusado inteiro (vazio, grande, cabeçalho errado, codificação) volta
 
 ### Segmentos
 
-`DataTable` com Prioridade, Nome, Descrição e Critério (`CriterionChips`), ordenada por prioridade. Uma nota no topo: "Segmentos entram por migração; para alterar, fale com a equipe técnica." O segmento `padrao` aparece com a etiqueta "Critério vazio: casa sempre".
+`DataTable` com Prioridade, Nome, Descrição e Critério (`CriterionChips`), ordenada por prioridade, e um painel "Inativos" abaixo. O segmento `padrao` aparece com a etiqueta "Critério vazio: casa sempre". Quem só lê vê a nota "Somente leitura".
+
+Desde a v1.6 (Q-33, Q-42), quem edita vê "Novo segmento" no cabeçalho e, em cada linha, Editar e Desativar (ou Ativar); o `padrao` não tem Desativar. O formulário tem três painéis: dados (nome, prioridade, descrição), critério (o texto gravado visível e uma linha por condição: campo, operador e valor, ligadas por "E"; "Adicionar condição") e "Testar critério" (compras, ticket médio e engajamento digitados). O botão principal é **Ver prévia**: a página da prévia mostra, por segmento, Hoje, Com a mudança e Diferença, com a nota de que só conta clientes ativos com consentimento pelo perfil salvo e de que quem já foi segmentado muda no próximo processamento. Só ela tem **Salvar alterações** (e "Voltar ao formulário", que mantém o que foi digitado). Desativar e ativar mostram a mesma prévia antes de confirmar. Erros aparecem ao lado do campo, com a condição errada citada.
 
 ### Catálogo
 
 Tabela agrupada por categoria, com Nome, Preço (R$) e Situação. A nota explica a regra RN-07: "A recomendação escolhe o primeiro produto ativo da categoria preferida, por ordem alfabética."
+
+Desde a v1.6 (Q-43), quem edita vê "Novo produto" e o nome de cada produto vira link para o formulário: nome, categoria (com as existentes sugeridas; gravada em minúsculas) e preço com vírgula. A seção Situação desativa com confirmação (diálogo ou página própria) ou ativa.
 
 ### Operação
 

@@ -8,7 +8,7 @@ O Perfila transforma eventos de comportamento (navegação, compra, interação)
 
 Desenvolvido com **Spec-Driven Development** (a especificação é a fonte da verdade e o agente de IA implementa) e **Behavior-Driven Development** (cenários Gherkin executáveis provam o comportamento).
 
-## Estado (12/11/2026): MVP concluído + painel web
+## Estado (13/11/2026): MVP concluído + painel web
 
 | Marco | Período | Estado |
 |---|---|---|
@@ -19,11 +19,12 @@ Desenvolvido com **Spec-Driven Development** (a especificação é a fonte da ve
 | **Generic** (PostgreSQL, Docker/Nginx, LGPD), 25% | 16–19/11 | ✅ contrato nos dois backends · 3 cenários de implantação · checklist LGPD |
 | **Painel web do operador** (Spec v1.3, T-31 a T-38) | 12/11 | ✅ 26 cenários `@web` · 21 de aplicação novos · 1 de implantação |
 | **Histórico do consentimento** (Spec v1.4, T-42 a T-46, Q-34) | 12/11 | ✅ 8 cenários de aplicação · 4 `@web` · contrato e migração 006 nos dois backends |
+| **Edição de segmentos e catálogo** (Spec v1.6, T-55 a T-59, Q-33, Q-42 a Q-44) | 13/11 | ✅ 15 cenários de aplicação e domínio · 11 `@web` · contrato e migração 008 nos dois backends |
 | **Importação de eventos em lote** (Spec v1.8, T-65 a T-68, Q-47) | 13/11 | ✅ 34 cenários de aplicação · 4 `@api` · 7 `@web` |
 | Fechamento do escopo | 19/11 | daqui em diante, só correções |
 | Ensaio · evento final | 23/11 · 24/11 | roteiro em `docs/ROTEIRO_DEMONSTRACAO.md` |
 
-**219 cenários BDD** (215 no `make verify` + 4 de implantação), teste de arquitetura e suíte de contrato dos repositórios em memória e em PostgreSQL.
+**343 cenários BDD** (339 no `make verify` + 4 de implantação), teste de arquitetura e suíte de contrato dos repositórios em memória e em PostgreSQL.
 
 ## Arquitetura
 
@@ -42,9 +43,9 @@ Implantação (UML8): o **Nginx** (TLS, única porta de entrada) distribui para 
 ### Desenvolvimento (Go 1.22+)
 
 ```bash
-make verify   # gofmt, vet, testes com -race, 154 cenários BDD e teste de arquitetura
+make verify   # gofmt, vet, testes com -race, 339 cenários BDD e teste de arquitetura
 make demo     # fluxo do diagrama de sequência em memória, passo a passo
-make serve    # API e painel em modo memória: http://localhost:8080/painel (operador / dev-senha)
+make serve    # API e painel em modo memória: http://localhost:8080/painel (admin / dev-senha-admin)
 make demo-api # roteiro de curl contra o make serve (em outro terminal)
 make cover    # cobertura de domínio + aplicação
 make pg-teste # sobe um PostgreSQL descartável no Docker e roda o verify contra ele
@@ -58,13 +59,14 @@ make implantar         # gera segredos (1ª vez) e sobe nginx + app1 + app2 + db
 make demo-implantacao  # roteiro da API pelo Nginx em HTTPS, gravando no PostgreSQL
 make bdd-implantacao   # 4 cenários @implantacao (inclui parar uma réplica e o painel pelo Nginx)
 make expirar           # administrador: expira recomendações vencidas
-make exemplos          # carrega os 14 clientes de exemplo (só com o banco sem clientes)
+make exemplos          # carrega os 74 clientes de exemplo, 14 com história e 60 de volume (só com o banco sem clientes; nunca operadores)
 make derrubar          # derruba (os dados ficam no volume omega_db)
 ```
 
 - A única porta publicada é `https://localhost:8443`, com certificado autoassinado gerado na primeira subida.
 - O token da API fica em `deploy/config.env` e a senha do banco em `deploy/.env`. Os dois são gerados aleatoriamente e ficam fora do git.
-- O painel fica em `https://localhost:8443/painel`, usuário `operador`; a senha aleatória está em `deploy/.env` (`grep PAINEL_SENHA deploy/.env`) e só o hash bcrypt vai para o `config.env` (Q-28).
+- O painel fica em `https://localhost:8443/painel`. Na primeira subida, sem nenhum operador no banco, o usuário `operador` vira o administrador inicial (Q-35); a senha aleatória está em `deploy/.env` (`grep PAINEL_SENHA deploy/.env`) e só o hash bcrypt vai para o `config.env` (Q-28). Os demais operadores são criados por ele na tela Usuários.
+- A auditoria do painel guarda 6 meses (`AUDITORIA_RETENCAO_DIAS`); agende `omega-server expurgar-auditoria` como a expiração de recomendações (Q-39).
 - O cabeçalho `X-Omega-Replica` mostra qual réplica atendeu.
 - No Windows sem `make` nem Go, os comandos equivalentes estão em `docs/ROTEIRO_DEMONSTRACAO.md`, seção 4.
 
@@ -78,8 +80,9 @@ make derrubar          # derruba (os dados ficam no volume omega_db)
 | `RECOMENDACAO_VALIDADE_DIAS` | 30 | validade da recomendação (RN-08) |
 | `ENGAJAMENTO_META_EVENTOS` | 30 | meta de eventos em 30 dias para o score (RN-05) |
 | `LOG_LEVEL` | info | debug, info, warn ou error |
-| `PAINEL_USUARIO` | operador | login do operador do painel |
-| `PAINEL_SENHA_HASH`, `PAINEL_CHAVE_SESSAO` | vazias = painel desligado | hash bcrypt (`omega-server hash-senha`) e chave HMAC de 64 dígitos hexadecimais (Q-22, Q-29) |
+| `PAINEL_CHAVE_SESSAO` | vazia = painel desligado | chave HMAC da sessão, 64 dígitos hexadecimais; liga o painel (Q-22, Q-35) |
+| `PAINEL_USUARIO`, `PAINEL_SENHA_HASH` | operador, vazia | administrador inicial, criado só com o banco sem operadores; hash bcrypt de `omega-server hash-senha` (12 caracteres no mínimo). Com operadores gravados, são ignorados (Q-35) |
+| `AUDITORIA_RETENCAO_DIAS` | 180 | retenção da auditoria do painel (RN-13, Q-39) |
 | `PAINEL_FINALIDADE`, `PAINEL_VERSAO_TERMO` | segmentacao, v1 | sugeridos ao conceder o consentimento (Q-25) |
 
 O ambiente prevalece sobre o arquivo. Exemplo em `deploy/config.env.example`.
@@ -110,23 +113,40 @@ Interface web em `/painel`, servida pelo próprio `omega-server`, seguindo o des
 | Ficha | selo de consentimento sempre visível; Visão geral (etapas do processamento, perfil, segmento com os critérios atendidos, recomendação), Eventos e Consentimento. Sem consentimento, nenhum dado de comportamento é lido |
 | Consentimento | registro atual e linha do tempo com cada concessão e revogação: finalidade, versão do termo e origem (API, painel com o operador, portal). Só inclusão; cliente sem movimentos mostra a linha pelas datas (Q-34) |
 | Importar eventos | CSV com cabeçalho (`cliente_id,tipo,origem,timestamp,valor,categoria`), até 1.000 linhas e 256 KiB; prévia sem gravar, confirmação e relatório por linha. Cada linha passa por RN-01 e RN-04; duplicados (cliente, tipo, instante e valor) são ignorados, então reenviar é seguro. O arquivo não fica guardado (RN-16, Q-47). Modelo em "Baixar modelo"; exemplo pronto para a demonstração em `docs/exemplos/eventos-lote.csv` |
-| Segmentos e Catálogo | somente leitura |
+| Relatórios | UC-05 e UC-07 parciais (Q-46): clientes, consentimento por estado e taxa de concessão, distribuição por segmento (clientes, ticket médio, score médio), recomendações ativas e expiradas, categorias mais compradas e evolução mensal de cadastros, eventos e revogações, nos últimos 6 ou 12 meses. Gráficos SVG desenhados no servidor, cada um com a tabela de dados, e exportação em CSV. Só números agregados: comportamento conta só quem tem consentimento válido, e grupos com menos de 5 clientes aparecem como "menos de 5" |
+| Segmentos | ativos por prioridade e inativos. Quem edita (Administrador e Analista) cria, edita, ativa e desativa: o critério é montado por linhas de campo, operador e valor, com o texto gravado visível; "Testar critério" usa três valores digitados. Salvar passa por uma **prévia** que só conta quantos clientes ativos com consentimento ficariam em cada segmento, pelo perfil salvo. O `padrao` não é desativado nem ganha critério; prioridade e nome não se repetem. Quem já foi segmentado muda no próximo processamento (Q-33, Q-42) |
+| Catálogo | produtos por categoria. Quem edita cria produtos e muda nome, categoria (gravada em minúsculas, com as existentes sugeridas) e preço (de 0 a 1.000.000); ativa e desativa com confirmação. Nada é excluído (Q-43) |
 | Operação | saúde do banco e expiração de recomendações vencidas |
+| Usuários | operadores e papéis: criar com senha provisória, mudar papel, desativar, ativar e redefinir senha. Ninguém é excluído; o administrador não muda a própria conta (Q-35) |
+| Auditoria | quem fez o quê: entradas, acessos negados, leituras de ficha e toda ação que muda dados, sem nome nem e-mail; filtros por operador, ação e período (Q-39) |
+| Minha senha | troca da própria senha (12 caracteres no mínimo); obrigatória depois de uma senha provisória (Q-40) |
 
-Demonstração (Q-30, Q-32): 7 segmentos (vip, premium, fiel, engajado, explorador, ocasional, padrao), catálogo de 7 categorias e 14 clientes com história ao longo de meses: Ana (premium, com recomendações expiradas), Bruno (engajado), Carla e Davi (ocasional; Davi sem produto elegível), Elisa (nunca concedeu), Fábio (revogou), Gabi (inativa, histórico só leitura), Heitor (vip), Isabela (fiel), João (explorador), Karina (concedeu v1 pela API, revogou e concedeu v2 pelo painel: histórico completo), Lucas (ainda não processado), Marina (só recomendação expirada) e Nina (padrão). No `make serve` eles entram sozinhos; na implantação, com `make exemplos`. Desde a v1.8, cada um tem ID fixo derivado do e-mail sintético, para o arquivo de exemplo da importação funcionar em qualquer instalação.
+**Papéis (RN-11, Q-37).** Cada operador tem um papel, conferido no banco a cada página: desativar alguém ou mudar o papel vale na hora (Q-38).
 
-Sessão assinada sem estado (funciona com as duas réplicas), CSRF em todo envio, 5 tentativas de entrada por IP em 5 minutos, CSP `'self'`. Funciona sem JavaScript (formulários com redirecionamento e páginas de confirmação); com JavaScript, troca só a área do painel e usa diálogos nativos.
+| Papel | Alcança |
+|---|---|
+| Atendimento | clientes, consentimento, eventos e processamento; Segmentos e Catálogo só para leitura |
+| Analista | só Segmentos e Catálogo, com edição (v1.6), sem nenhum dado de cliente: a prévia mostra só contagens ; e os Relatórios agregados (v1.7, RN-15) |
+| Administrador | tudo isso, mais Relatórios, Usuários, Auditoria e Operação |
+
+Cada alteração de segmento ou produto e cada prévia ficam na Auditoria, com os nomes dos campos alterados, nunca os valores (Q-44).
+
+Operadores de exemplo, **só no `make serve`** (modo memória; senhas de desenvolvimento, nunca na implantação, Q-41): `admin` / `dev-senha-admin` (administrador), `atendimento` / `dev-senha-atendimento` e `analista` / `dev-senha-analista`.
+
+Demonstração (Q-30, Q-32): 7 segmentos (vip, premium, fiel, engajado, explorador, ocasional, padrao), catálogo de 7 categorias e 14 clientes com história ao longo de meses: Ana (premium, com recomendações expiradas), Bruno (engajado), Carla e Davi (ocasional; Davi sem produto elegível), Elisa (nunca concedeu), Fábio (revogou), Gabi (inativa, histórico só leitura), Heitor (vip), Isabela (fiel), João (explorador), Karina (concedeu v1 pela API, revogou e concedeu v2 pelo painel: histórico completo), Lucas (ainda não processado), Marina (só recomendação expirada) e Nina (padrão). Para os relatórios terem grupos acima de 5, a carga soma 60 clientes de volume (`Cliente Volume 101` a `160`, `c-101@exemplo.test` em diante) com história gerada de forma determinística: compras em várias categorias, 6 sem consentimento e 6 que revogaram (Q-46). No `make serve` todos entram sozinhos; na implantação, com `make exemplos`. Desde a v1.8, cada um dos 14 clientes com história tem ID fixo derivado do e-mail sintético, para o arquivo de exemplo da importação funcionar em qualquer instalação.
+
+Sessão assinada sem estado (funciona com as duas réplicas) e conferida no banco a cada página, CSRF em todo envio, 5 tentativas de entrada por IP em 5 minutos, CSP `'self'`. Funciona sem JavaScript (formulários com redirecionamento e páginas de confirmação); com JavaScript, troca só a área do painel e usa diálogos nativos.
 
 ## LGPD
 
-Nenhum caso de uso que processa dado pessoal roda sem consentimento válido (C-03), e a revogação tem efeito imediato (RN-03). Os logs da aplicação e do Nginx não trazem nome, e-mail nem IP (C-09), e os testes usam só dados sintéticos. O checklist completo, com a evidência de cada item e o que ficou para depois do MVP, está em [`docs/CHECKLIST_LGPD.md`](docs/CHECKLIST_LGPD.md). Os requisitos são interpretação técnica da equipe, não parecer jurídico.
+Nenhum caso de uso que processa dado pessoal roda sem consentimento válido (C-03), e a revogação tem efeito imediato (RN-03). Os logs da aplicação e do Nginx não trazem nome, e-mail nem IP (C-09), e os testes usam só dados sintéticos. Os relatórios (RN-15) mostram só números agregados, sem identificar ninguém, e escondem grupos com menos de 5 clientes. O checklist completo, com a evidência de cada item e o que ficou para depois do MVP, está em [`docs/CHECKLIST_LGPD.md`](docs/CHECKLIST_LGPD.md). Os requisitos são interpretação técnica da equipe, não parecer jurídico.
 
 ## Mapa do repositório
 
 ```text
 CLAUDE.md                   constituição para o agente (C-01..C-12) e mapa de contexto
-OPEN_QUESTIONS.md           decisões Q-01..Q-29, com o porquê
-specs/                      spec.md (v1.3) · plan.md (roadmap) · tasks.md · bdd-rules.md
+OPEN_QUESTIONS.md           decisões Q-01..Q-46, com o porquê
+specs/                      spec.md (v1.7) · plan.md (roadmap) · tasks.md · bdd-rules.md
 docs/uml/                   UML1..UML8 em texto (Mermaid) + imagens originais e corrigidas (img/v1)
 docs/design/                design system Perfila Console (princípios, telas, textos, tokens, componentes)
 docs/                       checklist LGPD · roteiro de demonstração · relatório parcial · auditoria

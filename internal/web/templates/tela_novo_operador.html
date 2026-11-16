@@ -1,0 +1,40 @@
+{{define "conteudo"}}{{with .Dados}}
+<header class="pf-header">
+  <ol class="pf-crumbs"><li><a href="/painel/usuarios">Usuários</a></li><li aria-current="page">Criar operador</li></ol>
+  <div class="pf-header__row"><h1 class="pf-header__title">Criar operador</h1></div>
+</header>
+<section class="pf-panel" aria-labelledby="titulo-operador">
+  <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-operador">Dados do operador</h2></div>
+  <form class="pf-panel__body pf-form" method="post" action="/painel/usuarios" data-teste="form-operador">
+    {{template "csrf" $.CSRF}}
+    {{with .Erro}}{{template "alerta" .}}{{end}}
+    <p class="pf-muted">A senha é provisória: no primeiro acesso, a pessoa define a própria senha. Passe a senha provisória por um canal separado do login.</p>
+    <div class="pf-field">
+      <label class="pf-field__label" for="login">Login</label>
+      <input class="pf-input" id="login" name="login" value="{{.Login}}" required autocomplete="off" aria-describedby="login-dica{{if .ErroLogin}} login-erro{{end}}"{{if .ErroLogin}} aria-invalid="true"{{end}}>
+      <span class="pf-field__hint" id="login-dica">De 3 a 32 caracteres: letras sem acento, números, ponto, hífen ou sublinhado, começando por letra. Não muda depois.</span>
+      {{if .ErroLogin}}<span class="pf-field__error" id="login-erro" aria-live="assertive">{{icone "barra"}}{{.ErroLogin}}</span>{{end}}
+    </div>
+    <div class="pf-field">
+      <label class="pf-field__label" for="nome">Nome</label>
+      <input class="pf-input" id="nome" name="nome" value="{{.Nome}}" required maxlength="100" autocomplete="off"{{if .ErroNome}} aria-invalid="true" aria-describedby="nome-erro"{{end}}>
+      {{if .ErroNome}}<span class="pf-field__error" id="nome-erro" aria-live="assertive">{{icone "barra"}}{{.ErroNome}}</span>{{end}}
+    </div>
+    <div class="pf-field pf-field--estreito">
+      <label class="pf-field__label" for="papel">Papel</label>
+      <select class="pf-select" id="papel" name="papel">
+        {{range .Papeis}}<option value="{{.}}"{{if eq (estado .) $.Dados.Papel}} selected{{end}}>{{rotulo (estado .)}}</option>{{end}}
+      </select>
+    </div>
+    <div class="pf-field">
+      <label class="pf-field__label" for="senha">Senha provisória</label>
+      <input class="pf-input" id="senha" name="senha" type="password" required minlength="12" autocomplete="new-password"{{if .ErroSenha}} aria-invalid="true" aria-describedby="senha-erro"{{end}}>
+      {{if .ErroSenha}}<span class="pf-field__error" id="senha-erro" aria-live="assertive">{{icone "barra"}}{{.ErroSenha}}</span>{{end}}
+    </div>
+    <div class="pf-form__foot">
+      <button type="submit" class="pf-btn pf-btn--primary">Criar operador</button>
+      <a class="pf-btn pf-btn--quiet" href="/painel/usuarios">Cancelar</a>
+    </div>
+  </form>
+</section>
+{{end}}{{end}}

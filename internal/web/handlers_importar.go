@@ -8,18 +8,19 @@ import (
 	"net/http"
 
 	"perfila/internal/application/usecase"
+	"perfila/internal/domain/entity"
 )
 
 // limitePedidoImportacao corta o pedido antes de ler o corpo: o arquivo (256 KiB) em base64 na
 // confirmação, com folga para o multipart. Spec: 3.7.1, RN-16.
 const limitePedidoImportacao = 512 << 10
 
-func (p *painel) rotasImportacao(mux *http.ServeMux, sessao func(http.HandlerFunc) http.Handler) {
-	mux.Handle("GET /painel/eventos/importar", sessao(p.telaImportar))
-	mux.Handle("POST /painel/eventos/importar", limitarPedido(sessao(p.previaImportacao)))
-	mux.Handle("POST /painel/eventos/importar/confirmar", limitarPedido(sessao(p.confirmarImportacao)))
+func (p *painel) rotasImportacao(mux *http.ServeMux, sessao func(entity.Permissao, http.HandlerFunc) http.Handler) {
+	mux.Handle("GET /painel/eventos/importar", sessao(entity.PermEventos, p.telaImportar))
+	mux.Handle("POST /painel/eventos/importar", limitarPedido(sessao(entity.PermEventos, p.previaImportacao)))
+	mux.Handle("POST /painel/eventos/importar/confirmar", limitarPedido(sessao(entity.PermEventos, p.confirmarImportacao)))
 	mux.Handle("GET /painel/eventos/importar/confirmar", http.RedirectHandler("/painel/eventos/importar", http.StatusSeeOther))
-	mux.Handle("GET /painel/eventos/modelo.csv", sessao(p.modeloCSV))
+	mux.Handle("GET /painel/eventos/modelo.csv", sessao(entity.PermEventos, p.modeloCSV))
 }
 
 // limitarPedido recusa o pedido grande pelo Content-Length, antes da sessão ler o formulário,

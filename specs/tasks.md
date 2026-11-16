@@ -88,17 +88,20 @@ Prova de cada concessão e revogação (Q-34, RN-10, L-06). Base para os públic
 | T-45 | Painel: origem `painel` com o operador; linha do tempo pelo histórico, com a linha pelas datas para quem não tem movimentos | T-44 | cenários `@web` do histórico | ✅ 4 cenários `@web`; `TestDetalheMovimento`, `TestLinhaPeloHistorico` |
 | T-46 | Exemplos (Karina: v1, revoga, v2) conferidos pelo histórico; checklist L-06; README; fluxo no navegador | T-45 | `TestCarregarExemplos`; painel conferido | ✅ Karina com v1 pela API, revogação e v2 pelo painel; L-06 atendido; fluxo conferido no navegador; cobertura 91,0% |
 
-## Importação de eventos em lote — Spec v1.8
+## Usuários, perfis de acesso e auditoria — Spec v1.5
 
-Lotes de eventos por CSV no painel e JSON na API, linha a linha, com RN-01 e RN-04 em cada linha, prévia sem gravar e duplicados ignorados (Q-47, RN-16). Numeração a partir de T-65 para não colidir com as branches abertas.
+Operadores no banco com papel (ADMINISTRADOR, ANALISTA, ATENDIMENTO), matriz de permissões e trilha de auditoria (Q-35 a Q-41, L-12, L-23). Aprovadas em 13/11.
 
 | ID | Tarefa | Depende de | Prova | Status |
 |---|---|---|---|---|
-| T-65 | Spec v1.8, Q-47, UML7 em texto, `03-textos.md` e `02-telas-e-fluxos.md`; `features/importacao.feature` (`@wip` até a tarefa que a implementa) | T-46 | Spec, UML e feature revisados | ✅ 45 cenários escritos (`@wip`) |
-| T-66 | `LerCSVEventos` e `ImportarEventosUseCase` (`Previa`, `Importar`); rota `POST /v1/eventos/lote` | T-65 | cenários `@aplicacao` e `@api` de `importacao.feature`; testes de tabela do CSV | ✅ 38 cenários (34 `@aplicacao`, 4 `@api`); `TestLerCSVEventos`, `TestLerCSVEventosRecusa`, `TestDecimalComPonto`; `@wip` só nos 7 `@web` |
-| T-67 | Painel: tela Importar eventos (enviar, prévia, confirmar, relatório) e modelo CSV | T-66 | cenários `@web` de `importacao.feature`; `@wip` retirado | ✅ 7 cenários `@web` (45 no total da feature); prévia, confirmação, arquivo recusado e celular conferidos no navegador |
-| T-68 | IDs fixos nos clientes de exemplo e `docs/exemplos/eventos-lote.csv`; README, roteiro e checklist LGPD; fluxo no navegador | T-67 | `TestCarregarExemplos`; arquivo de exemplo importado no painel | ✅ `TestArquivoDeExemploImporta` (4 aceitas, 1 duplicada, 5 rejeitadas); L-33 a L-36; arquivo de exemplo importado no navegador |
-
+| T-47 | Spec v1.5 (atores, entidades, casos de uso, ports, rotas, configuração), UML1, UML2, UML7 e UML8 em texto, Q-35 a Q-41; `usuarios.feature` e cenários novos em `painel.feature` (`@wip`) | T-46 | Spec, UML e features revisados | ✅ 54 cenários novos (`@wip`): 30 `@aplicacao` em `usuarios.feature`, 24 `@web` em `painel.feature` |
+| T-48 | `Operador`, `PapelOperador`, matriz `Pode`, `RegistroAuditoria`; ports `OperadorRepository`, `AuditoriaRepository`, `HashSenha`; memória e contrato | T-47 | testes de tabela; contrato em memória | ✅ `TestPapelPode`, `TestNovoOperador`, `TestOperadorAlteracoes`, `TestNovoRegistroAuditoria`; contrato `Operador` e `Auditoria` em memória |
+| T-49 | PostgreSQL: migração 007, `PgOperadorRepository`, `PgAuditoriaRepository`; bcrypt em `infra/senha` | T-48 | contrato nos dois backends; `TestMigracoes` | ✅ `TestPapelPode`, `TestNovoOperador`, `TestOperadorAlteracoes`, `TestNovoRegistroAuditoria`; contrato `Operador` e `Auditoria` em memória |
+| T-50 | Casos de uso `AutenticarOperador`, `GerenciarOperadores`, `RegistrarAuditoria`, `ListarAuditoria`; administrador inicial | T-48 | cenários `@aplicacao` | ✅ `TestPapelPode`, `TestNovoOperador`, `TestOperadorAlteracoes`, `TestNovoRegistroAuditoria`; contrato `Operador` e `Auditoria` em memória |
+| T-51 | Painel: Entrar pelo caso de uso, sessão com o ID do operador conferida a cada requisição, permissão por rota (403), menu por papel, auditoria das ações e das leituras de ficha | T-50 | cenários `@web` de papéis e sessão | ✅ `usuarios.feature` verde (`@aplicacao`); cobertura de domínio + aplicação 88,2%. `TrocarSenha` devolve o operador para o painel renovar a sessão (Spec 3.5 ajustada) |
+| T-52 | Telas Usuários (criar, mudar papel, desativar, ativar, redefinir senha) e Minha senha | T-51 | cenários `@web` de usuários | ✅ 11 cenários `@web` novos (menu por papel, ação sem permissão, sessão encerrada, mudança de papel, auditoria das ações e leituras, auditoria sem dado pessoal); `TestAdministradorInicial` |
+| T-53 | Tela Auditoria (filtros e paginação) e subcomando `expurgar-auditoria` | T-51 | cenários `@web` da auditoria; `TestExpurgarAuditoria` | ✅ 11 cenários `@web` novos (menu por papel, ação sem permissão, sessão encerrada, mudança de papel, auditoria das ações e leituras, auditoria sem dado pessoal); `TestAdministradorInicial` |
+| T-54 | Exemplos (um operador por papel, só no modo memória), README, roteiro, checklist (L-12, L-23, L-28); fluxo no navegador | T-52, T-53 | `TestCarregarExemplos`; painel conferido | ✅ `TestOperadoresExemplo`; atendimento e analista só no modo memória; README, roteiro (passo 5c), checklist (L-12, L-23, L-28, L-29) e textos do design; fluxo conferido no navegador |
 ## Fechamento
 
 | Data | Marco |
@@ -109,3 +112,38 @@ Lotes de eventos por CSV no painel e JSON na API, linha a linha, com RN-01 e RN-
 | 24/11 | Evento final |
 
 Trello: cards atualizados toda sexta (13/11, 20/11).
+
+## Edição de segmentos e catálogo — Spec v1.6
+
+Segmentos e produtos editados pelo painel, com prévia, proteções do `padrao` e auditoria dos campos alterados (Q-33, Q-42 a Q-44; Q-45 aberta). Aprovadas em 13/11.
+
+| ID | Tarefa | Depende de | Prova | Status |
+|---|---|---|---|---|
+| T-55 | Spec v1.6 (RN-14, RN-11, RN-13, 3.2, 3.5, 3.6, 3.7.1, 3.8), UML2 e UML7 em texto, Q-33 decidida e Q-42 a Q-45; cenários novos em `segmentacao.feature`, `recomendacao.feature` e `painel.feature` (`@wip`) | T-54 | Spec, UML e features revisados | ✅ 26 cenários e esquemas novos (`@wip`): 10 em `segmentacao.feature`, 5 em `recomendacao.feature`, 11 em `painel.feature` |
+| T-56 | Domínio da RN-14 (`Segmento.Validar`, `ValidarCriterio`, `ValidarSegmentos`, `Produto.Validar`, `NormalizarCategoria`, `EscolherSegmento`, `errs.ErroCampo`); ports `SegmentoRepository.ListarTodos` e `Salvar`, `ProdutoRepository.BuscarPorID` e `Salvar`, `ConsentimentoRepository.ListarConcedidos`; memória, PostgreSQL, migração 008 e contrato | T-55 | testes de tabela; contrato nos dois backends; `TestMigracoes` | ✅ `TestValidarSegmentos`, `TestValidarCriterioMensagem`, `TestProdutoValidar`, `TestEscolherSegmento`; contrato `SegmentoGravacao`, `ProdutoGravacao` e `ConsentimentosConcedidos` (memória e PostgreSQL 16); migração 008 |
+| T-57 | Casos de uso `SalvarSegmento`, `PreverSegmentacao`, `SalvarProduto`; `ListarSegmentos.Todos` e `Consultar`, `ListarCatalogo.Consultar` e `Categorias`; permissão `editar_configuracao`; `RegistroAuditoria.Campos` e ações novas | T-56 | cenários `@aplicacao` e `@dominio` novos | ✅ 15 cenários e esquemas sem `@wip` (`segmentacao.feature` e `recomendacao.feature`); `TestRegistroAuditoriaCampos`, `TestPapelPode`; contrato `AuditoriaCampos` nos dois backends; cobertura de domínio + aplicação 85,7% |
+| T-58 | Painel: formulários de segmento (critério por linhas) e de produto, prévia e confirmação, testar critério, ativar e desativar, auditoria com os campos | T-57 | cenários `@web` novos | ✅ 11 cenários e esquemas `@web` sem `@wip`; prévia, salvar, critério inválido, `padrao` protegido, testar critério, criar e desativar produto e auditoria com os campos; fluxo de edição de segmento conferido no navegador |
+| T-59 | Exemplos, README, roteiro, checklist LGPD e textos do design; fluxo no navegador | T-58 | painel conferido; cobertura ≥ 80% | ✅ README (telas e papéis), roteiro (passo 5d), checklist L-30 e requisito futuro da Q-45, textos e telas do design; nenhum exemplo novo (segmentos e catálogo da migração 005 bastam); cobertura de domínio + aplicação 88,6% |
+
+## Relatórios agregados — Spec v1.7
+
+UC-05 e UC-07 em versão parcial: só números agregados, comportamento só com consentimento válido e grupos pequenos como "menos de 5" (Q-46, RN-15). Numeração a partir de T-60 para não colidir com as branches abertas.
+
+| ID | Tarefa | Depende de | Prova | Status |
+|---|---|---|---|---|
+| T-60 | Spec v1.7, Q-46, UML1 e UML7 em texto; `features/relatorios.feature` (`@wip` até a tarefa que a implementa) | T-46 | Spec, UML e feature revisados | ✅ 25 cenários executados (`@wip`) |
+| T-61 | `Contagem`, `Media`, `Percentual` e as funções de proteção; `RelatorioRepository` na memória e no PostgreSQL | T-60 | testes de tabela; contrato nos dois backends | ✅ `TestProteger*`; caso `Relatorio` do contrato verde na memória e no PostgreSQL |
+| T-62 | `GerarRelatorioUseCase` com período | T-61 | cenários `@dominio` e `@aplicacao` de `relatorios.feature` | ✅ 21 cenários (8 `@dominio`, 13 `@aplicacao`); `@wip` só nos 4 `@web` |
+| T-63 | Painel: tela Relatórios com indicadores, gráficos SVG e tabelas; CSV agregado | T-62 | cenários `@web` de `relatorios.feature`; `@wip` retirado | ✅ 4 cenários `@web` (25 no total da feature); `TestBarraOcultaNaoRevelaONumero`, `TestCelulaCSVSemFormula` |
+| T-64 | Clientes de volume nos exemplos; README, roteiro, checklist LGPD; fluxo no navegador | T-63 | `TestCarregarExemplos`; painel conferido | ✅ 60 clientes de volume; `TestRelatorioDosExemplos`; L-31 a L-35; tela e CSV conferidos no navegador |
+
+## Importação de eventos em lote — Spec v1.8
+
+Lotes de eventos por CSV no painel e JSON na API, linha a linha, com RN-01 e RN-04 em cada linha, prévia sem gravar e duplicados ignorados (Q-47, RN-16). Numeração a partir de T-65 para não colidir com as branches abertas.
+
+| ID | Tarefa | Depende de | Prova | Status |
+|---|---|---|---|---|
+| T-65 | Spec v1.8, Q-47, UML7 em texto, `03-textos.md` e `02-telas-e-fluxos.md`; `features/importacao.feature` (`@wip` até a tarefa que a implementa) | T-46 | Spec, UML e feature revisados | ✅ 45 cenários escritos (`@wip`) |
+| T-66 | `LerCSVEventos` e `ImportarEventosUseCase` (`Previa`, `Importar`); rota `POST /v1/eventos/lote` | T-65 | cenários `@aplicacao` e `@api` de `importacao.feature`; testes de tabela do CSV | ✅ 38 cenários (34 `@aplicacao`, 4 `@api`); `TestLerCSVEventos`, `TestLerCSVEventosRecusa`, `TestDecimalComPonto`; `@wip` só nos 7 `@web` |
+| T-67 | Painel: tela Importar eventos (enviar, prévia, confirmar, relatório) e modelo CSV | T-66 | cenários `@web` de `importacao.feature`; `@wip` retirado | ✅ 7 cenários `@web` (45 no total da feature); prévia, confirmação, arquivo recusado e celular conferidos no navegador |
+| T-68 | IDs fixos nos clientes de exemplo e `docs/exemplos/eventos-lote.csv`; README, roteiro e checklist LGPD; fluxo no navegador | T-67 | `TestCarregarExemplos`; arquivo de exemplo importado no painel | ✅ `TestArquivoDeExemploImporta` (4 aceitas, 1 duplicada, 5 rejeitadas); L-36 a L-39; arquivo de exemplo importado no navegador |

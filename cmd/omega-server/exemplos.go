@@ -38,8 +38,50 @@ type passo struct {
 	por       entity.OrigemMovimento // conceder e revogar: origem do movimento (RN-10); vazio = sistema
 }
 
-// operadorExemplo é o login do painel que aparece nos movimentos de exemplo feitos "pelo painel".
-const operadorExemplo = "operador"
+// operadorExemplo é o login do painel que aparece nos movimentos de exemplo feitos "pelo painel":
+// o operador de atendimento de exemplo (Q-41).
+const operadorExemplo = "atendimento"
+
+// operadoresExemplo são um por papel além do administrador inicial (Q-41). As senhas são de
+// desenvolvimento, documentadas no README, e só existem no modo memória: carregar-exemplos no
+// PostgreSQL nunca cria operadores.
+func operadoresExemplo() []struct {
+	login, nome, senha string
+	papel              entity.PapelOperador
+} {
+	return []struct {
+		login, nome, senha string
+		papel              entity.PapelOperador
+	}{
+		{"atendimento", "Atendimento Exemplo", "dev-senha-atendimento", entity.PapelAtendimento},
+		{"analista", "Analista Exemplo", "dev-senha-analista", entity.PapelAnalista},
+	}
+}
+
+// carregarOperadoresExemplo cria os operadores de exemplo que ainda não existem, sem senha
+// provisória. Devolve quantos criou. Spec: Q-41.
+func (e exemplos) carregarOperadoresExemplo(ctx context.Context, hash port.HashSenha) (int, error) {
+	n := 0
+	for _, x := range operadoresExemplo() {
+		if _, err := e.repos.operadores.BuscarPorLogin(ctx, x.login); err == nil {
+			continue
+		}
+		h, err := hash.Gerar(x.senha)
+		if err != nil {
+			return n, err
+		}
+		o, err := entity.NovoOperador(uuid.New(), x.login, x.nome, x.papel, h, e.clock.Agora())
+		if err != nil {
+			return n, err
+		}
+		o.TrocarSenha = false
+		if err := e.repos.operadores.Salvar(ctx, o); err != nil {
+			return n, err
+		}
+		n++
+	}
+	return n, nil
+}
 
 // pelo muda a origem do movimento de um passo de conceder ou revogar (Q-34).
 func (p passo) pelo(o entity.OrigemMovimento) passo { p.por = o; return p }
@@ -64,7 +106,7 @@ func (e exemplos) lista() []exemplo {
 	meta := float64(e.metaEventos)
 	engajado := int(math.Ceil(0.8 * meta))   // 80% da meta em 30 dias: engajado
 	explorador := int(math.Ceil(0.5 * meta)) // 50% da meta, sem compras: explorador
-	return []exemplo{
+	nomeados := []exemplo{
 		{"Ana Sintética", "c-001@exemplo.test", []passo{ // premium, com histórico de recomendações
 			cad(150), conc(148, "v1"), comp(140, "livros", 520), nav(139, 2), proc(139),
 			comp(100, "livros", 610), comp(60, "livros", 700), proc(59), comp(20, "livros", 640), comp(5, "livros", 550), nav(4, 3), proc(4)}},
@@ -97,6 +139,7 @@ func (e exemplos) lista() []exemplo {
 		{"Nina Sintética", "c-014@exemplo.test", []passo{ // padrao
 			cad(60), conc(59, "v1"), comp(50, "esportes", 70), comp(35, "esportes", 120), comp(10, "esportes", 90), proc(9)}},
 	}
+	return append(nomeados, e.volume()...) // Q-46: clientes de volume para os relatórios
 }
 
 // casos monta os casos de uso sobre os mesmos repositórios, com o relógio de carga.
