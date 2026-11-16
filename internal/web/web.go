@@ -40,6 +40,9 @@ type Dependencias struct {
 	Operadores         *usecase.GerenciarOperadoresUseCase // v1.5 (Q-35, Q-40)
 	RegistrarAuditoria *usecase.RegistrarAuditoriaUseCase  // v1.5 (RN-13)
 	ListarAuditoria    *usecase.ListarAuditoriaUseCase     // v1.5 (RN-13)
+	SalvarSegmento     *usecase.SalvarSegmentoUseCase      // v1.6 (RN-14, Q-33)
+	PreverSegmentacao  *usecase.PreverSegmentacaoUseCase   // v1.6 (Q-42)
+	SalvarProduto      *usecase.SalvarProdutoUseCase       // v1.6 (Q-43)
 	MetaEventos        int                                 // ENGAJAMENTO_META_EVENTOS, para explicar o score
 
 	Clock port.Clock
@@ -95,8 +98,9 @@ func (p *painel) acao(r *http.Request, nome, clienteID string) {
 
 // auditar grava a ação na trilha (RN-13): err nil = SUCESSO; sem permissão ou credenciais =
 // NEGADO; outro erro = FALHA (o código vai só para o log). Devolve o erro da gravação: numa
-// leitura, quem chama não mostra a tela sem registro; numa ação, só registra no log.
-func (p *painel) auditar(r *http.Request, acao entity.AcaoAuditoria, tipo entity.TipoAlvo, alvo uuid.UUID, err error) error {
+// leitura, quem chama não mostra a tela sem registro; numa ação, só registra no log. campos são
+// os nomes dos campos alterados de segmento ou produto (v1.6, Q-44).
+func (p *painel) auditar(r *http.Request, acao entity.AcaoAuditoria, tipo entity.TipoAlvo, alvo uuid.UUID, err error, campos ...string) error {
 	resultado := entity.ResultadoSucesso
 	switch {
 	case errors.Is(err, errs.ErrSemPermissao), errors.Is(err, errs.ErrCredenciaisInvalidas):
@@ -104,7 +108,10 @@ func (p *painel) auditar(r *http.Request, acao entity.AcaoAuditoria, tipo entity
 	case err != nil:
 		resultado = entity.ResultadoFalha
 	}
-	if e := p.d.RegistrarAuditoria.Executar(r.Context(), operadorDe(r), acao, tipo, alvo, resultado); e != nil {
+	if err != nil {
+		campos = nil // nada foi alterado
+	}
+	if e := p.d.RegistrarAuditoria.Executar(r.Context(), operadorDe(r), acao, tipo, alvo, resultado, campos...); e != nil {
 		p.d.Log.ErrorContext(r.Context(), "auditoria_falhou", "acao", string(acao), "erro", e.Error())
 		return e
 	}

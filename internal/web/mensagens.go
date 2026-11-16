@@ -36,6 +36,10 @@ func mensagem(err error, contexto string) (titulo, texto string) {
 		return "Ação sobre a própria conta", "Você não pode mudar o próprio papel nem se desativar. Peça a outra pessoa administradora."
 	case errs.ErrCredenciaisInvalidas.Codigo:
 		return "Senha atual incorreta", "Confira a senha atual e tente de novo."
+	case errs.ErrSegmentoNaoEncontrado.Codigo:
+		return "Segmento não encontrado", "Não encontramos esse segmento. Volte para a lista de segmentos."
+	case errs.ErrProdutoNaoEncontrado.Codigo:
+		return "Produto não encontrado", "Não encontramos esse produto. Volte para o catálogo."
 	}
 	return "Algo falhou do nosso lado", "As etapas concluídas antes da falha ficaram salvas. Tente de novo; se continuar, informe o código da requisição à equipe técnica."
 }
@@ -47,7 +51,8 @@ func statusDe(err error) int {
 		return http.StatusInternalServerError
 	}
 	switch e.Codigo {
-	case errs.ErrClienteNaoEncontrado.Codigo, errs.ErrOperadorNaoEncontrado.Codigo:
+	case errs.ErrClienteNaoEncontrado.Codigo, errs.ErrOperadorNaoEncontrado.Codigo, errs.ErrSegmentoNaoEncontrado.Codigo,
+		errs.ErrProdutoNaoEncontrado.Codigo:
 		return http.StatusNotFound
 	case errs.ErrClienteInativo.Codigo, errs.ErrTransicaoInvalida.Codigo, errs.ErrPerfilNaoEncontrado.Codigo,
 		errs.ErrLoginEmUso.Codigo, errs.ErrPropriaConta.Codigo:
@@ -90,6 +95,20 @@ func aviso(codigo, n string) string {
 		return "Senha provisória definida"
 	case "senha-trocada":
 		return "Senha trocada"
+	case "segmento-salvo":
+		return "Segmento salvo. Os clientes mudam de segmento no próximo processamento."
+	case "segmento-ativado":
+		return "Segmento ativado"
+	case "segmento-desativado":
+		return "Segmento desativado"
+	case "produto-salvo":
+		return "Produto salvo"
+	case "produto-ativado":
+		return "Produto ativado"
+	case "produto-desativado":
+		return "Produto desativado"
+	case "sem-alteracoes":
+		return "Nada mudou"
 	case "expiradas":
 		switch n {
 		case "", "0":

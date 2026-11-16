@@ -53,6 +53,7 @@ type Mundo struct {
 	leitura                estadoLeitura
 	web                    estadoWeb
 	ops                    estadoOperadores
+	cfg                    estadoConfig // v1.6
 
 	api estadoAPI
 }
@@ -105,6 +106,10 @@ type casos struct {
 	registrarAuditoria *usecase.RegistrarAuditoriaUseCase
 	listarAuditoria    *usecase.ListarAuditoriaUseCase
 	expurgarAuditoria  *usecase.ExpurgarAuditoriaUseCase
+
+	salvarSegmento *usecase.SalvarSegmentoUseCase // v1.6
+	prever         *usecase.PreverSegmentacaoUseCase
+	salvarProduto  *usecase.SalvarProdutoUseCase
 }
 
 func (m *Mundo) uc() casos {
@@ -132,6 +137,9 @@ func (m *Mundo) uc() casos {
 	c.registrarAuditoria = usecase.NovoRegistrarAuditoriaUseCase(m.auditoria, m.clock)
 	c.listarAuditoria = usecase.NovoListarAuditoriaUseCase(m.auditoria)
 	c.expurgarAuditoria = usecase.NovoExpurgarAuditoriaUseCase(m.auditoria, m.clock, retencaoPadrao)
+	c.salvarSegmento = usecase.NovoSalvarSegmentoUseCase(m.segmentos)
+	c.prever = usecase.NovoPreverSegmentacaoUseCase(m.segmentos, m.consentimentos, m.clientes, m.perfis)
+	c.salvarProduto = usecase.NovoSalvarProdutoUseCase(m.produtos)
 	return c
 }
 

@@ -41,6 +41,13 @@
 </nav>
 {{end}}
 
+{{define "campo-texto"}}<div class="pf-field">
+  <label class="pf-field__label" for="{{.Nome}}">{{.Rotulo}}</label>
+  <input class="pf-input" id="{{.Nome}}" name="{{.Nome}}" value="{{.Valor}}" autocomplete="off"{{if or .Dica .Erro}} aria-describedby="{{if .Dica}}{{.Nome}}-dica{{end}}{{if .Erro}} {{.Nome}}-erro{{end}}"{{end}}{{if .Erro}} aria-invalid="true"{{end}}>
+  {{if .Dica}}<span class="pf-field__hint" id="{{.Nome}}-dica">{{.Dica}}</span>{{end}}
+  {{if .Erro}}<span class="pf-field__error" id="{{.Nome}}-erro" aria-live="assertive" data-teste="erro-{{.Nome}}">{{icone "barra"}}{{.Erro}}</span>{{end}}
+</div>{{end}}
+
 {{define "csrf"}}<input type="hidden" name="_csrf" value="{{.}}">{{end}}
 
 {{define "tag"}}<span class="pf-tag pf-tag--{{tom .}}{{if or (eq . "EXPIRADA") (eq . "INATIVO")}} pf-tag--solid{{end}}">{{icone (iconeEstado .)}}{{if eq . "INATIVO"}}Inativo{{else}}{{rotulo .}}{{end}}</span>{{end}}

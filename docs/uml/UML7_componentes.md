@@ -15,7 +15,7 @@ flowchart TB
     WEB["[Web] «ADIÇÃO v1.3»<br/>painel /painel · templates · sessão · CSRF<br/>permissão por rota · menu por papel «v1.5»"]
   end
   subgraph APP["Camada de Aplicação"]
-    UC["[Casos de Uso]<br/>ColetarDados · GerarPerfil · SegmentarCliente<br/>GerarRecomendacao · GerenciarConsentimento<br/>ExpirarRecomendacoes «ADIÇÃO»<br/>ProcessarCliente · ListarClientes · ConsultarCliente<br/>ConsultarResultado · ListarSegmentos · ListarCatalogo «ADIÇÃO v1.3»<br/>AutenticarOperador · GerenciarOperadores<br/>RegistrarAuditoria · ListarAuditoria · ExpurgarAuditoria «ADIÇÃO v1.5»"]
+    UC["[Casos de Uso]<br/>ColetarDados · GerarPerfil · SegmentarCliente<br/>GerarRecomendacao · GerenciarConsentimento<br/>ExpirarRecomendacoes «ADIÇÃO»<br/>ProcessarCliente · ListarClientes · ConsultarCliente<br/>ConsultarResultado · ListarSegmentos · ListarCatalogo «ADIÇÃO v1.3»<br/>AutenticarOperador · GerenciarOperadores<br/>RegistrarAuditoria · ListarAuditoria · ExpurgarAuditoria «ADIÇÃO v1.5»<br/>SalvarSegmento · PreverSegmentacao · SalvarProduto «ADIÇÃO v1.6»"]
   end
   subgraph DOM["Camada de Domínio"]
     ENT["[Entidades & Objetos de Valor]<br/>Cliente · ConsentimentoLGPD · EventoComportamental<br/>PerfilCliente · Segmento · RecomendacaoProduto · Produto<br/>MovimentoConsentimento «v1.4» · Operador · RegistroAuditoria «v1.5»"]
@@ -71,6 +71,7 @@ flowchart TB
 5. Ports novos da v1.3 (Q-23): `ClienteRepository.Listar`, `RecomendacaoRepository.ListarPorCliente`, `ProdutoRepository.ListarTodos`.
 6. Ports novos da v1.5 (Q-35, Q-36, Q-39): `OperadorRepository`, `AuditoriaRepository` e `HashSenha`. O bcrypt sai de `Web` e fica só em `infra/senha` (e no CMD, pela raiz de composição): `Web` confere senha e sessão por `AutenticarOperador`, nunca diretamente.
 7. A permissão (RN-11) é conferida em dois lugares, como o consentimento: `Web` confere por rota e esconde o que o papel não pode; os casos de uso de gestão conferem de novo pelo `ator`.
+8. Ports novos da v1.6 (Q-33, Q-42, Q-43): `SegmentoRepository.ListarTodos` e `Salvar`, `ProdutoRepository.BuscarPorID` e `Salvar`, `ConsentimentoRepository.ListarConcedidos`. As regras de configuração (RN-14) ficam no domínio; o PostgreSQL só repete as de unicidade, por causa das duas réplicas. A prévia (`PreverSegmentacao`) começa pelo consentimento e devolve só contagens a `Web`.
 
 ## Divergências registradas
 

@@ -8,7 +8,7 @@ O Perfila transforma eventos de comportamento (navegação, compra, interação)
 
 Desenvolvido com **Spec-Driven Development** (a especificação é a fonte da verdade e o agente de IA implementa) e **Behavior-Driven Development** (cenários Gherkin executáveis provam o comportamento).
 
-## Estado (12/11/2026): MVP concluído + painel web
+## Estado (13/11/2026): MVP concluído + painel web
 
 | Marco | Período | Estado |
 |---|---|---|
@@ -19,10 +19,11 @@ Desenvolvido com **Spec-Driven Development** (a especificação é a fonte da ve
 | **Generic** (PostgreSQL, Docker/Nginx, LGPD), 25% | 16–19/11 | ✅ contrato nos dois backends · 3 cenários de implantação · checklist LGPD |
 | **Painel web do operador** (Spec v1.3, T-31 a T-38) | 12/11 | ✅ 26 cenários `@web` · 21 de aplicação novos · 1 de implantação |
 | **Histórico do consentimento** (Spec v1.4, T-42 a T-46, Q-34) | 12/11 | ✅ 8 cenários de aplicação · 4 `@web` · contrato e migração 006 nos dois backends |
+| **Edição de segmentos e catálogo** (Spec v1.6, T-55 a T-59, Q-33, Q-42 a Q-44) | 13/11 | ✅ 15 cenários de aplicação e domínio · 11 `@web` · contrato e migração 008 nos dois backends |
 | Fechamento do escopo | 19/11 | daqui em diante, só correções |
 | Ensaio · evento final | 23/11 · 24/11 | roteiro em `docs/ROTEIRO_DEMONSTRACAO.md` |
 
-**174 cenários BDD** (170 no `make verify` + 4 de implantação), teste de arquitetura e suíte de contrato dos repositórios em memória e em PostgreSQL.
+**273 cenários BDD** (269 no `make verify` + 4 de implantação), teste de arquitetura e suíte de contrato dos repositórios em memória e em PostgreSQL.
 
 ## Arquitetura
 
@@ -109,7 +110,8 @@ Interface web em `/painel`, servida pelo próprio `omega-server`, seguindo o des
 | Cadastrar cliente | UC-09; abre a ficha já com o selo "Não concedido" |
 | Ficha | selo de consentimento sempre visível; Visão geral (etapas do processamento, perfil, segmento com os critérios atendidos, recomendação), Eventos e Consentimento. Sem consentimento, nenhum dado de comportamento é lido |
 | Consentimento | registro atual e linha do tempo com cada concessão e revogação: finalidade, versão do termo e origem (API, painel com o operador, portal). Só inclusão; cliente sem movimentos mostra a linha pelas datas (Q-34) |
-| Segmentos e Catálogo | somente leitura |
+| Segmentos | ativos por prioridade e inativos. Quem edita (Administrador e Analista) cria, edita, ativa e desativa: o critério é montado por linhas de campo, operador e valor, com o texto gravado visível; "Testar critério" usa três valores digitados. Salvar passa por uma **prévia** que só conta quantos clientes ativos com consentimento ficariam em cada segmento, pelo perfil salvo. O `padrao` não é desativado nem ganha critério; prioridade e nome não se repetem. Quem já foi segmentado muda no próximo processamento (Q-33, Q-42) |
+| Catálogo | produtos por categoria. Quem edita cria produtos e muda nome, categoria (gravada em minúsculas, com as existentes sugeridas) e preço (de 0 a 1.000.000); ativa e desativa com confirmação. Nada é excluído (Q-43) |
 | Operação | saúde do banco e expiração de recomendações vencidas |
 | Usuários | operadores e papéis: criar com senha provisória, mudar papel, desativar, ativar e redefinir senha. Ninguém é excluído; o administrador não muda a própria conta (Q-35) |
 | Auditoria | quem fez o quê: entradas, acessos negados, leituras de ficha e toda ação que muda dados, sem nome nem e-mail; filtros por operador, ação e período (Q-39) |
@@ -119,9 +121,11 @@ Interface web em `/painel`, servida pelo próprio `omega-server`, seguindo o des
 
 | Papel | Alcança |
 |---|---|
-| Atendimento | clientes, consentimento, eventos e processamento; Segmentos e Catálogo para leitura |
-| Analista | só Segmentos e Catálogo, sem nenhum dado de cliente (relatórios ficam para depois, D-04) |
+| Atendimento | clientes, consentimento, eventos e processamento; Segmentos e Catálogo só para leitura |
+| Analista | só Segmentos e Catálogo, com edição (v1.6), sem nenhum dado de cliente: a prévia mostra só contagens (relatórios ficam para depois, D-04) |
 | Administrador | tudo isso, mais Usuários, Auditoria e Operação |
+
+Cada alteração de segmento ou produto e cada prévia ficam na Auditoria, com os nomes dos campos alterados, nunca os valores (Q-44).
 
 Operadores de exemplo, **só no `make serve`** (modo memória; senhas de desenvolvimento, nunca na implantação, Q-41): `admin` / `dev-senha-admin` (administrador), `atendimento` / `dev-senha-atendimento` e `analista` / `dev-senha-analista`.
 

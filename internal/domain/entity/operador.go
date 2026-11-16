@@ -38,11 +38,14 @@ const (
 	PermEventos       Permissao = "eventos"
 	PermProcessamento Permissao = "processamento"
 	PermConfiguracao  Permissao = "configuracao"
-	PermOperacao      Permissao = "operacao"
-	PermUsuarios      Permissao = "usuarios"
-	PermAuditoria     Permissao = "auditoria"
-	PermRelatorios    Permissao = "relatorios" // reservada para UC-05 a UC-07 (D-04): sem rota no MVP
-	PermEliminacao    Permissao = "eliminacao" // reservada para a eliminação de dados (D-13): sem rota no MVP
+	// PermEditarConfiguracao libera criar, editar, ativar e desativar segmentos e produtos, a
+	// prévia e o teste de critério (v1.6, Q-33).
+	PermEditarConfiguracao Permissao = "editar_configuracao"
+	PermOperacao           Permissao = "operacao"
+	PermUsuarios           Permissao = "usuarios"
+	PermAuditoria          Permissao = "auditoria"
+	PermRelatorios         Permissao = "relatorios" // reservada para UC-05 a UC-07 (D-04): sem rota no MVP
+	PermEliminacao         Permissao = "eliminacao" // reservada para a eliminação de dados (D-13): sem rota no MVP
 )
 
 // Pode aplica a matriz da RN-11: função pura, sem estado. Papel fora do enumerado não pode nada.
@@ -52,7 +55,7 @@ func (p PapelOperador) Pode(perm Permissao) bool {
 	case PapelAdministrador:
 		switch perm {
 		case PermClientes, PermConsentimento, PermEventos, PermProcessamento, PermConfiguracao,
-			PermOperacao, PermUsuarios, PermAuditoria, PermRelatorios, PermEliminacao:
+			PermEditarConfiguracao, PermOperacao, PermUsuarios, PermAuditoria, PermRelatorios, PermEliminacao:
 			return true
 		}
 	case PapelAtendimento:
@@ -62,7 +65,7 @@ func (p PapelOperador) Pode(perm Permissao) bool {
 		}
 	case PapelAnalista:
 		switch perm {
-		case PermConfiguracao, PermRelatorios:
+		case PermConfiguracao, PermEditarConfiguracao, PermRelatorios:
 			return true
 		}
 	}

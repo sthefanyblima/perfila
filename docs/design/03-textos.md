@@ -51,6 +51,18 @@ O código estável (`errs.Codigo`) define a mensagem; o texto técnico do servid
 | Valor (compra) | > 0 | Uma compra precisa ter valor maior que zero. |
 | Data e hora | até 2 min no futuro | A data não pode estar no futuro. |
 
+Segmentos e produtos (v1.6, RN-14): as mensagens vêm do domínio (`errs.ErroCampo`) e aparecem ao lado do campo.
+
+| Campo | Regra | Mensagem |
+| --- | --- | --- |
+| Nome do segmento | 1 a 40, sem `;` nem `:`, único | Informe o nome do segmento. · Use até 40 caracteres no nome. · O nome não pode ter ponto e vírgula nem dois-pontos. · Já existe o segmento "{nome}". |
+| Prioridade | 1 a 999, única entre os ativos, menor que a do padrão | A prioridade vai de 1 a 999. · A prioridade {n} já é do segmento "{nome}". · A prioridade precisa ser menor que a do segmento "padrao" ({n}). |
+| Critério | gramática da RN-06; só o padrão é vazio | A condição "{condição}" está fora da gramática: use campo, operador e número com ponto. · Campo desconhecido na condição "{condição}": use frequenciaCompras, ticketMedio ou scoreEngajamento. · Condição vazia antes ou depois de "&&". · Complete a condição {n}: campo, operador e valor. · Só o segmento padrão pode ter o critério vazio. Monte pelo menos uma condição. |
+| Situação | o padrão fica ativo | O segmento "padrao" não pode ser desativado. |
+| Nome do produto | 1 a 100 | Informe o nome do produto. |
+| Categoria | 1 a 40 | Informe a categoria. |
+| Preço | 0 a 1.000.000 | O preço vai de 0 a 1.000.000. · Informe o preço com números, por exemplo 90,50. |
+
 Valide no navegador (atributos HTML: `required`, `min`, `max`, `step`) para dar retorno imediato, e sempre de novo no servidor, que é quem decide.
 
 ## Confirmações
@@ -61,10 +73,13 @@ Valide no navegador (atributos HTML: `required`, `min`, `max`, `step`) para dar 
 | Revogar | Revogar consentimento | O processamento dos dados deste cliente para imediatamente. Os dados já registrados continuam guardados. Você pode conceder de novo depois. | Revogar consentimento (danger) · Cancelar (foco inicial) |
 | Expirar | Expirar recomendações vencidas | Recomendações ativas com validade até agora passam a Expirada e deixam de ser exibidas. | Expirar agora (primário) · Cancelar |
 | Desativar operador | Desativar {login} | O acesso ao painel acaba agora, inclusive nas sessões abertas. Você pode ativar de novo depois. | Desativar (danger) · Cancelar (foco inicial) |
+| Salvar segmento (v1.6) | Prévia de {nome} | A prévia considera {n} clientes ativos com consentimento válido. Quem já foi segmentado muda só no próximo processamento. | Salvar alterações (primário) · Voltar ao formulário |
+| Desativar segmento | Desativar {nome} | A mesma prévia, com a contagem sem o segmento. | Desativar (danger) · Cancelar |
+| Desativar produto | Desativar {nome} | O produto sai da recomendação no próximo processamento de cada cliente. Você pode ativar de novo depois. | Desativar (danger) · Cancelar (foco inicial) |
 
 ## Toasts
 
-"Cliente cadastrado" · "Consentimento concedido" · "Consentimento revogado" · "Evento registrado" · "Processamento concluído" · "Processamento concluído sem recomendação" · "{n} recomendações expiradas" / "Nenhuma recomendação vencida" · "ID copiado" · "Operador criado" · "Papel alterado" · "Operador desativado" · "Operador ativado" · "Senha provisória definida" · "Senha trocada" (v1.5).
+"Cliente cadastrado" · "Consentimento concedido" · "Consentimento revogado" · "Evento registrado" · "Processamento concluído" · "Processamento concluído sem recomendação" · "{n} recomendações expiradas" / "Nenhuma recomendação vencida" · "ID copiado" · "Operador criado" · "Papel alterado" · "Operador desativado" · "Operador ativado" · "Senha provisória definida" · "Senha trocada" (v1.5) · "Segmento salvo. Os clientes mudam de segmento no próximo processamento." · "Segmento ativado" · "Segmento desativado" · "Produto salvo" · "Produto ativado" · "Produto desativado" · "Nada mudou" (v1.6).
 
 ## Formatos
 

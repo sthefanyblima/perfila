@@ -12,9 +12,13 @@ Clientes
   /painel/clientes/{id}                Ficha: visão geral
   /painel/clientes/{id}/eventos        Ficha: eventos (UC-01)
   /painel/clientes/{id}/consentimento  Ficha: consentimento (UC-08)
-Configuração (somente leitura no MVP)
+Configuração (leitura para todos; edição para Administrador e Analista desde a v1.6)
   /painel/segmentos                    Segmentos e critérios (RN-06)
+  /painel/segmentos/novo, /{id}        Formulário do segmento, testar critério (RN-14)
+  /painel/segmentos/previa             Prévia (só contagens) e Salvar (Q-42)
+  /painel/segmentos/{id}/desativar     Prévia e confirmação; também /ativar
   /painel/catalogo                     Produtos por categoria (RN-07)
+  /painel/catalogo/novo, /{id}         Formulário do produto; desativar com confirmação (Q-43)
 Administração (só Administrador, v1.5)
   /painel/operacao                     Saúde do sistema e expiração de recomendações (RN-08)
   /painel/usuarios                     Operadores: criar, papel, desativar, ativar, redefinir senha (Q-35)
@@ -70,11 +74,15 @@ O centro do produto.
 
 ### Segmentos
 
-`DataTable` com Prioridade, Nome, Descrição e Critério (`CriterionChips`), ordenada por prioridade. Uma nota no topo: "Segmentos entram por migração; para alterar, fale com a equipe técnica." O segmento `padrao` aparece com a etiqueta "Critério vazio: casa sempre".
+`DataTable` com Prioridade, Nome, Descrição e Critério (`CriterionChips`), ordenada por prioridade, e um painel "Inativos" abaixo. O segmento `padrao` aparece com a etiqueta "Critério vazio: casa sempre". Quem só lê vê a nota "Somente leitura".
+
+Desde a v1.6 (Q-33, Q-42), quem edita vê "Novo segmento" no cabeçalho e, em cada linha, Editar e Desativar (ou Ativar); o `padrao` não tem Desativar. O formulário tem três painéis: dados (nome, prioridade, descrição), critério (o texto gravado visível e uma linha por condição: campo, operador e valor, ligadas por "E"; "Adicionar condição") e "Testar critério" (compras, ticket médio e engajamento digitados). O botão principal é **Ver prévia**: a página da prévia mostra, por segmento, Hoje, Com a mudança e Diferença, com a nota de que só conta clientes ativos com consentimento pelo perfil salvo e de que quem já foi segmentado muda no próximo processamento. Só ela tem **Salvar alterações** (e "Voltar ao formulário", que mantém o que foi digitado). Desativar e ativar mostram a mesma prévia antes de confirmar. Erros aparecem ao lado do campo, com a condição errada citada.
 
 ### Catálogo
 
 Tabela agrupada por categoria, com Nome, Preço (R$) e Situação. A nota explica a regra RN-07: "A recomendação escolhe o primeiro produto ativo da categoria preferida, por ordem alfabética."
+
+Desde a v1.6 (Q-43), quem edita vê "Novo produto" e o nome de cada produto vira link para o formulário: nome, categoria (com as existentes sugeridas; gravada em minúsculas) e preço com vírgula. A seção Situação desativa com confirmação (diálogo ou página própria) ou ativa.
 
 ### Operação
 

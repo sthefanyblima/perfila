@@ -21,9 +21,10 @@ func NovoRegistrarAuditoriaUseCase(auditoria port.AuditoriaRepository, clock por
 	return &RegistrarAuditoriaUseCase{auditoria: auditoria, clock: clock}
 }
 
-// Executar monta o registro (ID novo, Data do relógio) e grava. Spec: RN-13.
-func (uc *RegistrarAuditoriaUseCase) Executar(ctx context.Context, operador string, acao entity.AcaoAuditoria, alvoTipo entity.TipoAlvo, alvoID uuid.UUID, resultado entity.ResultadoAuditoria) error {
-	r, err := entity.NovoRegistroAuditoria(uuid.New(), uc.clock.Agora(), operador, acao, alvoTipo, alvoID, resultado)
+// Executar monta o registro (ID novo, Data do relógio) e grava; campos desde a v1.6 (Q-44).
+// Spec: RN-13.
+func (uc *RegistrarAuditoriaUseCase) Executar(ctx context.Context, operador string, acao entity.AcaoAuditoria, alvoTipo entity.TipoAlvo, alvoID uuid.UUID, resultado entity.ResultadoAuditoria, campos ...string) error {
+	r, err := entity.NovoRegistroAuditoria(uuid.New(), uc.clock.Agora(), operador, acao, alvoTipo, alvoID, resultado, campos...)
 	if err != nil {
 		return err
 	}
