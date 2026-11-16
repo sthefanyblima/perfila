@@ -74,6 +74,7 @@ flowchart TB
 8. Ports novos da v1.6 (Q-33, Q-42, Q-43): `SegmentoRepository.ListarTodos` e `Salvar`, `ProdutoRepository.BuscarPorID` e `Salvar`, `ConsentimentoRepository.ListarConcedidos`. As regras de configuração (RN-14) ficam no domínio; o PostgreSQL só repete as de unicidade, por causa das duas réplicas. A prévia (`PreverSegmentacao`) começa pelo consentimento e devolve só contagens a `Web`.
 9. Port novo da v1.7 (Q-46): `RelatorioRepository`, só de leitura e só de agregados (contagens e somas); nunca devolve linha de cliente. A proteção de grupos pequenos fica no domínio (`ProtegerContagem` e afins), não na infraestrutura.
 10. A importação em lote da v1.8 (Q-47) não cria port: `ImportarEventosUseCase` grava cada linha por `ColetarDadosUseCase.Registrar` e procura duplicados com `EventoRepository.BuscarPorCliente`. A leitura do CSV fica na aplicação (`LerCSVEventos`, só biblioteca padrão), para o painel e os cenários usarem a mesma regra; a API converte o JSON nas mesmas entradas. O `IntegracaoGateway` continua stub (D-12, Q-03).
+11. Ports novos da v1.9 (Q-51, Q-52): `RemoverPorCliente` em `EventoRepository`, `PerfilRepository` e `RecomendacaoRepository`; `ConsentimentoRepository.ListarRevogadosAte`. Os casos de uso dos direitos do titular ficam em `application/usecase` e o painel os chama como os demais.
 
 ## Divergências registradas
 

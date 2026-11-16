@@ -45,7 +45,12 @@ type Dependencias struct {
 	SalvarProduto      *usecase.SalvarProdutoUseCase       // v1.6 (Q-43)
 	GerarRelatorio     *usecase.GerarRelatorioUseCase      // v1.7 (RN-15)
 	Importar           *usecase.ImportarEventosUseCase     // v1.8 (RN-16, Q-47)
-	MetaEventos        int                                 // ENGAJAMENTO_META_EVENTOS, para explicar o score
+	// Direitos do titular e retenção (v1.9, Q-48 a Q-53).
+	AtualizarCadastro *usecase.AtualizarCadastroUseCase
+	ExportarDados     *usecase.ExportarDadosTitularUseCase
+	EliminarDados     *usecase.EliminarDadosTitularUseCase
+	AplicarRetencao   *usecase.AplicarRetencaoUseCase
+	MetaEventos       int // ENGAJAMENTO_META_EVENTOS, para explicar o score
 
 	Clock port.Clock
 	Log   *slog.Logger
@@ -81,7 +86,7 @@ func NovoRouter(d Dependencias) (http.Handler, error) {
 		http.Redirect(w, r, inicio(operadorAtual(r)), http.StatusSeeOther)
 	}))
 	for _, rotas := range []func(*http.ServeMux, func(entity.Permissao, http.HandlerFunc) http.Handler){
-		p.rotasClientes, p.rotasFicha, p.rotasConfiguracao, p.rotasUsuarios, p.rotasAuditoria, p.rotasRelatorios, p.rotasImportacao,
+		p.rotasClientes, p.rotasFicha, p.rotasDireitos, p.rotasConfiguracao, p.rotasUsuarios, p.rotasAuditoria, p.rotasRelatorios, p.rotasImportacao,
 	} {
 		rotas(mux, sessao)
 	}

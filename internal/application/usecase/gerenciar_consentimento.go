@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 
@@ -27,7 +28,7 @@ func NovoGerenciarConsentimentoUseCase(clientes port.ClienteRepository, consenti
 // Conceder cria o registro se não existir, aplica a transição e grava registro e movimento
 // CONCESSAO juntos. Spec: UC-08, RN-10.
 func (uc *GerenciarConsentimentoUseCase) Conceder(ctx context.Context, clienteID uuid.UUID, finalidade, versaoTermo string) error {
-	c, err := uc.carregar(ctx, clienteID)
+	c, err := uc.carregarParaAlterar(ctx, clienteID)
 	if err != nil {
 		return err
 	}
@@ -40,7 +41,7 @@ func (uc *GerenciarConsentimentoUseCase) Conceder(ctx context.Context, clienteID
 // Revogar aplica CONCEDIDO → REVOGADO e grava registro e movimento REVOGACAO juntos.
 // Spec: UC-08, RN-03, RN-10.
 func (uc *GerenciarConsentimentoUseCase) Revogar(ctx context.Context, clienteID uuid.UUID) error {
-	c, err := uc.carregar(ctx, clienteID)
+	c, err := uc.carregarParaAlterar(ctx, clienteID)
 	if err != nil {
 		return err
 	}
@@ -70,6 +71,19 @@ func (uc *GerenciarConsentimentoUseCase) registrar(ctx context.Context, c entity
 
 // Consultar [ADIÇÃO]: sem registro, devolve um consentimento sintético em NAO_CONCEDIDO.
 func (uc *GerenciarConsentimentoUseCase) Consultar(ctx context.Context, clienteID uuid.UUID) (entity.ConsentimentoLGPD, error) {
+	return uc.carregar(ctx, clienteID)
+}
+
+// carregarParaAlterar é carregar recusando o cliente eliminado: depois da eliminação, o
+// consentimento só serve de prova (v1.9, RN-17).
+func (uc *GerenciarConsentimentoUseCase) carregarParaAlterar(ctx context.Context, clienteID uuid.UUID) (entity.ConsentimentoLGPD, error) {
+	cli, err := uc.clientes.BuscarPorID(ctx, clienteID)
+	if err != nil {
+		return entity.ConsentimentoLGPD{}, err
+	}
+	if cli.EstaEliminado() {
+		return entity.ConsentimentoLGPD{}, fmt.Errorf("%w: %s", errs.ErrClienteEliminado, clienteID)
+	}
 	return uc.carregar(ctx, clienteID)
 }
 

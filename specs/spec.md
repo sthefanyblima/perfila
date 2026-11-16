@@ -2,7 +2,7 @@
 
 **Perfila — Sistema de Segmentação e Perfilamento do Comportamento do Cliente — Go**
 
-Equipe Omega · GoLang & CLP · Documento 1 de 3 · **Versão 1.8 (13/11/2026)** · Base: Módulos 1 a 5 (casos de uso, classes, pacotes, sequência, estados, componentes e implantação), transcritos em `docs/uml/UML1..UML8`
+Equipe Omega · GoLang & CLP · Documento 1 de 3 · **Versão 1.9 (13/11/2026)** · Base: Módulos 1 a 5 (casos de uso, classes, pacotes, sequência, estados, componentes e implantação), transcritos em `docs/uml/UML1..UML8`
 
 ## Como usar este documento
 
@@ -34,9 +34,9 @@ Os diagramas foram feitos em módulos diferentes e nem sempre concordam. Para o 
 | Servidores, contêineres e configuração | Diagrama de Implantação (Mód. 5) | UML8 | Ver D-21 |
 | Trechos de código dos Mód. 2 e 3 | Nenhuma | — | São didáticos e divergem do modelo (D-11) |
 
-**Dentro do MVP:** UC-01, UC-02, UC-03, UC-04, UC-08 e UC-09 (cadastro, D-22) de ponta a ponta, como no diagrama de sequência, com consentimento obrigatório, API HTTP, PostgreSQL e implantação em contêineres; desde a v1.3, também o **painel web do operador** (`/painel`, Q-20), com as regras visuais e de texto do design system "Perfila Console" (`docs/design/`, ajustado pela Q-27); desde a v1.5, **operadores com papel, matriz de permissões e trilha de auditoria** no painel (Q-35 a Q-41); desde a v1.6, **edição de segmentos e do catálogo pelo painel**, com prévia e auditoria (Q-33, Q-42 a Q-44); desde a v1.7, os **relatórios agregados** de UC-05 e UC-07 em versão parcial (RN-15, Q-46); desde a v1.8, a **importação de eventos em lote** (CSV pelo painel e JSON pela API), linha a linha e com o consentimento conferido em cada uma (RN-16, Q-47).
+**Dentro do MVP:** UC-01, UC-02, UC-03, UC-04, UC-08 e UC-09 (cadastro, D-22) de ponta a ponta, como no diagrama de sequência, com consentimento obrigatório, API HTTP, PostgreSQL e implantação em contêineres; desde a v1.3, também o **painel web do operador** (`/painel`, Q-20), com as regras visuais e de texto do design system "Perfila Console" (`docs/design/`, ajustado pela Q-27); desde a v1.5, **operadores com papel, matriz de permissões e trilha de auditoria** no painel (Q-35 a Q-41); desde a v1.6, **edição de segmentos e do catálogo pelo painel**, com prévia e auditoria (Q-33, Q-42 a Q-44); desde a v1.7, os **relatórios agregados** de UC-05 e UC-07 em versão parcial (RN-15, Q-46); desde a v1.8, a **importação de eventos em lote** (CSV pelo painel e JSON pela API), linha a linha e com o consentimento conferido em cada uma (RN-16, Q-47); desde a v1.9, os **direitos do titular** pelo painel (correção, acesso e portabilidade, eliminação) e a **retenção** após a revogação (Q-48 a Q-53, RN-17, RN-18).
 
-**Fora do MVP:** UC-06 e o restante de UC-05 e UC-07 (D-04; a v1.7 entrega só os indicadores agregados da RN-15, sem recorte por segmento, comparação entre períodos nem relatórios salvos); portal do titular (fase 2, Q-20); notificação real ao cliente; autenticação JWT ou OIDC e perfis de acesso na API (o `AUTH_TOKEN` continua único); gestão de segmentos e do catálogo pela API (desde a v1.6, só pelo painel; o `padrao` continua nascendo na migração inicial); reprocessamento de todos os clientes depois de mudar um critério (Q-45); política de retenção e eliminação de dados (D-13).
+**Fora do MVP:** UC-06 e o restante de UC-05 e UC-07 (D-04; a v1.7 entrega só os indicadores agregados da RN-15, sem recorte por segmento, comparação entre períodos nem relatórios salvos); portal do titular (fase 2, Q-20); notificação real ao cliente; autenticação JWT ou OIDC e perfis de acesso na API (o `AUTH_TOKEN` continua único); gestão de segmentos e do catálogo pela API (desde a v1.6, só pelo painel; o `padrao` continua nascendo na migração inicial); reprocessamento de todos os clientes depois de mudar um critério (Q-45); rotas da API para os direitos do titular (ficam para o portal, Q-53).
 
 ## 2. Constituição
 
@@ -64,8 +64,8 @@ Administrador do Sistema: ligado a UC-08 no UML1 e, pelo UML8, executa os subcom
 
 | Papel (`PapelOperador`) | Ator do UML1 | No painel |
 |---|---|---|
-| `ADMINISTRADOR` | Administrador do Sistema | Tudo o que o atendimento faz, mais Usuários, Auditoria e Operação (saúde e expiração) |
-| `ATENDIMENTO` | Atendimento [ADIÇÃO, Q-35] (persona Rita, `docs/design/01-design-thinking.md`), ligado a UC-01, UC-08 e UC-09 | Cadastra (UC-09), registra o consentimento (UC-08), lança eventos (UC-01) e processa (UC-01 a UC-04); lê Segmentos e Catálogo |
+| `ADMINISTRADOR` | Administrador do Sistema | Tudo o que o atendimento faz, mais Relatórios (v1.7), a eliminação de dados do titular (v1.9), Usuários, Auditoria e Operação (saúde, expiração e, desde a v1.9, retenção) |
+| `ATENDIMENTO` | Atendimento [ADIÇÃO, Q-35] (persona Rita, `docs/design/01-design-thinking.md`), ligado a UC-01, UC-08 e UC-09 | Cadastra (UC-09), registra o consentimento (UC-08), lança eventos (UC-01) e processa (UC-01 a UC-04); desde a v1.8, importa eventos; desde a v1.9, na aba Direitos, corrige o cadastro e baixa os dados do titular; lê Segmentos e Catálogo |
 | `ANALISTA` | Analista de Marketing | Lê e edita Segmentos e Catálogo e vê os Relatórios agregados (v1.7, RN-15), sem nenhum dado de cliente; UC-06 e o restante de UC-05 e UC-07 continuam fora do MVP (D-04) |
 
 Casos de uso de aplicação do painel [ADIÇÃO, Q-23, Q-26]. Não são casos de uso novos do UML1: dão ao operador a leitura do que UC-01 a UC-09 gravaram e reúnem a orquestração de RN-09.
@@ -86,6 +86,15 @@ Casos de uso de aplicação do painel [ADIÇÃO, Q-23, Q-26]. Não são casos de
 
 Agente Inteligente: ator de automação [ADIÇÃO] que dispara UC-03 e UC-04 (D-17).
 
+Casos de uso de aplicação dos direitos do titular [ADIÇÃO, v1.9, Q-48 a Q-53]. Atendem pedidos do titular (art. 18 da LGPD) feitos à pessoa operadora. Não exigem consentimento, porque não usam os dados para perfilamento: corrigem, entregam ou apagam (exceção prevista em C-03).
+
+| Caso de uso de aplicação | Exige consentimento (RN-01) | Usado por |
+|---|---|---|
+| `AtualizarCadastroUseCase` (correção, art. 18, III) | Não: é cadastro, como UC-09 (Q-48) | Painel |
+| `ExportarDadosTitularUseCase` (acesso e portabilidade, art. 18, II e V) | Não: o próprio titular recebe o que o sistema guarda (Q-49) | Painel |
+| `EliminarDadosTitularUseCase` (eliminação, art. 18, VI; RN-17) | Não; recusada com consentimento CONCEDIDO (Q-50) | Painel |
+| `AplicarRetencaoUseCase` (RN-18) | Não: atinge só quem revogou (Q-51) | Subcomando `aplicar-retencao` e painel |
+
 ### 3.2 Modelo de domínio
 
 Pacote `internal/domain/entity`. Campos marcados com [ADIÇÃO] não existem no diagrama de classes.
@@ -101,6 +110,7 @@ type Cliente struct {
     Email        string
     DataCadastro time.Time
     Ativo        bool
+    DataEliminacao *time.Time // [ADIÇÃO, v1.9, Q-50] preenchida quando o cadastro é anonimizado (RN-17)
 }
 
 type ConsentimentoLGPD struct {
@@ -233,7 +243,7 @@ type Percentual struct {
 
 | Entidade | Métodos | Observação |
 |---|---|---|
-| Cliente | `NovoCliente(id uuid.UUID, nome, email string, agora time.Time) (Cliente, error)` (construtor, D-22), `AtualizarDados(nome, email string) error`, `Ativar()`, `Desativar()` | Nome e e-mail não podem ser vazios; nasce ativo, com DataCadastro = agora |
+| Cliente | `NovoCliente(id uuid.UUID, nome, email string, agora time.Time) (Cliente, error)` (construtor, D-22), `AtualizarDados(nome, email string) error`, `Ativar()`, `Desativar()`; [ADIÇÃO, v1.9, Q-50] `Anonimizar(agora time.Time) error`, `EstaEliminado() bool` | Nome e e-mail não podem ser vazios; nasce ativo, com DataCadastro = agora. `Anonimizar` troca Nome por "Titular eliminado" e Email por `eliminado@anonimizado.invalid`, desativa e preenche DataEliminacao = agora; num cliente já eliminado, `ErrClienteEliminado`. `AtualizarDados` num cliente eliminado: `ErrClienteEliminado` |
 | ConsentimentoLGPD | `NovoConsentimento(id, clienteID uuid.UUID, agora time.Time)` (construtor, estado NAO_CONCEDIDO), `Conceder(finalidade, versaoTermo string, agora time.Time) error`, `Revogar(agora time.Time) error`, `EstaValido() bool` | Transições da seção 3.4.1 |
 | MovimentoConsentimento [ADIÇÃO, Q-34] | `NovoMovimento(id uuid.UUID, c ConsentimentoLGPD, tipo TipoMovimento, origem OrigemMovimento, operador string) (MovimentoConsentimento, error)` | Construído logo depois da transição, com Finalidade, VersaoTermo e Data (= `DataAtualizacao`) do consentimento. Tipo e Origem fora dos enumerados, ou Origem painel sem operador: `ErrDadosInvalidos`. Não tem métodos de alteração |
 | EventoComportamental | `Validar(agora time.Time) error` | RN-04 |
@@ -251,9 +261,9 @@ Desvios idiomáticos em relação aos diagramas (não são lacunas): `context.Co
 
 ### 3.3 Regras de negócio
 
-- **RN-01 Pré-condições comuns (UC-01 a UC-04).** Verificar nesta ordem: cliente existe (`ErrClienteNaoEncontrado`), cliente está ativo (`ErrClienteInativo`), consentimento é válido (`ErrConsentimentoInvalido`).
+- **RN-01 Pré-condições comuns (UC-01 a UC-04).** Verificar nesta ordem: cliente existe (`ErrClienteNaoEncontrado`), cliente não foi eliminado (`ErrClienteEliminado`, v1.9, RN-17), cliente está ativo (`ErrClienteInativo`), consentimento é válido (`ErrConsentimentoInvalido`).
 - **RN-02 Consentimento válido.** Válido se e somente se Status é CONCEDIDO. A ausência de registro equivale a NAO_CONCEDIDO (D-02). A finalidade é registrada, mas no MVP não filtra o uso dos dados.
-- **RN-03 Revogação.** Tem efeito imediato: a partir dela, UC-01 a UC-04 falham com `ErrConsentimentoInvalido`. Dados já persistidos permanecem; retenção e eliminação ficam fora do MVP (D-13).
+- **RN-03 Revogação.** Tem efeito imediato: a partir dela, UC-01 a UC-04 falham com `ErrConsentimentoInvalido`. Dados já persistidos permanecem até a retenção (RN-18) ou um pedido de eliminação (RN-17); desde a v1.9 (Q-51), a D-13 foi substituída.
 - **RN-04 Validação de evento.** ClienteID não nulo; Tipo entre navegacao, compra e interacao; Origem não vazia; Timestamp não zero e menor ou igual a agora mais 2 minutos de tolerância de relógio (Q-16); Valor maior ou igual a zero e no máximo 1.000.000 (Q-15); se Tipo é compra, Valor maior que zero. Qualquer violação: `ErrDadosInvalidos`.
 - **RN-05 Perfil.** Função pura dos eventos do cliente e do relógio:
     - FrequenciaCompras é o número de eventos do tipo compra.
@@ -276,7 +286,6 @@ Desvios idiomáticos em relação aos diagramas (não são lacunas): `context.Co
 - **RN-08 Ciclo da recomendação.** UC-04 cria e já disponibiliza: GERADA é transitória e a recomendação é persistida uma única vez, já em ATIVA. Há no máximo uma recomendação ATIVA por cliente: antes de gravar a nova, UC-04 aplica `Expirar` às ATIVA anteriores do cliente (Q-18). Validade é DataAtivacao mais `RECOMENDACAO_VALIDADE_DIAS` (padrão 30). Expira quando Validade é menor ou igual a agora, pelo comando `expirar-recomendacoes` (D-08).
 - **RN-09 Processamento.** `ProcessarClienteUseCase` orquestra, nesta ordem, UC-01 (Executar), UC-02, UC-03 e UC-04 (v1.3, Q-26; antes ficava no handler da API) e devolve o resultado consolidado (sequência, passo 23) com o estado de cada etapa: concluída, atenção, falhou ou pendente. Erro em qualquer etapa interrompe o fluxo: a etapa fica como falhou, as seguintes como pendentes, e o que já foi persistido permanece. `ErrSemProdutoElegivel` não interrompe: a etapa 4 fica em atenção, sem recomendação. A API e o painel usam o mesmo caso de uso.
 - **RN-10 Histórico do consentimento (v1.4, Q-34).** Toda transição de 3.4.1 aplicada por UC-08 gera um `MovimentoConsentimento`, gravado junto com o registro do consentimento numa única operação atômica (`ConsentimentoRepository.Registrar`): ou os dois ficam gravados, ou nenhum. Movimentos são só de inclusão: nunca alterados nem apagados. O histórico é a lista dos movimentos do cliente em ordem cronológica (desempate pela ordem de gravação). O registro de `consentimentos_lgpd` continua sendo a fonte do estado (RN-02); o histórico é prova e não decide a validade. Transição inválida ou guarda violada não gera movimento. A origem vem do adaptador que chamou o caso de uso (API: `api`; painel: `painel` com o login do operador; portal do titular, fase 2: `portal`); sem origem informada (subcomandos, exemplos, testes): `sistema`. Movimentos criados pela migração 006 a partir das datas existentes têm origem `migracao`.
-
 - **RN-11 Papéis e permissões (v1.5, Q-37).** O que cada papel pode é uma função pura do domínio (`PapelOperador.Pode`):
 
     | Permissão | O que libera no painel | ADMINISTRADOR | ATENDIMENTO | ANALISTA |
@@ -291,7 +300,7 @@ Desvios idiomáticos em relação aos diagramas (não são lacunas): `context.Co
     | `usuarios` | Usuários: criar, mudar papel, desativar, ativar, redefinir senha | Sim | Não | Não |
     | `auditoria` | Auditoria | Sim | Não | Não |
     | `relatorios` [v1.7, Q-46] | Relatórios agregados e o CSV (RN-15) | Sim | Não | Sim |
-    | `eliminacao` | Reservada para a eliminação de dados (D-13, L-19, L-20): nenhuma rota no MVP | Sim | Não | Não |
+    | `eliminacao` [v1.9, Q-53] | Eliminar dados do titular (RN-17) | Sim | Não | Não |
 
     Todo operador, de qualquer papel, troca a própria senha ("Minha senha") e sai. Sem a permissão: `ErrSemPermissao`.
 - **RN-12 Operadores (v1.5, Q-35, Q-36, Q-40).**
@@ -349,6 +358,16 @@ Desvios idiomáticos em relação aos diagramas (não são lacunas): `context.Co
     - **Prévia e confirmação.** A prévia aplica todas as regras e não grava nada. A confirmação aplica tudo de novo (o consentimento ou os eventos podem ter mudado depois da prévia) e grava cada linha aceita por UC-01 `Registrar`. O relatório traz, para cada linha não aceita, o número, a situação (duplicada ou rejeitada), o ID do cliente quando legível, o código do erro e o motivo; e os totais de aceitas, duplicadas e rejeitadas.
     - **Falha de infraestrutura** ao gravar interrompe o lote com o erro (500): as linhas já gravadas permanecem, e o reenvio as reconhece como duplicadas.
     - **Sem guardar o arquivo.** Nem o arquivo nem o lote ficam guardados no servidor; só os eventos aceitos. O registro do lote é a auditoria: operador, quantidades aceitas, duplicadas e rejeitadas, sem ID de cliente nem dado pessoal (C-09).
+- **RN-17 Eliminação a pedido do titular (v1.9, Q-50).** `EliminarDadosTitularUseCase` atende o art. 18, VI, nesta ordem:
+    1. Cliente existe (`ErrClienteNaoEncontrado`) e ainda não foi eliminado (`ErrClienteEliminado`).
+    2. A confirmação é o nome atual do cliente, comparado sem diferenciar maiúsculas, acentos e espaços nas pontas. Diferente: `ErrDadosInvalidos`, e nada é apagado.
+    3. Consentimento CONCEDIDO: `ErrTransicaoInvalida`. É preciso revogar antes, pelo UC-08, o que deixa o movimento REVOGACAO como prova.
+    4. Apaga os eventos, o perfil e as recomendações do cliente.
+    5. Por último, `Anonimizar` e grava o cadastro.
+    - O consentimento e os movimentos ficam como prova do tratamento (art. 16, I): não têm nome nem e-mail.
+    - A eliminação é irreversível. Repetir depois de uma falha conclui o pedido, porque as remoções não falham sem dados.
+    - Depois dela, nenhuma escrita vale para o cliente: a correção, UC-08 Conceder e Revogar e as pré-condições RN-01 respondem `ErrClienteEliminado`. A busca pelo nome antigo não o encontra, porque o nome não existe mais. A exportação entrega o que restou.
+- **RN-18 Retenção após a revogação (v1.9, Q-51).** O comportamento (eventos, perfil e recomendações) de quem está com o consentimento REVOGADO e `DataRevogacao` há `RETENCAO_DIAS_REVOGADO` dias ou mais (menor ou igual a agora menos o prazo) é apagado por `AplicarRetencaoUseCase`. O cadastro, o consentimento e o histórico ficam. Não atinge quem concedeu de novo (CONCEDIDO), quem nunca concedeu nem quem está dentro do prazo. Devolve quantos clientes tiveram algum dado apagado; executar de novo sem nada vencido devolve 0. Executada pelo subcomando `aplicar-retencao` e pelo painel (Operação).
 
 ### 3.4 Máquinas de estado
 
@@ -379,6 +398,7 @@ Qualquer outra combinação: `ErrTransicaoInvalida`. O comando `expirar-recomend
 |---|---|---|---|
 | `ErrClienteNaoEncontrado` | Cliente inexistente | 404 | cliente_nao_encontrado |
 | `ErrClienteInativo` | Cliente desativado | 409 | cliente_inativo |
+| `ErrClienteEliminado` [v1.9] | Cliente com os dados eliminados (RN-17) | 409 | cliente_eliminado |
 | `ErrConsentimentoInvalido` | Consentimento diferente de CONCEDIDO | 403 | consentimento_invalido |
 | `ErrTransicaoInvalida` | Transição fora das tabelas da seção 3.4 | 409 | transicao_invalida |
 | `ErrDadosInvalidos` | Argumento, evento ou critério inválido | 422 | dados_invalidos |
@@ -406,7 +426,7 @@ Qualquer outra combinação: `ErrTransicaoInvalida`. O comando `expirar-recomend
 - `Revogar(ctx, clienteID) error`: idem, com o movimento REVOGACAO.
 - `Consultar(ctx, clienteID) (ConsentimentoLGPD, error)` [ADIÇÃO]: sem registro, devolve um consentimento sintético em NAO_CONCEDIDO.
 - `Historico(ctx, clienteID) ([]MovimentoConsentimento, error)` [ADIÇÃO, v1.4]: os movimentos em ordem cronológica (RN-10); vazio se não houver.
-- Pré-condição: cliente existe (`ErrClienteNaoEncontrado`).
+- Pré-condição: cliente existe (`ErrClienteNaoEncontrado`); em `Conceder` e `Revogar`, cliente não eliminado (`ErrClienteEliminado`, v1.9).
 - **Origem (v1.4, Q-34):** as assinaturas não mudam. O adaptador põe a origem no `context.Context` com `usecase.ComOrigem(ctx, origem, operador)`; o caso de uso a lê ao montar o movimento. Sem valor no contexto: `sistema`. Origem `painel` sem operador: `ErrDadosInvalidos`, e nada é gravado.
 
 **UC-01 `ColetarDadosUseCase`**
@@ -481,6 +501,13 @@ Qualquer outra combinação: `ErrTransicaoInvalida`. O comando `expirar-recomend
 - `ResultadoImportacao` traz `Linhas` (só as não aceitas, na ordem do lote: `LinhaImportacao` com `Numero`, `ClienteID` (nulo se ilegível), `Situacao` (`SituacaoLinha`: `duplicada` ou `rejeitada`), `Erro` (a sentinela, para `errs.Codigo`) e `Motivo` (`cliente_id`, `tipo`, `origem`, `timestamp`, `timestamp_futuro`, `valor`, `valor_compra`, `colunas`; vazio fora de `dados_invalidos`)), `Aceitas`, `Duplicadas`, `Rejeitadas` e `Gravado` (verdadeiro em `Importar`).
 - O motivo de `dados_invalidos` em RN-04 só detalha a mensagem: quem decide é `Validar`.
 
+**Casos de uso dos direitos do titular** [ADIÇÃO, v1.9, Q-48 a Q-52]
+
+- `AtualizarCadastroUseCase.Executar(ctx, clienteID, nome, email string) (Cliente, error)`: cliente existe (`ErrClienteNaoEncontrado`); `AtualizarDados` (nome e e-mail obrigatórios, `ErrDadosInvalidos`; eliminado, `ErrClienteEliminado`); `ClienteRepository.Salvar`. Não exige consentimento nem cliente ativo (Q-48).
+- `ExportarDadosTitularUseCase.Executar(ctx, clienteID) (DadosTitular, error)`: cliente existe; devolve `DadosTitular` com `GeradoEm` (agora), `Cliente`, `Consentimento` (sintético em NAO_CONCEDIDO sem registro), `Historico`, `Eventos` (Timestamp crescente), `Perfil *PerfilCliente` e `Segmento *Segmento` (nulos sem perfil ou sem segmento), `Recomendacoes` (DataGeracao decrescente) e `Produtos` (os citados pelas recomendações). Lê tudo com qualquer estado do consentimento, inclusive do cliente eliminado (Q-49).
+- `EliminarDadosTitularUseCase.Executar(ctx, clienteID, confirmacao string) error`: RN-17.
+- `AplicarRetencaoUseCase.Executar(ctx) (int, error)`: RN-18. `ConsentimentoRepository.ListarRevogadosAte(ctx, agora menos o prazo)` e, para cada cliente, as remoções do passo 4 da RN-17; devolve quantos clientes tiveram algum dado apagado.
+
 Serviços de domínio calculam e só leem ports quando precisam (segmentos e produtos). Quem persiste resultados são os casos de uso (D-09).
 
 ### 3.6 Ports e serviços (assinaturas)
@@ -500,10 +527,12 @@ type FiltroClientes struct { // [ADIÇÃO] Q-23
 type EventoRepository interface {
     Salvar(ctx context.Context, e entity.EventoComportamental) error
     BuscarPorCliente(ctx context.Context, clienteID uuid.UUID) ([]entity.EventoComportamental, error)
+    RemoverPorCliente(ctx context.Context, clienteID uuid.UUID) (int, error) // [ADIÇÃO] v1.9 Q-52: quantos removeu; 0 sem erro
 }
 type PerfilRepository interface {
     Salvar(ctx context.Context, p entity.PerfilCliente) (entity.PerfilCliente, error) // upsert por ClienteID
     BuscarPorCliente(ctx context.Context, clienteID uuid.UUID) (entity.PerfilCliente, error) // ErrPerfilNaoEncontrado
+    RemoverPorCliente(ctx context.Context, clienteID uuid.UUID) (int, error) // [ADIÇÃO] v1.9 Q-52: 0 ou 1
 }
 type SegmentoRepository interface {
     ListarAtivos(ctx context.Context) ([]entity.Segmento, error)            // ordem crescente de Prioridade
@@ -516,6 +545,7 @@ type RecomendacaoRepository interface {
     ListarAtivasVencidas(ctx context.Context, agora time.Time) ([]entity.RecomendacaoProduto, error) // [ADIÇÃO]
     ListarAtivasPorCliente(ctx context.Context, clienteID uuid.UUID) ([]entity.RecomendacaoProduto, error) // [ADIÇÃO] Q-18
     ListarPorCliente(ctx context.Context, clienteID uuid.UUID) ([]entity.RecomendacaoProduto, error) // [ADIÇÃO] Q-23: DataGeracao decrescente
+    RemoverPorCliente(ctx context.Context, clienteID uuid.UUID) (int, error) // [ADIÇÃO] v1.9 Q-52: quantas removeu
 }
 type ConsentimentoRepository interface {
     Salvar(ctx context.Context, c entity.ConsentimentoLGPD) error // upsert por ClienteID, sem movimento (cargas e testes)
@@ -523,6 +553,7 @@ type ConsentimentoRepository interface {
     Registrar(ctx context.Context, c entity.ConsentimentoLGPD, m entity.MovimentoConsentimento) error // [ADIÇÃO] v1.4 RN-10: upsert + inclusão do movimento, atômico; ID de movimento repetido falha sem gravar nada
     ListarMovimentos(ctx context.Context, clienteID uuid.UUID) ([]entity.MovimentoConsentimento, error) // [ADIÇÃO] v1.4: Data crescente, desempate pela ordem de gravação
     ListarConcedidos(ctx context.Context) ([]entity.ConsentimentoLGPD, error) // [ADIÇÃO] v1.6 Q-42: registros com Status CONCEDIDO, por ClienteID
+    ListarRevogadosAte(ctx context.Context, limite time.Time) ([]uuid.UUID, error) // [ADIÇÃO] v1.9 Q-51: clientes REVOGADO com DataRevogacao <= limite, da revogação mais antiga para a mais recente
 }
 type ProdutoRepository interface { // [ADIÇÃO] (D-05)
     ListarAtivosPorCategoria(ctx context.Context, categoria string) ([]entity.Produto, error)
@@ -594,6 +625,8 @@ func (s *RecomendacaoService) Recomendar(ctx context.Context, c entity.Cliente, 
 func (v *ValidadorLGPD) ConsentimentoValido(ctx context.Context, clienteID uuid.UUID) (bool, error)
 ```
 
+`ClienteRepository.Salvar` passa a gravar `DataEliminacao` (v1.9); `BuscarPorID` e `Listar` a devolvem. Os movimentos do consentimento continuam só de inclusão: nenhuma remoção os atinge (RN-10, RN-17).
+
 `Recomendar` recebe também o perfil `p`, porque RN-07 precisa da categoria preferida; o diagrama de classes traz apenas cliente e segmento. `PerfilamentoService` é puro (usa só o `Clock` injetado no construtor), por isso não recebe `ctx` nem devolve `error`.
 
 ### 3.7 API HTTP
@@ -635,6 +668,10 @@ Adaptador de apresentação HTML em `internal/web` (irmão de `internal/api`, Q-
 | `GET /painel/clientes/{id}/consentimento` | Ficha: consentimento | `ConsultarCliente` |
 | `GET` e `POST /painel/clientes/{id}/consentimento/conceder` | Confirmar e conceder | UC-08 Conceder |
 | `GET` e `POST /painel/clientes/{id}/consentimento/revogar` | Confirmar e revogar | UC-08 Revogar |
+| `GET /painel/clientes/{id}/direitos` | Ficha: direitos do titular [v1.9] | `ConsultarCliente` |
+| `POST /painel/clientes/{id}/cadastro` | Corrigir cadastro [v1.9] | `AtualizarCadastro` |
+| `GET /painel/clientes/{id}/dados` | Baixar dados (JSON) [v1.9] | `ExportarDadosTitular` |
+| `GET` e `POST /painel/clientes/{id}/eliminar` | Confirmar e eliminar [v1.9] | `EliminarDadosTitular` |
 | `GET /painel/segmentos`, `GET /painel/catalogo` | Configuração: listas (desde a v1.6, com os inativos e, para quem edita, as ações) | `ListarSegmentos.Todos`, `ListarCatalogo` |
 | `GET /painel/segmentos/novo`, `GET /painel/segmentos/{id}` [v1.6] | Formulário do segmento | `ListarSegmentos.Consultar` |
 | `POST /painel/segmentos/previa` [v1.6] | Prévia e confirmação (ou o formulário de volta com o erro ou com mais uma condição) | `PreverSegmentacao` |
@@ -645,6 +682,7 @@ Adaptador de apresentação HTML em `internal/web` (irmão de `internal/api`, Q-
 | `POST /painel/catalogo` [v1.6] | Salvar produto | `SalvarProduto.Executar` |
 | `POST /painel/catalogo/{id}/ativar`, `GET` e `POST /painel/catalogo/{id}/desativar` [v1.6] | Ativar; confirmar e desativar | `SalvarProduto.Ativar` e `Desativar` |
 | `GET /painel/operacao`, `GET` e `POST /painel/operacao/expirar` | Saúde e expiração | `ExpirarRecomendacoes` |
+| `GET` e `POST /painel/operacao/retencao` | Aplicar retenção [v1.9] | `AplicarRetencao` |
 | `GET /painel/relatorios?periodo=6\|12` | Relatórios (v1.7): indicadores, gráficos e tabelas | `GerarRelatorio` |
 | `GET /painel/relatorios.csv?periodo=6\|12` | Relatório agregado em CSV (v1.7) | `GerarRelatorio` |
 | `GET /painel/eventos/importar` | Importar eventos: enviar o arquivo (v1.8) | — |
@@ -671,11 +709,18 @@ Adaptador de apresentação HTML em `internal/web` (irmão de `internal/api`, Q-
 - **Cabeçalhos em toda resposta:** `Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin`, `X-Frame-Options: DENY`; `Cache-Control: no-store` nas páginas; estáticos com `max-age` de um ano e versão na URL.
 - **Consentimento (C-03, Q-21):** sem consentimento válido, a ficha mostra só cadastro e consentimento, com o aviso de bloqueio; nenhum caso de uso de comportamento é chamado para montar a tela.
 - **Histórico do consentimento (v1.4, Q-34):** conceder e revogar pelo painel gravam o movimento com origem `painel` e o login da sessão. A linha do tempo da aba Consentimento mostra o cadastro e cada movimento, do mais recente para o mais antigo, com finalidade, versão do termo e origem ("pela API", "pelo painel, por {operador}", "pelo portal do titular", "pelo sistema", "reconstruído das datas"). Cliente sem nenhum movimento continua com a linha montada pelas datas do registro, com o aviso de que ela não é o histórico completo.
+- **Direitos do titular (v1.9, Q-48 a Q-53):** aba "Direitos do titular" na ficha, com três painéis.
+    - *Corrigir cadastro*: nome e e-mail, com qualquer estado do consentimento.
+    - *Acesso e portabilidade*: "Baixar dados (JSON)" entrega `perfila-dados-{id}.json` como anexo (`Content-Disposition: attachment`, `application/json`, `Cache-Control: no-store`), com `versaoFormato` "1", `geradoEm` e as seções de `DadosTitular` em camelCase.
+    - *Eliminação*: com consentimento CONCEDIDO, só o aviso "Revogue o consentimento antes de eliminar os dados." (a ação de consentimento fica na aba Consentimento, Q-27). Senão, "Eliminar dados" leva à confirmação, que explica o efeito, pede o nome do cliente digitado e tem o foco inicial em Cancelar.
+    - Cliente eliminado: a ficha mostra o selo "Eliminado", o aviso com a data e só a linha do tempo do consentimento; nenhuma ação é oferecida.
+    - A Operação ganha "Aplicar retenção", com confirmação que cita o prazo.
+    - Cada pedido atendido gera o log `direito_atendido` (Q-53).
 - **Sem JavaScript:** formulários comuns com redirecionamento 303 no sucesso (PRG) e confirmação em página própria. Com JavaScript, o htmx (`hx-boost`) faz as mesmas requisições e troca só a área do painel (`#app`), sem recarregar a página; os diálogos usam `<dialog>` nativo. Respostas de erro (4xx e 5xx) também são exibidas.
 - **Importar eventos (v1.8, RN-16, Q-47):** item "Importar eventos" no grupo Clientes da navegação. O operador envia o CSV; a prévia mostra os totais (aceitas, duplicadas, rejeitadas) e a tabela das linhas não aceitas (linha, ID do cliente truncado, situação e a mensagem de `03-textos.md` pelo código e motivo), sem gravar; "Importar {n} eventos" confirma, com o conteúdo do arquivo num campo oculto (a página é `no-store` e o arquivo não fica no servidor). A confirmação mostra o relatório direto (sem PRG: reenviar só gera duplicados). Sem nenhuma linha aceita, não há botão de confirmar. Pedido acima de 512 KiB é recusado antes de ler o corpo, com redirecionamento para a tela com o aviso de arquivo grande. O log `painel_acao` com a ação `importar_eventos` leva operador e quantidades, nunca IDs de cliente nem conteúdo do arquivo. Funciona sem JavaScript; com htmx, o envio do arquivo usa o mesmo formulário.
 - **Erros:** o código estável (`errs.Codigo`) escolhe a mensagem de `docs/design/03-textos.md`; o texto técnico nunca aparece. Falha inesperada mostra o código da requisição (`X-Request-ID` do Nginx).
 - **Relatórios (v1.7, RN-15, Q-46):** grupo "Análise" na navegação. Indicadores no topo; gráficos de barras desenhados no servidor em SVG inline (sem biblioteca de JavaScript, CSP inalterada), cada um com `role="img"`, título e a tabela de dados logo abaixo, que é a fonte para leitores de tela. Cores: acento ameixa para dados derivados (segmentos, categorias, eventos), cores de estado do design system no consentimento e nas recomendações, neutro para cadastros. "Menos de 5" aparece por extenso na tabela, e a barra correspondente fica tracejada, sem altura que revele o número. Filtro de período (6 ou 12 meses) por formulário GET, funcionando sem JavaScript. O CSV usa `;` como separador, vírgula decimal, UTF-8 com BOM, `Content-Disposition: attachment` e colunas `secao;item;indicador;valor`; célula que começa com `=`, `+`, `-` ou `@` ganha um apóstrofo na frente. Ver ou exportar registra a ação `ver_relatorio` ou `exportar_relatorio` com o operador e o período, sem nenhum número.
-- **Logs (C-09, Q-24):** método, caminho (só UUIDs) e status; nas ações, operador, ação e `clienteId`. Nunca nome, e-mail, senha nem o termo de busca. O nome do operador também não vai para o log nem para a auditoria.
+- **Logs (C-09, Q-24):** método, caminho (só UUIDs) e status; nas ações, operador, ação e `clienteId`. Nunca nome, e-mail, senha nem o termo de busca. O nome do operador também não vai para o log nem para a auditoria. Desde a v1.9, `direito_atendido` com operador, pedido (`correcao`, `exportacao`, `eliminacao`, `retencao`) e `clienteId` (ou a quantidade, na retenção). É a auditoria dos pedidos até a v1.5 (`RegistroAuditoria`) entrar na main; aí passam a ser gravados nela e a eliminação fica restrita a ADMINISTRADOR (Q-53).
 - **Segmentos e catálogo (v1.6, Q-33, Q-42, Q-43):** o formulário do segmento monta o critério por linhas de campo, operador e valor (uma condição por linha, ligadas por `&&`), com o texto do critério gravado visível acima; "Adicionar condição" devolve o formulário com mais uma linha (sem JavaScript, pelo `POST .../previa`; com JavaScript, na hora). Linha toda vazia é ignorada; linha incompleta é erro naquela linha. O botão principal leva à prévia; só a página da prévia tem "Salvar". A lista e a prévia avisam que os clientes já segmentados mudam só no próximo processamento. O catálogo lembra que a recomendação escolhe o primeiro produto ativo da categoria por nome (RN-07). Erros de validação aparecem ao lado do campo, com a mensagem do `errs.ErroCampo`.
 - **Auditoria (v1.5, RN-13):** os handlers chamam `RegistrarAuditoria` depois de cada ação e de cada aba da ficha, com o resultado. A tela Auditoria mostra data, operador, ação, alvo (ID truncado, com link para a ficha quando é cliente) e resultado, com filtros por operador, ação e período (datas no fuso de Brasília).
 
@@ -695,13 +740,14 @@ Adaptador de apresentação HTML em `internal/web` (irmão de `internal/api`, Q-
 | `AUDITORIA_RETENCAO_DIAS` | 180 | Retenção da auditoria do painel (RN-13, Q-39) |
 | `PAINEL_FINALIDADE` | segmentacao | Finalidade sugerida ao conceder (Q-25) |
 | `PAINEL_VERSAO_TERMO` | v1 | Versão vigente do termo (Q-25) |
+| `RETENCAO_DIAS_REVOGADO` | 180 | Prazo da RN-18 em dias, inteiro maior que zero (Q-51) |
 
 As variáveis são lidas de `config.env` ao subir o contêiner; variável obrigatória ausente aborta a inicialização com mensagem clara.
 
 ```text
 perfila/                          módulo Go `perfila`
   CLAUDE.md                       constituição (C-01..C-12) e mapa de contexto
-  cmd/omega-server/main.go        [Support] raiz de composição; subcomandos serve, expirar-recomendacoes, hash-senha, carregar-exemplos e expurgar-auditoria
+  cmd/omega-server/main.go        [Support] raiz de composição; subcomandos serve, expirar-recomendacoes, hash-senha, carregar-exemplos, expurgar-auditoria e aplicar-retencao (v1.9)
   cmd/perfila-demo/main.go        [Core] demonstração do fluxo em memória
   internal/
     api/                          [Support] handlers, rotas, middlewares, DTOs
@@ -728,9 +774,11 @@ Persistência e implantação:
 
 - PostgreSQL via `database/sql` com o driver `pgx/v5/stdlib` (Q-10); migrações em SQL versionado, embutidas no binário e aplicadas pelo `omega-server` ao subir, sob `pg_advisory_lock` e registradas em `schema_migracoes` (Q-09); uma tabela por entidade (clientes, eventos_comportamentais, perfis_cliente, segmentos, recomendacoes_produto, consentimentos_lgpd, produtos e, desde a v1.4, movimentos_consentimento; desde a v1.5, operadores e registros_auditoria), em snake_case.
 - Chaves UUID; timestamps em `timestamptz` (UTC); `UNIQUE(cliente_id)` em perfis_cliente e consentimentos_lgpd; `CHECK` nos enums de status; chaves estrangeiras para clientes. Reforços de integridade que só repetem regras já existentes: chaves estrangeiras `perfis_cliente.segmento_id → segmentos` (D-06) e `recomendacoes_produto.produto_id → produtos` (D-05); `CHECK` de valor ≥ 0 nos eventos (RN-04), score entre 0 e 1 (RN-05) e preço ≥ 0 (`Produto.AtualizarPreco`).
-- Clientes de exemplo (Q-30, Q-32): catorze clientes sintéticos com história; desde a v1.8 (Q-47), cada um com ID fixo derivado do e-mail sintético (UUID v5 de `perfila:exemplo:<e-mail>`), usado pelo arquivo de exemplo `docs/exemplos/eventos-lote.csv`; (datas de cadastro, consentimento, revogação, eventos e recomendações ao longo de meses), criados pelos casos de uso com um relógio de carga; no modo memória ao subir, no PostgreSQL por `carregar-exemplos`, e só com o banco sem clientes.
+- Clientes de exemplo (Q-30, Q-32): quinze clientes sintéticos com história (o 15º, desde a v1.9, revogou há mais de 180 dias para demonstrar a retenção, RN-18); desde a v1.8 (Q-47), cada um com ID fixo derivado do e-mail sintético (UUID v5 de `perfila:exemplo:<e-mail>`), usado pelo arquivo de exemplo `docs/exemplos/eventos-lote.csv`; (datas de cadastro, consentimento, revogação, eventos e recomendações ao longo de meses), criados pelos casos de uso com um relógio de carga; no modo memória ao subir, no PostgreSQL por `carregar-exemplos`, e só com o banco sem clientes.
 - Relatórios (v1.7, Q-46): `PgRelatorioRepository` agrega no banco (`COUNT`, `SUM`, `COUNT(DISTINCT cliente_id)`, junção com `consentimentos_lgpd` em `status = 'CONCEDIDO'`) e devolve só números; o fake em memória lê os mesmos repositórios em memória. Não há tabela nem migração nova. A suíte de contrato cobre os dois.
-- Clientes de volume (v1.7, Q-46): além dos catorze com história, a carga de exemplos cria 60 clientes sintéticos (`c-101` a `c-160`, `@exemplo.test`) com história gerada de forma determinística pelos casos de uso, para os relatórios terem grupos acima de 5.
+- Clientes de volume (v1.7, Q-46): além dos quinze com história, a carga de exemplos cria 60 clientes sintéticos (`c-101` a `c-160`, `@exemplo.test`) com história gerada de forma determinística pelos casos de uso, para os relatórios terem grupos acima de 5.
+- A migração 009 (v1.9, Q-50) acrescenta `clientes.data_eliminacao` (nula). Vem depois da 007 (v1.5) e da 008 (v1.6); o migrador aplica cada versão pelo nome (Q-09).
+- Subcomando `aplicar-retencao` (v1.9, RN-18): o administrador o executa como `expirar-recomendacoes`; o log `retencao_aplicada` traz só a quantidade.
 - A migração 006 (v1.4, Q-34) cria `movimentos_consentimento` (chave UUID, coluna de ordem de gravação, `CHECK` em tipo e origem, operador obrigatório com origem painel, chave estrangeira para clientes) com um gatilho que recusa `UPDATE` e `DELETE` (só inclusão, RN-10), e reconstrói os movimentos dos clientes antigos a partir das datas que o registro prova: a última concessão (com finalidade e termo) e a última revogação (com finalidade e termo só se o estado ainda for REVOGADO; senão, em branco), com origem `migracao`.
 - A migração 008 (v1.6, Q-33, Q-44) cria os índices únicos parciais de `segmentos` (prioridade entre os ativos; nome em minúsculas) e acrescenta `campos` (texto, vazio por padrão) a `registros_auditoria`, com o `CHECK` das ações atualizado.
 - A migração 007 (v1.5, Q-35, Q-39) cria `operadores` (chave UUID, `login` único, `CHECK` no papel, hash, ativo, criado em, troca obrigatória e data da senha) e `registros_auditoria` (chave UUID, coluna de ordem de gravação, `CHECK` em ação, tipo do alvo e resultado, alvo com tipo e ID juntos, índices por data, operador e ação), com um gatilho que recusa `UPDATE` (só inclusão; o `DELETE` fica para o expurgo, RN-13). Sem chave estrangeira de `registros_auditoria.operador`: o login pode estar em branco (entrada com login desconhecido). `CriarSeVazio` grava sob `pg_advisory_xact_lock`, para as duas réplicas não criarem dois administradores iniciais.
@@ -760,7 +808,7 @@ Prioridade Alta: impede gerar código correto. Média: gera comportamento ambíg
 | D-10 | Pacotes e classes | Setas de domain para service e de domain para repository invertem a regra de dependência e, em Go, gerariam ciclo de importação. O Diagrama de Classes põe os serviços na camada "Aplicação" e as interfaces de repositório na "Infraestrutura"; o de Pacotes lista "interfaces" em application e em domain | O Diagrama de Componentes prevalece: serviços em `domain/service`, ports em `domain/port`, infra implementa os ports | Média |
 | D-11 | Snippets dos Mód. 2 e 3 | `Cliente` com Historico e ConsentimentoLGPD bool, ID string e retorno de texto fixo divergem do modelo de classes | Ignorar os snippets; a spec manda | Baixa |
 | D-12 | Componentes e sequência | Nenhum diagrama mostra como os eventos entram; `IntegracaoGateway` não tem métodos | `ColetarDadosUseCase.Registrar` e `POST .../eventos`; gateway como stub | Média |
-| D-13 | LGPD | Retenção e eliminação de dados após revogação não estão modeladas | Fora do MVP; registrar como requisito futuro | Baixa |
+| D-13 | LGPD | Retenção e eliminação de dados após revogação não estão modeladas | Fora do MVP; registrar como requisito futuro. **Substituída na v1.9** por RN-17 e RN-18 (Q-50, Q-51) | Baixa |
 | D-14 | Classes | Valores monetários em float64 (preco, ticketMedio, valor) | Manter float64 no MVP; avaliar centavos inteiros depois | Baixa |
 | D-15 | Classes e atores | A relação “EventoComportamental recebe RecomendacaoProduto” provavelmente é Cliente 1 para 0..*; o ator Administrador (PDF antigo e implantação) convive com o Agente Inteligente | Usar ClienteID; quatro atores (seção 3.1) | Baixa |
 | D-16 | Pacotes e componentes | Autenticação citada sem mecanismo | Token Bearer estático em `AUTH_TOKEN` | Baixa |
@@ -777,6 +825,7 @@ Prioridade Alta: impede gerar código correto. Média: gera comportamento ambíg
 | Versão | Data | Mudanças |
 |---|---|---|
 | v0 | 27/10/2026 | Documento único (PDF) e depois dividido em três `.md` |
+| v1.9 | 13/11/2026 | Direitos do titular e retenção (Q-48 a Q-53): `Cliente.DataEliminacao`, `Anonimizar` e `EstaEliminado` (3.2); RN-01 com o cliente eliminado, RN-03 sem D-13, RN-17 (eliminação) e RN-18 (retenção) (3.3); `ErrClienteEliminado` e os casos de uso `AtualizarCadastro`, `ExportarDadosTitular`, `EliminarDadosTitular` e `AplicarRetencao` (3.1, 3.5); `RemoverPorCliente` em eventos, perfis e recomendações e `ConsentimentoRepository.ListarRevogadosAte` (3.6); aba Direitos do titular e retenção na Operação, log `direito_atendido` (3.7.1); `RETENCAO_DIAS_REVOGADO`, subcomando `aplicar-retencao` e migração 009 (3.8); exceção dos direitos do titular em C-03. As versões v1.5 a v1.8 estão nas branches abertas (usuários e auditoria, segmentos e catálogo, relatórios, importação de eventos) |
 | v1.8 | 13/11/2026 | Importação de eventos em lote (Q-47): RN-16 (CSV com cabeçalho, até 1.000 linhas e 256 KiB, linha a linha com RN-01 e RN-04, duplicados ignorados, prévia sem gravar); `ImportarEventosUseCase` e `LerCSVEventos` (3.1, 3.5); rota `POST /v1/eventos/lote` (3.7); tela Importar eventos e modelo CSV (3.7.1); IDs fixos nos clientes de exemplo (3.8). Numeração a partir de Q-47, T-65 e RN-16 para não colidir com as branches abertas (v1.5 a v1.7) |
 | v1.7 | 13/11/2026 | Relatórios agregados, UC-05 e UC-07 parciais (Q-46): RN-15 (só agregados, comportamento só com consentimento válido, grupos de 1 a 4 clientes como "menos de 5", categorias pequenas em "Outras"); `Contagem`, `Media`, `Percentual` e as funções de proteção (3.2); `GerarRelatorioUseCase` (3.1, 3.5); `RelatorioRepository` (3.6); rotas `/painel/relatorios` e o CSV (3.7.1); clientes de volume nos exemplos (3.8). Numeração a partir de Q-46, T-60 e RN-15 para não colidir com as branches abertas (v1.5 e v1.6) |
 | v1.6 | 13/11/2026 | Edição de segmentos e do catálogo pelo painel (Q-33, Q-42 a Q-44; Q-45 aberta): RN-14; permissão `editar_configuracao` (RN-11); `Segmento.Validar`, `ValidarCriterio`, `ValidarSegmentos`, `Produto.Validar`, `NormalizarCategoria` e teto de `AtualizarPreco` (3.2); `RegistroAuditoria.Campos` e ações novas (RN-13); `SalvarSegmento`, `PreverSegmentacao`, `SalvarProduto`, `ErrSegmentoNaoEncontrado`, `ErrProdutoNaoEncontrado` e `errs.ErroCampo` (3.5); `SegmentoRepository.ListarTodos` e `Salvar`, `ProdutoRepository.BuscarPorID` e `Salvar`, `ConsentimentoRepository.ListarConcedidos`, `EscolherSegmento` (3.6); rotas (3.7.1); migração 008 (3.8) |

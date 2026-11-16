@@ -11,6 +11,7 @@
 | `ATIVA` | Ativa | ok, círculo com visto |
 | `EXPIRADA` | Expirada | neutral, círculo vazado |
 | cliente `Ativo = false` | Inativo | neutral, círculo vazado |
+| cliente com `DataEliminacao` (v1.9) | Eliminado | critical, círculo com barra |
 | tipo `compra` / `navegacao` / `interacao` | Compra / Navegação / Interação | — |
 
 ## Códigos de erro da API → mensagem
@@ -22,6 +23,8 @@ O código estável (`errs.Codigo`) define a mensagem; o texto técnico do servid
 | `nao_autenticado` | Entrar | Usuário ou senha incorretos. |
 | `cliente_nao_encontrado` | Busca, ficha | Não encontramos esse cliente. Confira o ID ou busque pelo nome. |
 | `cliente_inativo` | Ficha | Este cadastro está inativo. Eventos e processamento ficam bloqueados enquanto ele estiver assim. |
+| `cliente_eliminado` (v1.9) | Ficha, qualquer ação | Os dados deste titular foram eliminados. Nada mais pode ser alterado. |
+| `transicao_invalida` (eliminar) | Direitos do titular | Revogue o consentimento antes de eliminar os dados. |
 | `consentimento_invalido` | Ficha, eventos, processamento | Sem consentimento válido. Registre o consentimento do titular para usar os dados de comportamento. |
 | `transicao_invalida` (conceder) | Consentimento | O consentimento já está concedido. Para mudar a versão do termo, revogue e conceda de novo. |
 | `transicao_invalida` (revogar) | Consentimento | Não há consentimento concedido para revogar. |
@@ -50,6 +53,7 @@ O código estável (`errs.Codigo`) define a mensagem; o texto técnico do servid
 | Valor | ≥ 0 e ≤ R$ 1.000.000,00 | O valor deve estar entre R$ 0,00 e R$ 1.000.000,00. |
 | Valor (compra) | > 0 | Uma compra precisa ter valor maior que zero. |
 | Data e hora | até 2 min no futuro | A data não pode estar no futuro. |
+| Nome do cliente (confirmar eliminação) | igual ao nome do cadastro | O nome digitado não confere com o cadastro. |
 
 Segmentos e produtos (v1.6, RN-14): as mensagens vêm do domínio (`errs.ErroCampo`) e aparecem ao lado do campo.
 
@@ -107,10 +111,22 @@ Arquivo recusado inteiro:
 | Salvar segmento (v1.6) | Prévia de {nome} | A prévia considera {n} clientes ativos com consentimento válido. Quem já foi segmentado muda só no próximo processamento. | Salvar alterações (primário) · Voltar ao formulário |
 | Desativar segmento | Desativar {nome} | A mesma prévia, com a contagem sem o segmento. | Desativar (danger) · Cancelar |
 | Desativar produto | Desativar {nome} | O produto sai da recomendação no próximo processamento de cada cliente. Você pode ativar de novo depois. | Desativar (danger) · Cancelar (foco inicial) |
+| Eliminar (v1.9) | Eliminar dados do titular | Eventos, perfil e recomendações deste cliente são apagados e o cadastro é anonimizado. O histórico do consentimento fica guardado como prova, sem nome nem e-mail. Não pode ser desfeito. Digite o nome do cliente para confirmar: {nome}. | Eliminar dados (danger) · Cancelar (foco inicial) |
+| Retenção (v1.9) | Aplicar retenção | Eventos, perfil e recomendações de quem revogou o consentimento há {N} dias ou mais são apagados. Cadastro e histórico do consentimento ficam. Não pode ser desfeito. | Aplicar retenção (danger) · Cancelar (foco inicial) |
 
 ## Toasts
 
-"Cliente cadastrado" · "Consentimento concedido" · "Consentimento revogado" · "Evento registrado" · "Processamento concluído" · "Processamento concluído sem recomendação" · "{n} recomendações expiradas" / "Nenhuma recomendação vencida" · "ID copiado" · "Operador criado" · "Papel alterado" · "Operador desativado" · "Operador ativado" · "Senha provisória definida" · "Senha trocada" (v1.5) · "Segmento salvo. Os clientes mudam de segmento no próximo processamento." · "Segmento ativado" · "Segmento desativado" · "Produto salvo" · "Produto ativado" · "Produto desativado" · "Nada mudou" (v1.6).
+"Cliente cadastrado" · "Consentimento concedido" · "Consentimento revogado" · "Evento registrado" · "Processamento concluído" · "Processamento concluído sem recomendação" · "{n} recomendações expiradas" / "Nenhuma recomendação vencida" · "ID copiado" · "Operador criado" · "Papel alterado" · "Operador desativado" · "Operador ativado" · "Senha provisória definida" · "Senha trocada" (v1.5) · "Segmento salvo. Os clientes mudam de segmento no próximo processamento." · "Segmento ativado" · "Segmento desativado" · "Produto salvo" · "Produto ativado" · "Produto desativado" · "Nada mudou" (v1.6) · (v1.9) "Cadastro corrigido" · "Dados eliminados" · "Retenção aplicada a {n} clientes" / "Retenção aplicada a 1 cliente" / "Nenhum cliente com a retenção vencida".
+
+## Direitos do titular (v1.9)
+
+| Painel | Texto |
+| --- | --- |
+| Corrigir cadastro | Corrige nome e e-mail a pedido do titular. Não depende do consentimento. |
+| Acesso e portabilidade | Tudo o que o Perfila guarda deste titular: cadastro, consentimento e histórico, eventos, perfil, segmento e recomendações, num arquivo JSON. Vale com qualquer estado do consentimento. |
+| Eliminação | Apaga eventos, perfil e recomendações e anonimiza o cadastro. O histórico do consentimento fica guardado como prova. Não pode ser desfeito. Quem não é administrador vê, no lugar do botão: "Só o administrador elimina dados." (RN-11) |
+| Cliente eliminado | Dados eliminados em {data}. O cadastro foi anonimizado; resta o histórico do consentimento, guardado como prova. |
+| Retenção (Operação) | Apaga eventos, perfil e recomendações de quem revogou o consentimento há {N} dias ou mais. Cadastro e histórico do consentimento ficam. É o mesmo efeito do comando `aplicar-retencao`. |
 
 ## Formatos
 

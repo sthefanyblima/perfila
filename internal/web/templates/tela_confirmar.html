@@ -1,6 +1,28 @@
 {{define "conteudo"}}{{with .Dados}}
 {{template "ficha-cabecalho" (fichaComCSRF . $.CSRF)}}
 <section class="pf-confirm" data-teste="confirmar-{{.Confirmar}}">
-  {{template "form-consentimento" (formConsentimento . $.CSRF .Confirmar false)}}
+  {{if eq .Confirmar "eliminar"}}{{template "form-eliminar" (fichaComCSRF . $.CSRF)}}
+  {{else}}{{template "form-consentimento" (formConsentimento . $.CSRF .Confirmar false)}}{{end}}
 </section>
+{{end}}{{end}}
+
+{{/* Confirmação forte da eliminação (RN-17): o efeito, o nome digitado e o foco inicial em Cancelar. */}}
+{{define "form-eliminar"}}{{with .D}}
+<form method="post" action="/painel/clientes/{{.Cliente.ID}}/eliminar">
+  {{template "csrf" $.CSRF}}
+  <div class="pf-dialog__body">
+    <h2 class="pf-dialog__title" id="titulo-confirmar">Eliminar dados do titular</h2>
+    {{with .ErroConfirmar}}{{template "alerta" .}}{{end}}
+    <p>Eventos, perfil e recomendações deste cliente são apagados e o cadastro é anonimizado. O histórico do consentimento fica guardado como prova, sem nome nem e-mail. Não pode ser desfeito.</p>
+    <div class="pf-field">
+      <label class="pf-field__label" for="confirmacao">Digite o nome do cliente para confirmar: <strong>{{.Cliente.Nome}}</strong></label>
+      <input class="pf-input" id="confirmacao" name="confirmacao" value="{{.Eliminacao.Confirmacao}}" required autocomplete="off" spellcheck="false"{{if .Eliminacao.Erro}} aria-invalid="true" aria-describedby="confirmacao-erro"{{end}}>
+      {{with .Eliminacao.Erro}}<span class="pf-field__error" id="confirmacao-erro" aria-live="assertive">{{icone "barra"}}{{.}}</span>{{end}}
+    </div>
+  </div>
+  <div class="pf-dialog__foot">
+    <a class="pf-btn" href="/painel/clientes/{{.Cliente.ID}}/direitos" autofocus>Cancelar</a>
+    <button type="submit" class="pf-btn pf-btn--danger-solid">Eliminar dados</button>
+  </div>
+</form>
 {{end}}{{end}}

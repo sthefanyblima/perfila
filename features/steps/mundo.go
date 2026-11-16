@@ -56,6 +56,7 @@ type Mundo struct {
 	cfg                    estadoConfig // v1.6
 	rel                    estadoRelatorio
 	importacao             estadoImportacao
+	direitos               estadoDireitos
 
 	api estadoAPI
 }
@@ -83,6 +84,7 @@ func novoMundo() *Mundo {
 		ops:            estadoOperadores{sessoes: map[string]time.Time{}},
 		metaEventos:    metaPadrao,
 		validadeDias:   validadePadrao,
+		direitos:       estadoDireitos{prazoDias: prazoRetencaoPadrao},
 	}
 }
 
@@ -114,6 +116,11 @@ type casos struct {
 	salvarProduto  *usecase.SalvarProdutoUseCase
 	gerarRelatorio *usecase.GerarRelatorioUseCase
 	importar       *usecase.ImportarEventosUseCase // RN-16
+	// direitos do titular e retenção (v1.9)
+	atualizarCadastro *usecase.AtualizarCadastroUseCase
+	exportar          *usecase.ExportarDadosTitularUseCase
+	eliminar          *usecase.EliminarDadosTitularUseCase
+	retencao          *usecase.AplicarRetencaoUseCase
 }
 
 func (m *Mundo) uc() casos {
@@ -147,6 +154,11 @@ func (m *Mundo) uc() casos {
 	c.gerarRelatorio = usecase.NovoGerarRelatorioUseCase(memoria.NovoRelatorioRepository(m.clientes, m.eventos, m.perfis,
 		m.recomendacoes, m.consentimentos), m.segmentos, m.clock, fusoRelatorio)
 	c.importar = usecase.NovoImportarEventosUseCase(coletar, pre, m.eventos, m.clock)
+	c.atualizarCadastro = usecase.NovoAtualizarCadastroUseCase(m.clientes)
+	c.exportar = usecase.NovoExportarDadosTitularUseCase(m.clientes, c.consentimento, m.eventos, m.perfis, m.segmentos,
+		m.recomendacoes, m.produtos, m.clock)
+	c.eliminar = usecase.NovoEliminarDadosTitularUseCase(m.clientes, m.consentimentos, m.eventos, m.perfis, m.recomendacoes, m.clock)
+	c.retencao = usecase.NovoAplicarRetencaoUseCase(m.consentimentos, m.eventos, m.perfis, m.recomendacoes, m.clock, m.direitos.prazoDias)
 	return c
 }
 

@@ -200,3 +200,33 @@ func TestNovoCliente(t *testing.T) {
 		t.Fatalf("nome vazio deveria falhar: %v", err)
 	}
 }
+
+// Spec: RN-17, Q-50.
+func TestClienteAnonimizar(t *testing.T) {
+	c, _ := NovoCliente(uuid.New(), "Ana Sintética", "c-001@exemplo.test", agoraTeste)
+	if c.EstaEliminado() {
+		t.Fatal("cliente novo não está eliminado")
+	}
+	if err := c.Anonimizar(agoraTeste.Add(time.Hour)); err != nil {
+		t.Fatalf("anonimizar: %v", err)
+	}
+	if c.Nome != NomeEliminado || c.Email != EmailEliminado || c.Ativo || !c.EstaEliminado() ||
+		!c.DataEliminacao.Equal(agoraTeste.Add(time.Hour)) {
+		t.Fatalf("cadastro anonimizado: %+v", c)
+	}
+	casos := []struct {
+		nome string
+		f    func() error
+	}{
+		{"anonimizar de novo", func() error { return c.Anonimizar(agoraTeste) }},
+		{"atualizar dados", func() error { return c.AtualizarDados("Ana", "a@exemplo.test") }},
+	}
+	for _, caso := range casos {
+		if err := caso.f(); !errors.Is(err, errs.ErrClienteEliminado) {
+			t.Errorf("%s: esperado cliente_eliminado, obtido %v", caso.nome, err)
+		}
+	}
+	if c.Nome != NomeEliminado {
+		t.Errorf("a recusa não pode mudar o cadastro: %q", c.Nome)
+	}
+}

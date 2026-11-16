@@ -72,6 +72,13 @@ type formCons struct {
 	Dialogo             bool
 }
 
+// formRet alimenta a confirmação da retenção, no diálogo ou na página (RN-18).
+type formRet struct {
+	CSRF    string
+	Prazo   int
+	Dialogo bool
+}
+
 // alerta alimenta a parte "alerta" (Alert): Tom critical, warn, ok ou info; Teste marca o
 // aviso para os cenários @web; Agora pede role="alert" (erro que acabou de acontecer).
 type alerta struct {
@@ -117,6 +124,9 @@ func funcoes(versoes map[string]string) template.FuncMap {
 		"segmentoComCSRF": func(d dadosSegmento, csrf string) segmentoCSRF { return segmentoCSRF{D: d, CSRF: csrf} },
 		"diferenca":       diferenca,
 		"fichaComCSRF":    func(d dadosFicha, csrf string) fichaCSRF { return fichaCSRF{D: d, CSRF: csrf} },
+		"formRetencao": func(csrf string, prazo int, dialogo bool) formRet {
+			return formRet{CSRF: csrf, Prazo: prazo, Dialogo: dialogo}
+		},
 		"formConsentimento": func(d dadosFicha, csrf, acao string, dialogo bool) formCons {
 			f := formCons{D: d, CSRF: csrf, Acao: acao, Dialogo: dialogo}
 			if dialogo {
@@ -163,7 +173,7 @@ func (p *painel) render(w http.ResponseWriter, r *http.Request, status int, tela
 		pg.Papel, pg.Pode = rotulo(string(op.Papel)), map[string]bool{}
 		for _, perm := range []entity.Permissao{entity.PermClientes, entity.PermConsentimento, entity.PermEventos,
 			entity.PermProcessamento, entity.PermConfiguracao, entity.PermEditarConfiguracao, entity.PermOperacao,
-			entity.PermUsuarios, entity.PermAuditoria, entity.PermRelatorios} {
+			entity.PermUsuarios, entity.PermAuditoria, entity.PermRelatorios, entity.PermEliminacao} {
 			pg.Pode[string(perm)] = op.Papel.Pode(perm) && !op.TrocarSenha
 		}
 	}

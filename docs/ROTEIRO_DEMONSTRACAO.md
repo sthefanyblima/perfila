@@ -21,7 +21,7 @@ Para recomeçar do zero (banco vazio): `docker compose -f deploy/docker-compose.
 | # | Tempo | Comando | O que aparece | O que falar |
 |---|---|---|---|---|
 | 1 | 1 min | — (mostrar `docs/uml/img/v1/UML4_sequencia.png` e `UML8_implantacao.png`) | Diagramas corrigidos | Problema: perfilar e segmentar clientes **só com consentimento LGPD**. Os 8 diagramas viraram texto (`docs/uml/`) e Spec (`specs/spec.md`), que guiou o agente de IA (SDD) |
-| 2 | 2 min | `make verify` | gofmt, vet, testes, **339 cenários BDD verdes** e teste de arquitetura | O BDD é o critério de aceite executável. O teste de arquitetura falha se alguém quebrar a Clean Architecture (C-01, C-07) |
+| 2 | 2 min | `make verify` | gofmt, vet, testes, **385 cenários BDD verdes** e teste de arquitetura | O BDD é o critério de aceite executável. O teste de arquitetura falha se alguém quebrar a Clean Architecture (C-01, C-07) |
 | 3 | 1 min | `make demo` | Fluxo da sequência em memória, passo a passo | UC-01 → UC-02 → UC-03 → UC-04, como no UML4; sem consentimento, nada roda |
 | 4 | 1 min | `docker compose -f deploy/docker-compose.yml ps` | `nginx`, `app1`, `app2`, `db`; **só o Nginx publica porta** (8443) | É o UML8: balanceador com TLS, duas réplicas do `omega-server`, PostgreSQL `omega_db` numa rede interna |
 | 5 | 3 min | `make demo-implantacao` | Cadastro → **403 sem consentimento** → concessão → eventos → processamento (segmento `premium`, recomendação `ATIVA`) → revogação → **403** | Tudo passa pelo Nginx em HTTPS e grava no PostgreSQL. A revogação tem efeito imediato (RN-03) |
@@ -33,6 +33,7 @@ Para recomeçar do zero (banco vazio): `docker compose -f deploy/docker-compose.
 | 6 | 1 min | `for i in 1 2 3 4; do curl -s --cacert bin/omega.crt -o /dev/null -D - https://localhost:8443/saude \| grep -i x-omega-replica; done` | Endereços das duas réplicas se alternando | O balanceador distribui a carga; o cabeçalho mostra quem atendeu (Q-11) |
 | 7 | 2 min | `make bdd-implantacao` | 4 cenários (inclui o painel com os cabeçalhos de segurança): tráfego pelo balanceador, **queda de uma réplica sem interrupção**, banco inacessível | O cenário 2 para a `app2` de verdade e confere 20 respostas 200; depois a religa |
 | 8 | 30 s | `make expirar` | `recomendacoes_expiradas` com a quantidade | Subcomando do administrador do UML8 (RN-08) |
+| 8b | 2 min | Painel: ficha do Fábio (revogado) → aba **Direitos do titular** → Baixar dados (JSON) → Eliminar dados → digitar "Fábio Sintético" → Eliminar. Depois, Operação → **Aplicar retenção** (ou `make retencao`) | O arquivo JSON com cadastro, histórico e eventos; a ficha com o selo **Eliminado** e só a linha do tempo do consentimento; a busca por "Fábio" vazia; "Retenção aplicada a 1 cliente" (Olga, revogada há mais de 180 dias) | Direitos do art. 18 da LGPD: acesso, portabilidade, correção e eliminação. A prova do consentimento fica, sem nome nem e-mail (art. 16, I). A retenção fecha a D-13 com prazo configurável |
 | 9 | 30 s | `docker compose -f deploy/docker-compose.yml logs --tail 5 nginx app1` | Logs só com IDs, sem nome, e-mail nem IP | C-09 e `docs/CHECKLIST_LGPD.md`: cada requisito LGPD com sua evidência e o que ficou para depois |
 
 Encerramento (se houver tempo): `specs/tasks.md` mostra todas as tarefas T-01 a T-54 concluídas; `OPEN_QUESTIONS.md` mostra as decisões tomadas e por quê.
@@ -59,5 +60,6 @@ No Git Bash, a partir da raiz do repositório. O `MSYS_NO_PATHCONV=1` impede que
 | `make bdd-implantacao` | compile o binário de testes para Windows no contêiner: `MSYS_NO_PATHCONV=1 docker run --rm -v "$(pwd -W)":/src -w /src -e GOOS=windows -e CGO_ENABLED=0 golang:1.22 go test -c -o bin/features.test.exe ./features` e rode `cd features && BDD_TAGS=@implantacao ../bin/features.test.exe -test.count=1` |
 | `make serve` (painel em memória) | `MSYS_NO_PATHCONV=1 docker run --rm -p 8080:8080 -v "$(pwd -W)":/src -w /src golang:1.22 make serve` e abra `http://localhost:8080/painel` (admin / dev-senha-admin; também atendimento / dev-senha-atendimento e analista / dev-senha-analista) |
 | `make expirar` | `MSYS_NO_PATHCONV=1 docker compose -f deploy/docker-compose.yml exec app1 omega-server -config /etc/omega/config.env expirar-recomendacoes` |
+| `make retencao` | `MSYS_NO_PATHCONV=1 docker compose -f deploy/docker-compose.yml exec app1 omega-server -config /etc/omega/config.env aplicar-retencao` |
 | `make exemplos` | `MSYS_NO_PATHCONV=1 docker compose -f deploy/docker-compose.yml exec app1 omega-server -config /etc/omega/config.env carregar-exemplos` |
 | `make derrubar` | `docker compose -f deploy/docker-compose.yml down` |

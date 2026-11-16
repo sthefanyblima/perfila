@@ -22,6 +22,7 @@ type Config struct {
 	RecomendacaoValidadeDias int
 	EngajamentoMetaEventos   int
 	LogLevel                 string
+	RetencaoDiasRevogado     int // RN-18, Q-51: prazo da retenção após a revogação, em dias
 
 	// Painel web do operador (Spec 3.8, Q-22, Q-25, Q-29).
 	PainelUsuario     string
@@ -76,6 +77,7 @@ func Carregar(path string, getenv func(string) string) (Config, error) {
 		RecomendacaoValidadeDias: inteiro("RECOMENDACAO_VALIDADE_DIAS", 30, 1),
 		EngajamentoMetaEventos:   inteiro("ENGAJAMENTO_META_EVENTOS", 30, 1),
 		AuditoriaRetencaoDias:    inteiro("AUDITORIA_RETENCAO_DIAS", 180, 1),
+		RetencaoDiasRevogado:     inteiro("RETENCAO_DIAS_REVOGADO", 180, 1),
 		LogLevel:                 strings.ToLower(valor("LOG_LEVEL")),
 	}
 	if c.LogLevel == "" {

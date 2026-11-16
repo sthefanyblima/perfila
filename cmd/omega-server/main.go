@@ -45,7 +45,7 @@ func main() {
 	}
 }
 
-const uso = "uso: omega-server [-config config.env] serve|expirar-recomendacoes|carregar-exemplos|expurgar-auditoria|hash-senha"
+const uso = "uso: omega-server [-config config.env] serve|expirar-recomendacoes|aplicar-retencao|carregar-exemplos|expurgar-auditoria|hash-senha"
 
 func executar(args []string, getenv func(string) string, saida io.Writer) error {
 	fs := flag.NewFlagSet("omega-server", flag.ContinueOnError)
@@ -104,6 +104,14 @@ func executar(args []string, getenv func(string) string, saida io.Writer) error 
 			return err
 		}
 		app.log.Info("recomendacoes_expiradas", "quantidade", n)
+		return nil
+	case "aplicar-retencao": // RN-18, Q-51: só a quantidade vai para o log (C-09)
+		n, err := app.retencao.Executar(ctx)
+		if err != nil {
+			return err
+		}
+		app.log.Info("retencao_aplicada", "quantidade", n, "prazo_dias", app.retencao.PrazoDias())
+		app.log.Info("direito_atendido", "pedido", "retencao", "origem", "sistema", "quantidade", n)
 		return nil
 	}
 	return errors.New(uso)
@@ -167,6 +175,7 @@ type aplicacao struct {
 	handler    http.Handler
 	expirar    *usecase.ExpirarRecomendacoesUseCase
 	expurgar   *usecase.ExpurgarAuditoriaUseCase
+	retencao   *usecase.AplicarRetencaoUseCase
 	operadores *usecase.GerenciarOperadoresUseCase
 	repos      repositorios
 	exemplos   exemplos
@@ -218,6 +227,8 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 	operadores := usecase.NovoGerenciarOperadoresUseCase(repos.operadores, hash, clock)
 	registrarAuditoria := usecase.NovoRegistrarAuditoriaUseCase(repos.auditoria, clock)
 	importar := usecase.NovoImportarEventosUseCase(coletar, pre, repos.eventos, clock) // RN-16
+	retencao := usecase.NovoAplicarRetencaoUseCase(repos.consentimentos, repos.eventos, repos.perfis, repos.recomendacoes,
+		clock, cfg.RetencaoDiasRevogado)
 	deps := api.Dependencias{
 		AuthToken:     cfg.AuthToken,
 		Precondicoes:  pre,
@@ -252,8 +263,14 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 			SalvarProduto:      usecase.NovoSalvarProdutoUseCase(repos.produtos),
 			GerarRelatorio:     usecase.NovoGerarRelatorioUseCase(repos.relatorios, repos.segmentos, clock, fusoRelatorios()),
 			Importar:           importar,
-			MetaEventos:        cfg.EngajamentoMetaEventos,
-			Clock:              clock, Log: log, Saude: repos.saude, Migracoes: repos.migracoes,
+			AtualizarCadastro:  usecase.NovoAtualizarCadastroUseCase(repos.clientes),
+			ExportarDados: usecase.NovoExportarDadosTitularUseCase(repos.clientes, consentimento, repos.eventos, repos.perfis,
+				repos.segmentos, repos.recomendacoes, repos.produtos, clock),
+			EliminarDados: usecase.NovoEliminarDadosTitularUseCase(repos.clientes, repos.consentimentos, repos.eventos,
+				repos.perfis, repos.recomendacoes, clock),
+			AplicarRetencao: retencao,
+			MetaEventos:     cfg.EngajamentoMetaEventos,
+			Clock:           clock, Log: log, Saude: repos.saude, Migracoes: repos.migracoes,
 		})
 		if err != nil {
 			repos.fechar()
@@ -268,6 +285,7 @@ func montar(ctx context.Context, cfg config.Config, saida io.Writer) (aplicacao,
 		log:        log,
 		handler:    mux,
 		expirar:    expirar,
+		retencao:   retencao,
 		expurgar:   usecase.NovoExpurgarAuditoriaUseCase(repos.auditoria, clock, cfg.AuditoriaRetencaoDias),
 		operadores: operadores,
 		repos:      repos,

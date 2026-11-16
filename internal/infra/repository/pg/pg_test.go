@@ -112,7 +112,7 @@ func TestMigracoes(t *testing.T) {
 		versoes = append(versoes, v)
 	}
 	linhas.Close()
-	if !reflect.DeepEqual(versoes, []string{"001_inicial", "002_dados_demonstracao", "003_recomendacoes_ativas_por_cliente", "004_listagem_de_clientes", "005_demonstracao_ampliada", "006_movimentos_consentimento", "007_operadores_auditoria", "008_configuracao_pelo_painel"}) {
+	if !reflect.DeepEqual(versoes, []string{"001_inicial", "002_dados_demonstracao", "003_recomendacoes_ativas_por_cliente", "004_listagem_de_clientes", "005_demonstracao_ampliada", "006_movimentos_consentimento", "007_operadores_auditoria", "008_configuracao_pelo_painel", "009_eliminacao_titular"}) {
 		t.Fatalf("migrações registradas: %v", versoes)
 	}
 	aplicadas, err := pg.Migrar(ctx, db)
@@ -228,5 +228,26 @@ func TestAuditoriaSoInclusao(t *testing.T) {
 	}
 	if _, err := db.Exec(`DELETE FROM registros_auditoria`); err != nil {
 		t.Fatalf("expurgo recusado: %v", err)
+	}
+}
+
+// Spec: RN-17, Q-50 — a 009 só aceita data de eliminação em cadastro anonimizado e inativo.
+func TestMigracaoEliminacaoExigeAnonimizado(t *testing.T) {
+	db := bancoDeTeste(t, "teste_eliminacao")
+	casos := []struct {
+		nome, email string
+		ativo, ok   bool
+	}{
+		{"Titular eliminado", "eliminado@anonimizado.invalid", false, true},
+		{"Ana Sintética", "eliminado@anonimizado.invalid", false, false},
+		{"Titular eliminado", "c-001@exemplo.test", false, false},
+		{"Titular eliminado", "eliminado@anonimizado.invalid", true, false},
+	}
+	for i, c := range casos {
+		_, err := db.Exec(`INSERT INTO clientes (id, nome, email, data_cadastro, ativo, data_eliminacao)
+			VALUES (gen_random_uuid(), $1, $2, now(), $3, now())`, c.nome, c.email, c.ativo)
+		if (err == nil) != c.ok {
+			t.Errorf("caso %d (%+v): erro %v", i, c, err)
+		}
 	}
 }

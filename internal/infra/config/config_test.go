@@ -15,7 +15,8 @@ func TestCarregarPadroes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if c.HTTPPort != 8080 || c.RecomendacaoValidadeDias != 30 || c.EngajamentoMetaEventos != 30 || c.LogLevel != "info" || !c.ModoMemoria() {
+	if c.HTTPPort != 8080 || c.RecomendacaoValidadeDias != 30 || c.EngajamentoMetaEventos != 30 || c.LogLevel != "info" || !c.ModoMemoria() ||
+		c.RetencaoDiasRevogado != 180 { // RN-18, Q-51
 		t.Fatalf("padrões errados: %+v", c)
 	}
 }
@@ -29,6 +30,7 @@ func TestCarregarErros(t *testing.T) {
 		{map[string]string{"AUTH_TOKEN": "t", "HTTP_PORT": "x"}, "HTTP_PORT"},
 		{map[string]string{"AUTH_TOKEN": "t", "ENGAJAMENTO_META_EVENTOS": "0"}, "ENGAJAMENTO_META_EVENTOS"},
 		{map[string]string{"AUTH_TOKEN": "t", "LOG_LEVEL": "verbose"}, "LOG_LEVEL"},
+		{map[string]string{"AUTH_TOKEN": "t", "RETENCAO_DIAS_REVOGADO": "0"}, "RETENCAO_DIAS_REVOGADO"},
 	}
 	for _, c := range casos {
 		if _, err := Carregar("", env(c.env)); err == nil || !strings.Contains(err.Error(), c.quer) {
