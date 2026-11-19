@@ -230,3 +230,23 @@ func TestClienteAnonimizar(t *testing.T) {
 		t.Errorf("a recusa não pode mudar o cadastro: %q", c.Nome)
 	}
 }
+
+// Spec: UC-09 RN-19. O portal acha o cadastro pelo e-mail: sem "@" ou com espaço no meio, recusa.
+func TestClienteEmailFormato(t *testing.T) {
+	casos := []struct {
+		email string
+		ok    bool
+	}{
+		{"ana@exemplo.test", true},
+		{" ana@exemplo.test ", true},
+		{"ana", false},
+		{"ana @exemplo.test", false},
+		{"ana@exemplo.test outro", false},
+	}
+	for _, c := range casos {
+		_, err := NovoCliente(uuid.New(), "Ana", c.email, agoraTeste)
+		if (err == nil) != c.ok || (err != nil && !errors.Is(err, errs.ErrDadosInvalidos)) {
+			t.Errorf("e-mail %q: err = %v, esperado ok = %v", c.email, err, c.ok)
+		}
+	}
+}

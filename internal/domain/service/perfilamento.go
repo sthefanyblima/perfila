@@ -36,8 +36,9 @@ func (s *PerfilamentoService) GerarPerfil(clienteID uuid.UUID, eventos []entity.
 		}
 		p.FrequenciaCompras++
 		soma += e.Valor
-		if e.Categoria != "" {
-			contagem[e.Categoria]++
+		// Mesma forma do catálogo (RN-14): "Esportes " e "esportes" são a mesma categoria.
+		if c := entity.NormalizarCategoria(e.Categoria); c != "" {
+			contagem[c]++
 		}
 	}
 	if p.FrequenciaCompras > 0 {

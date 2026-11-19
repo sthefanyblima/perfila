@@ -96,9 +96,15 @@ func funcoes(versoes map[string]string, prefixo string) template.FuncMap {
 		"dataHora": dataHora, "data": soData, "dataHoraPtr": dataHoraPtr, "dinheiro": dinheiro,
 		"decimal": decimal, "mascara": mascararEmail, "uuidCurto": uuidCurto, "rotulo": rotulo,
 		"tom": tomDoEstado, "iconeEstado": iconeDoEstado, "condicoes": condicoes, "porcento": porcento, "icone": icone,
-		"estatico":   func(nome string) string { return prefixo + nome + "?v=" + versoes[nome] },
-		"estado":     func(v any) string { return fmt.Sprint(v) },
-		"soma":       func(a, b int) int { return a + b },
+		"estatico": func(nome string) string { return prefixo + nome + "?v=" + versoes[nome] },
+		"estado":   func(v any) string { return fmt.Sprint(v) },
+		"soma":     func(a, b int) int { return a + b },
+		"inicial": func(t string) string {
+			for _, r := range t {
+				return string(r)
+			}
+			return ""
+		},
 		"alertaInfo": func(titulo, texto string) alerta { return alerta{Tom: "info", Titulo: titulo, Texto: texto} },
 		"alertaAtencao": func(titulo, texto string) alerta {
 			return alerta{Tom: "warn", Titulo: titulo, Texto: texto, Teste: "sem-recomendacao"}
