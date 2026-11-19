@@ -169,7 +169,7 @@ func linhaConsentimento(d dadosFicha, origem func(entity.MovimentoConsentimento)
 func detalheMovimento(m entity.MovimentoConsentimento, origem func(entity.MovimentoConsentimento) string) string {
 	var partes []string
 	if m.Finalidade != "" {
-		partes = append(partes, "Finalidade "+m.Finalidade)
+		partes = append(partes, "Finalidade "+nomeFinalidade(m.Finalidade))
 	}
 	if m.VersaoTermo != "" {
 		partes = append(partes, "termo "+m.VersaoTermo)
@@ -177,6 +177,17 @@ func detalheMovimento(m entity.MovimentoConsentimento, origem func(entity.Movime
 		partes = append(partes, "termo não registrado")
 	}
 	return strings.Join(append(partes, origem(m)), " · ")
+}
+
+// nomeFinalidade mostra com acento o código interno da finalidade padrão; outros valores seguem como foram gravados.
+func nomeFinalidade(f string) string {
+	switch entity.Finalidade(f) {
+	case entity.FinalidadeSegmentacao:
+		return "segmentação"
+	case entity.FinalidadePublicidadeTerceiros:
+		return "publicidade para terceiros"
+	}
+	return f
 }
 
 func textoOrigem(m entity.MovimentoConsentimento) string {
@@ -199,7 +210,7 @@ func (d dadosFicha) marcosPelasDatas() []marco {
 	var ms []marco
 	if !c.DataConsentimento.IsZero() {
 		m := marco{Data: c.DataConsentimento, Titulo: "Consentimento concedido", Icone: "ok",
-			Detalhe: "Finalidade " + string(c.Finalidade) + " · termo " + c.VersaoTermo}
+			Detalhe: "Finalidade " + nomeFinalidade(string(c.Finalidade)) + " · termo " + c.VersaoTermo}
 		if c.DataRevogacao != nil && c.DataRevogacao.Before(c.DataConsentimento) {
 			m.Titulo = "Consentimento concedido novamente"
 		}

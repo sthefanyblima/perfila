@@ -13,10 +13,10 @@ func TestDetalheMovimento(t *testing.T) {
 		m    entity.MovimentoConsentimento
 		quer string
 	}{
-		{entity.MovimentoConsentimento{Finalidade: "segmentacao", VersaoTermo: "v1", Origem: entity.OrigemAPI}, "Finalidade segmentacao · termo v1 · pela API"},
-		{entity.MovimentoConsentimento{Finalidade: "segmentacao", VersaoTermo: "v2", Origem: entity.OrigemPainel, Operador: "op-01"}, "Finalidade segmentacao · termo v2 · pelo painel, por op-01"},
-		{entity.MovimentoConsentimento{Finalidade: "segmentacao", VersaoTermo: "v2", Origem: entity.OrigemPortal}, "Finalidade segmentacao · termo v2 · pelo portal do titular"},
-		{entity.MovimentoConsentimento{Finalidade: "segmentacao", VersaoTermo: "v1", Origem: entity.OrigemSistema}, "Finalidade segmentacao · termo v1 · pelo sistema"},
+		{entity.MovimentoConsentimento{Finalidade: "segmentacao", VersaoTermo: "v1", Origem: entity.OrigemAPI}, "Finalidade segmentação · termo v1 · pela API"},
+		{entity.MovimentoConsentimento{Finalidade: "segmentacao", VersaoTermo: "v2", Origem: entity.OrigemPainel, Operador: "op-01"}, "Finalidade segmentação · termo v2 · pelo painel, por op-01"},
+		{entity.MovimentoConsentimento{Finalidade: "segmentacao", VersaoTermo: "v2", Origem: entity.OrigemPortal}, "Finalidade segmentação · termo v2 · pelo portal do titular"},
+		{entity.MovimentoConsentimento{Finalidade: "segmentacao", VersaoTermo: "v1", Origem: entity.OrigemSistema}, "Finalidade segmentação · termo v1 · pelo sistema"},
 		{entity.MovimentoConsentimento{Origem: entity.OrigemMigracao}, "termo não registrado · reconstruído das datas"},
 	}
 	for _, c := range casos {
