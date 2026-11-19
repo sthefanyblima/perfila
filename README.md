@@ -8,7 +8,7 @@ O Perfila transforma eventos de comportamento (navegação, compra, interação)
 
 Desenvolvido com **Spec-Driven Development** (a especificação é a fonte da verdade e o agente de IA implementa) e **Behavior-Driven Development** (cenários Gherkin executáveis provam o comportamento).
 
-## Estado (14/11/2026): MVP concluído + painel web + perfis de acesso + relatórios + importação + direitos do titular
+## Estado (19/11/2026): MVP concluído + painel, portal do titular, públicos e auditoria; escopo fechado, só correções
 
 | Marco | Período | Estado |
 |---|---|---|
@@ -24,6 +24,8 @@ Desenvolvido com **Spec-Driven Development** (a especificação é a fonte da ve
 | **Direitos do titular e retenção** (Spec v1.9, T-69 a T-73, Q-48 a Q-53) | 13–14/11 | ✅ 36 cenários de aplicação · 10 `@web` · contrato e migração 009 nos dois backends |
 | **Portal do titular** (Spec v1.10, T-75 a T-79, Q-55 a Q-60) | 14/11 | ✅ 51 cenários (29 de aplicação e domínio, 21 `@web`) · 1 de implantação · contrato e migração 010 nos dois backends |
 | **Públicos para campanhas** (Spec v1.11, T-80 a T-85, Q-61 a Q-67) | 13–14/11 | ✅ consentimento por finalidade · 36 cenários de aplicação, domínio e API · 10 `@web` · contrato e migração 011 nos dois backends |
+| **Auditoria dos pedidos do titular, da importação e dos públicos** (Spec v1.12, T-86 a T-89, Q-68, Q-69) | 16/11 | ✅ 8 ações novas na trilha (RN-13) · 26 cenários novos · migração 012 · contrato nos dois backends |
+| **Revisão de 19/11** (PR #14 e #15, Q-70) | 19/11 | ✅ categoria dos eventos normalizada · e-mail validado no cadastro · identidade visual do painel · menu do celular como gaveta e página de erro com menu |
 | Fechamento do escopo | 19/11 | daqui em diante, só correções |
 | Ensaio · evento final | 23/11 · 24/11 | roteiro em `docs/ROTEIRO_DEMONSTRACAO.md` |
 
