@@ -13,11 +13,11 @@
 :root {
   color-scheme: light;
   /* Superfícies em cinza neutro (Q-27): a cor fica para ação e estado, não para o fundo */
-  --surface-0: #F4F5F7;
+  --surface-0: #F4F2ED;
   --surface-1: #FFFFFF;
-  --surface-2: #EEF0F3;
-  --surface-3: #E4E7EB;
-  --line: #DDE1E6;
+  --surface-2: #EDEAE3;
+  --surface-3: #E2DED5;
+  --line: #E1DDD3;
   --line-strong: #7D8591;
   --ink: #16191D;
   --ink-muted: #535A64;
@@ -31,13 +31,15 @@
   --accent-strong: #2C466F;
   --accent-tint: #E8EEF8;
   /* Barra lateral clara e neutra */
-  --nav-bg: #FFFFFF;
-  --nav-ink: #16191D;
-  --nav-muted: #6A717C;
-  --nav-hover: #F1F3F5;
-  --nav-line: #E4E7EB;
-  --nav-active-bg: #E4F3F6;
-  --nav-active-ink: #085C6B;
+  --nav-bg: #0E3A43;
+  --nav-ink: #EAF3F4;
+  --nav-muted: #8FB4BA;
+  --nav-hover: #164D58;
+  --nav-line: #1F5560;
+  --nav-active-bg: #1B5F6C;
+  --nav-active-ink: #FFFFFF;
+  --marca: #F2B24C;
+  --on-marca: #3A2500;
   --toast-bg: #1F2328;
   --toast-ink: #F4F5F7;
   --toast-ok: #4ADE80;
@@ -78,8 +80,9 @@
     --ink: #E8EAED; --ink-muted: #A9B0BA;
     --brand: #4FC1CF; --brand-strong: #7DD4DF; --on-brand: #0B1215; --brand-tint: #133840;
     --accent: #8FB0E6; --accent-strong: #B5CDF0; --accent-tint: #1B2638;
-    --nav-bg: #16191C; --nav-ink: #E8EAED; --nav-muted: #9AA2AD; --nav-hover: #22262B; --nav-line: #2B3036;
-    --nav-active-bg: #133840; --nav-active-ink: #7DD4DF;
+    --nav-bg: #0B2A31; --nav-ink: #EAF3F4; --nav-muted: #86A9AF; --nav-hover: #123F49; --nav-line: #1A4650;
+    --nav-active-bg: #17535F; --nav-active-ink: #FFFFFF;
+    --marca: #F2B24C; --on-marca: #3A2500;
     --toast-bg: #E8EAED; --toast-ink: #16191D; --toast-ok: #157F3B;
     --ok: #4ADE80; --ok-solid: #22C55E; --on-ok: #0B1215; --ok-tint: #12301E;
     --warn: #FBBF24; --warn-solid: #F59E0B; --warn-tint: #3A2B0A;
@@ -480,3 +483,60 @@ body.pf {
 /* Caixa de saída simulada (v1.10, Q-57) */
 .pf-mensagens { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-4); max-width: var(--size-measure); }
 .pf-mensagem__corpo { overflow-wrap: anywhere; font-family: var(--font-mono); font-size: 13px; }
+
+
+/* Identidade visual: lateral petróleo, marca âmbar, papel quente, números em destaque ------------- */
+.pf-nav__marca { background: var(--marca); color: var(--on-marca); border-radius: var(--radius-1); }
+.pf-nav__brand { font-size: 20px; }
+.pf-nav__env { color: var(--marca); }
+.pf .pf-nav__link { color: var(--nav-ink); }
+.pf .pf-nav__link[aria-current="page"] { box-shadow: inset 3px 0 0 var(--marca); }
+.pf-nav__heading { color: var(--nav-muted); letter-spacing: 0.1em; }
+.pf-nav__avatar { background: var(--marca); color: var(--on-marca); border: 0; }
+.pf .pf-nav .pf-btn--quiet { color: var(--nav-muted); }
+.pf .pf-nav .pf-btn--quiet:hover { color: var(--nav-ink); }
+.pf-topbar .pf-nav__brand { color: var(--nav-ink); }
+
+.pf-main { padding-top: var(--space-8); }
+.pf-header__title { font-size: 34px; line-height: 38px; letter-spacing: -0.015em; }
+.pf-header__row { padding-bottom: var(--space-3); border-bottom: 2px solid var(--ink); }
+.pf-panel, .pf-tablewrap, .pf-kpi, .pf-pipe__step, .pf-consent { box-shadow: 0 1px 2px rgba(40, 34, 20, 0.06); }
+.pf-panel__head { background: var(--surface-2); }
+.pf-panel__title { font-family: var(--font-display); font-size: 17px; letter-spacing: 0.005em; }
+.pf-table th { background: var(--surface-2); color: var(--ink); }
+.pf-table tbody tr:nth-child(even) td { background: color-mix(in srgb, var(--surface-2) 45%, transparent); }
+.pf-table tbody tr[data-href]:hover td { background: var(--brand-tint); }
+.pf-kpi { border-top: 3px solid var(--brand); padding: var(--space-4) var(--space-4) var(--space-3); }
+.pf-kpi:nth-child(2) { border-top-color: var(--marca); }
+.pf-kpi:nth-child(3) { border-top-color: var(--accent); }
+.pf-kpi:nth-child(4) { border-top-color: var(--ok-solid); }
+.pf-kpi__valor { font-size: 36px; line-height: 40px; letter-spacing: -0.02em; }
+.pf .pf-btn--primary { box-shadow: 0 1px 0 rgba(0,0,0,.18), inset 0 -2px 0 rgba(0,0,0,.18); }
+.pf-pipe__step--concluida { border-color: color-mix(in srgb, var(--ok-solid) 45%, var(--line)); }
+.pf-pipe__n { color: var(--brand); font-weight: 500; }
+
+/* Entrar: painel da marca ao lado do formulário */
+.pf-entrar { padding: 0; background: var(--surface-0); grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); place-items: stretch; }
+.pf-entrar__lado { background: var(--nav-bg); color: var(--nav-ink); padding: var(--space-12) var(--space-8); display: flex; flex-direction: column; justify-content: space-between; gap: var(--space-8); }
+.pf-entrar__lado .pf-nav__marca { width: 40px; height: 40px; font-size: 20px; }
+.pf-entrar__nome { display: flex; align-items: center; gap: var(--space-3); font: 600 26px/30px var(--font-display); }
+.pf-entrar__frase { font: 600 34px/40px var(--font-display); letter-spacing: -0.015em; max-width: 16ch; }
+.pf-entrar__frase em { font-style: normal; color: var(--marca); }
+.pf-entrar__lista { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-2); color: var(--nav-muted); }
+.pf-entrar__lista li::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: var(--space-3); background: var(--marca); border-radius: 2px; }
+.pf-entrar__centro { display: grid; place-items: center; padding: var(--space-6) var(--space-4); }
+.pf-entrar__card { box-shadow: 0 2px 6px rgba(40, 34, 20, 0.08); }
+@media (max-width: 860px) {
+  .pf-entrar { grid-template-columns: 1fr; }
+  .pf-entrar__lado { padding: var(--space-6) var(--space-4); }
+  .pf-entrar__frase, .pf-entrar__lista { display: none; }
+}
+
+/* Portal do titular: faixa de marca no topo */
+.pf-portal__topo { background: var(--nav-bg); border-bottom: 0; }
+.pf-portal__marca { color: var(--marca); }
+.pf-portal__sub { color: var(--nav-muted); }
+.pf .pf-portal__topo .pf-btn--quiet { color: var(--nav-ink); }
+.pf .pf-portal__topo .pf-btn--quiet:hover { background: var(--nav-hover); color: var(--nav-ink); }
+.pf-portal__main h1 { font: 600 30px/36px var(--font-display); letter-spacing: -0.01em; }
+@media (min-width: 861px) { .pf-entrar__marca { display: none; } .pf-entrar__topo .pf-dialog__title { font-size: 28px; line-height: 34px; } }
