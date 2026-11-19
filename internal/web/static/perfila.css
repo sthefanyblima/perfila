@@ -437,11 +437,15 @@ body.pf {
 
 /* Responsivo --------------------------------------------------------- */
 @media (max-width: 960px) {
-  .pf-app { grid-template-columns: 1fr; }
+  .pf-app { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); align-content: start; }
+  .pf-app--solo { grid-template-rows: none; }
   .pf-topbar { display: flex; position: sticky; top: 0; z-index: 30; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-2) var(--space-4); background: var(--nav-bg); color: var(--nav-ink); border-bottom: 1px solid var(--nav-line); }
   
-  .pf-nav { display: none; position: static; height: auto; }
+  /* Menu como gaveta sobre a página: não empurra o conteúdo nem estica a faixa do topo */
+  .pf-topbar { min-height: 56px; }
+  .pf-nav { display: none; position: fixed; top: 56px; left: 0; right: 0; bottom: 0; height: auto; z-index: 29; padding-bottom: var(--space-6); }
   .pf-app--menu-aberto .pf-nav { display: flex; }
+  html:has(.pf-app--menu-aberto) { overflow: hidden; } /* trava a rolagem da página sem quebrar o sticky da faixa */
   .pf-main { padding: var(--space-6) var(--space-4) var(--space-12); }
   .pf-grid-2 { grid-template-columns: 1fr; }
   .pf-relatorio { grid-template-columns: 1fr; }
@@ -540,3 +544,19 @@ body.pf {
 .pf .pf-portal__topo .pf-btn--quiet:hover { background: var(--nav-hover); color: var(--nav-ink); }
 .pf-portal__main h1 { font: 600 30px/36px var(--font-display); letter-spacing: -0.01em; }
 @media (min-width: 861px) { .pf-entrar__marca { display: none; } .pf-entrar__topo .pf-dialog__title { font-size: 28px; line-height: 34px; } }
+
+/* Páginas sem moldura de painel (erros fora de sessão) */
+.pf-solo { width: min(720px, 100%); margin: 0 auto; padding: var(--space-8) var(--space-4); display: grid; gap: var(--space-6); align-content: start; }
+@media (max-width: 960px) {
+  .pf-nav .pf-nav__brand { display: none; } /* a marca já está na faixa do topo */
+  .pf-nav { gap: var(--space-4); padding-top: var(--space-4); }
+  .pf-nav__foot { margin-top: var(--space-2); }
+}
+@media (max-width: 560px) {
+  .pf-alert { grid-template-columns: 20px minmax(0, 1fr); }
+  .pf-alert > .pf-btn, .pf-alert > .pf-alert__acao { grid-column: 2; justify-self: start; }
+}
+@media (max-width: 960px) {
+  .pf-nav__foot { grid-template-columns: 1fr 1fr; }
+  .pf-nav__foot .pf-nav__op { grid-column: 1 / -1; }
+}

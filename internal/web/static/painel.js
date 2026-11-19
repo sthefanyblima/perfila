@@ -72,11 +72,25 @@
       menu.setAttribute("aria-expanded", aberto ? "true" : "false");
       return;
     }
+    // Fora do menu aberto (ou num link dele), a gaveta fecha.
+    var gaveta = document.getElementById("app");
+    if (gaveta && gaveta.classList.contains("pf-app--menu-aberto") && !ev.target.closest(".pf-nav") ) {
+      gaveta.classList.remove("pf-app--menu-aberto");
+    }
     // Linha inteira clicável; a primeira célula tem um link real para teclado e leitor de tela.
     var linha = ev.target.closest("tr[data-href]");
     if (linha && !ev.target.closest("a, button, input, select")) {
       var link = linha.querySelector("a[href]");
       if (link) { link.click(); }
+    }
+  });
+
+  document.addEventListener("keydown", function (ev) {
+    var app = document.getElementById("app");
+    if (ev.key === "Escape" && app && app.classList.contains("pf-app--menu-aberto")) {
+      app.classList.remove("pf-app--menu-aberto");
+      var b = document.querySelector("[data-menu]");
+      if (b) { b.setAttribute("aria-expanded", "false"); b.focus(); }
     }
   });
 
