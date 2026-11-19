@@ -47,6 +47,10 @@ func (c *Cliente) AtualizarDados(nome, email string) error {
 	if nome == "" || email == "" {
 		return fmt.Errorf("%w: nome e e-mail são obrigatórios", errs.ErrDadosInvalidos)
 	}
+	// O portal do titular encontra o cadastro pelo e-mail (RN-19): sem "@" ele nunca seria achado.
+	if !strings.Contains(email, "@") || strings.ContainsAny(email, " \t\r\n") {
+		return fmt.Errorf("%w: e-mail em formato inválido", errs.ErrDadosInvalidos)
+	}
 	c.Nome, c.Email = nome, email
 	return nil
 }

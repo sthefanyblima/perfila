@@ -46,7 +46,7 @@ Implantação (UML8): o **Nginx** (TLS, única porta de entrada) distribui para 
 ### Desenvolvimento (Go 1.22+)
 
 ```bash
-make verify   # gofmt, vet, testes com -race, 385 cenários BDD e teste de arquitetura
+make verify   # gofmt, vet, testes com -race, 508 cenários BDD e teste de arquitetura
 make demo     # fluxo do diagrama de sequência em memória, passo a passo
 make serve    # API e painel em modo memória: http://localhost:8080/painel (admin / dev-senha-admin)
 make demo-api # roteiro de curl contra o make serve (em outro terminal)

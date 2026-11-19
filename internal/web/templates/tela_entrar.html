@@ -1,5 +1,11 @@
 {{define "conteudo"}}{{with .Dados}}
 <div class="pf-entrar">
+  <aside class="pf-entrar__lado" aria-hidden="true">
+    <span class="pf-entrar__nome"><span class="pf-nav__marca">P</span>Perfila</span>
+    <p class="pf-entrar__frase">Conhecer o cliente <em>com o consentimento dele.</em></p>
+    <ul class="pf-entrar__lista"><li>Perfil e segmento por regras declarativas</li><li>Recomendação de produto rastreável</li><li>LGPD em cada passo</li></ul>
+  </aside>
+  <div class="pf-entrar__centro">
   <section class="pf-entrar__card" aria-labelledby="titulo-entrar">
     <div class="pf-entrar__topo">
       <span class="pf-entrar__marca">Perfila <span class="pf-label">console</span></span>
@@ -24,5 +30,6 @@
     </form>
     <p class="pf-entrar__nota">Acesso restrito à equipe de operação. As ações ficam registradas com o seu usuário.</p>
   </section>
+  </div>
 </div>
 {{end}}{{end}}

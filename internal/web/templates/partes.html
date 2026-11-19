@@ -2,7 +2,7 @@
 
 {{define "nav"}}
 <nav id="navegacao" class="pf-nav" aria-label="Navegação principal">
-  <a class="pf-nav__brand" href="/painel/">Perfila <span class="pf-nav__env">console</span></a>
+  <a class="pf-nav__brand" href="/painel/"><span class="pf-nav__marca" aria-hidden="true">P</span>Perfila <span class="pf-nav__env">console</span></a>
   {{- if .Pode.clientes}}
   <div class="pf-nav__group">
     <span class="pf-nav__heading">Clientes</span>
@@ -53,7 +53,7 @@
   </div>
   {{- end}}
   <div class="pf-nav__foot">
-    <span class="pf-nav__op"><span class="pf-nav__avatar" aria-hidden="true">{{slice .Operador 0 1}}</span><span>{{.Operador}}{{if .Papel}}<span class="pf-nav__papel">{{.Papel}}</span>{{end}}</span></span>
+    <span class="pf-nav__op"><span class="pf-nav__avatar" aria-hidden="true">{{inicial .Operador}}</span><span>{{.Operador}}{{if .Papel}}<span class="pf-nav__papel">{{.Papel}}</span>{{end}}</span></span>
     <a class="pf-btn pf-btn--quiet pf-btn--sm" href="/painel/minha-senha"{{if eq .Nav "minha-senha"}} aria-current="page"{{end}}>{{icone "chave"}} Minha senha</a>
     <form method="post" action="/painel/sair" hx-boost="false">
       <input type="hidden" name="_csrf" value="{{.CSRF}}">
