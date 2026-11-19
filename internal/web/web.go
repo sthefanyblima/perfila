@@ -100,7 +100,8 @@ func NovoRouter(d Dependencias) (http.Handler, error) {
 	} {
 		rotas(mux, sessao)
 	}
-	mux.HandleFunc("/painel/", p.naoEncontrada)
+	// Rota desconhecida: com sessão, a página de erro leva o menu; sem sessão, vai para Entrar.
+	mux.Handle("/painel/", sessao("", p.naoEncontrada))
 	return p.cabecalhos(p.registro(mux)), nil
 }
 
