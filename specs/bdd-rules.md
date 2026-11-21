@@ -129,7 +129,7 @@ As features vivem em `features/` e são a versão executável deste documento. E
 | `publicos.feature` | UC-06 parcial, UC-08, RN-01 a RN-03, RN-10, RN-21, RN-22, Q-61 a Q-65 | `@aplicacao`, `@dominio` e `@api` | 36 | Públicos (v1.11) ✅ (T-83) |
 | `publicos_painel.feature` | 3.7.1, UC-06 parcial, UC-08, RN-21, RN-22, Q-61, Q-63, Q-64, Q-66 | `@web` | 10 | Públicos (v1.11) ✅ (T-84) |
 
-Total no `make verify`: **508 cenários, todos verdes** (107 até a v1.2, os do painel, 12 do histórico do consentimento, v1.4, os de usuários e perfis, v1.5, os da edição de segmentos e catálogo, v1.6, 25 dos relatórios, v1.7, 45 da importação de eventos, v1.8, 46 dos direitos do titular, v1.9, 51 do portal do titular, v1.10, 46 dos públicos, v1.11, e 26 da auditoria dos pedidos, da importação e dos públicos, v1.12); mais 5 cenários `@implantacao` (11 passos) em `make bdd-implantacao`.
+Total no `make verify`: **513 cenários, todos verdes** (107 até a v1.2, os do painel, 12 do histórico do consentimento, v1.4, os de usuários e perfis, v1.5, os da edição de segmentos e catálogo, v1.6, 25 dos relatórios, v1.7, 45 da importação de eventos, v1.8, 46 dos direitos do titular, v1.9, 51 do portal do titular, v1.10, 46 dos públicos, v1.11, 26 da auditoria dos pedidos, da importação e dos públicos, v1.12) e 5 da Q-70 (2 de cadastro, 2 de correção cadastral e 1 de perfilamento); mais 5 cenários `@implantacao` (11 passos) em `make bdd-implantacao`.
 
 ### 6.1 Mudanças da v1.0 nas features (aprovadas junto com a Spec v1.0, B-14)
 

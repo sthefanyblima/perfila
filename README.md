@@ -29,7 +29,7 @@ Desenvolvido com **Spec-Driven Development** (a especificação é a fonte da ve
 | Fechamento do escopo | 19/11 | daqui em diante, só correções |
 | Ensaio · evento final | 23/11 · 24/11 | roteiro em `docs/ROTEIRO_DEMONSTRACAO.md` |
 
-**513 cenários BDD** (508 no `make verify` + 5 de implantação), teste de arquitetura e suíte de contrato dos repositórios em memória e em PostgreSQL.
+**518 cenários BDD** (513 no `make verify` + 5 de implantação), teste de arquitetura e suíte de contrato dos repositórios em memória e em PostgreSQL.
 
 ## Arquitetura
 
@@ -48,7 +48,7 @@ Implantação (UML8): o **Nginx** (TLS, única porta de entrada) distribui para 
 ### Desenvolvimento (Go 1.22+)
 
 ```bash
-make verify   # gofmt, vet, testes com -race, 508 cenários BDD e teste de arquitetura
+make verify   # gofmt, vet, testes com -race, 513 cenários BDD e teste de arquitetura
 make demo     # fluxo do diagrama de sequência em memória, passo a passo
 make serve    # API e painel em modo memória: http://localhost:8080/painel (admin / dev-senha-admin)
 make demo-api # roteiro de curl contra o make serve (em outro terminal)
