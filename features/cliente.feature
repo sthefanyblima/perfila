@@ -21,6 +21,16 @@ Funcionalidade: Cadastro de cliente
       |                   | c-010@exemplo.test |
       | Cliente Sintético |                    |
 
+  @Q-70
+  Esquema do Cenário: Cadastro rejeita e-mail sem arroba ou com espaço interno
+    Quando um cliente é cadastrado com nome "Cliente Sintético" e e-mail "<email>"
+    Então a operação falha com o erro "dados_invalidos"
+
+    Exemplos:
+      | email              |
+      | c-010.exemplo.test |
+      | c 010@exemplo.test |
+
   @lgpd @RN-01
   Cenário: Cliente recém-cadastrado começa sem consentimento
     Quando um cliente é cadastrado com nome "Cliente Sintético" e e-mail "c-010@exemplo.test"
