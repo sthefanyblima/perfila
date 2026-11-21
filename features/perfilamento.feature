@@ -55,6 +55,17 @@ Funcionalidade: Perfilamento do comportamento do cliente
     Quando o perfil do cliente "c-001" é gerado
     Então a categoria preferida é "games"
 
+  @Q-70
+  Cenário: Grafias da mesma categoria são reunidas no perfil
+    Dado que o cliente "c-001" possui os eventos:
+      | tipo   | valor | categoria    | quando               |
+      | compra | 50    | \nESPORTES\n | 2026-03-02T10:00:00Z |
+      | compra | 70    | esportes     | 2026-03-03T10:00:00Z |
+      | compra | 80    | jogos        | 2026-03-04T10:00:00Z |
+      | compra | 90    | jogos        | 2026-03-05T10:00:00Z |
+    Quando o perfil do cliente "c-001" é gerado
+    Então a categoria preferida é "esportes"
+
   Cenário: Gerar o perfil de novo atualiza o existente
     Dado que o cliente "c-001" já possui um perfil com frequência de compras 1
     E que o cliente "c-001" possui os eventos:
