@@ -44,6 +44,17 @@ Funcionalidade: Direitos do titular e retenção após a revogação
       |                     | ana.souza@exemplo.test |
       | Ana Souza Sintética |                        |
 
+  @aplicacao @UC-09 @Q-48 @Q-70
+  Esquema do Cenário: Correção rejeita e-mail sem arroba ou com espaço interno
+    Quando o cadastro do cliente "c-001" é corrigido para o nome "Ana Souza Sintética" e o e-mail "<email>"
+    Então a operação falha com o erro "dados_invalidos"
+    E o cadastro do cliente "c-001" tem o nome "Ana Sintética"
+
+    Exemplos:
+      | email                    |
+      | ana.souza.exemplo.test   |
+      | ana souza@exemplo.test   |
+
   @aplicacao @UC-09 @Q-48
   Cenário: Corrigir o cadastro de um cliente inexistente
     Quando o cadastro do cliente "c-999" é corrigido para o nome "Ana Souza Sintética" e o e-mail "ana.souza@exemplo.test"
