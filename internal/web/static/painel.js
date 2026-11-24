@@ -159,35 +159,36 @@
 
   // Movimento da identidade Manhã, só com ponteiro e sem alterar o conteúdo: as marcações da régua
   // do processamento perto do cursor crescem, e as formas de fundo acompanham o cursor de leve.
-  // Desligado com prefers-reduced-motion. Só CSSOM (style.setProperty/transform), compatível com a CSP.
-  if (!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) {
-    var base = { "is-major": 34, "is-mid": 20, "is-minor": 10 };
-    var quadro = 0;
-    document.addEventListener("pointermove", function (ev) {
-      var regua = ev.target.closest && ev.target.closest(".pf-rule");
+  // Desligado com prefers-reduced-motion (lido a cada evento, então vale se o sistema mudar).
+  // Só CSSOM (style.setProperty/transform), compatível com a CSP. Um requestAnimationFrame por quadro.
+  var reduz = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+  var base = { "is-major": 34, "is-mid": 20, "is-minor": 10 };
+  var quadro = 0, ultimo = null;
+  document.addEventListener("pointermove", function (ev) {
+    if (reduz && reduz.matches) { return; }
+    ultimo = ev;
+    if (quadro) { return; }
+    quadro = requestAnimationFrame(function () {
+      quadro = 0;
+      var e = ultimo;
       var formas = document.querySelectorAll(".pf-bg i");
       if (formas.length === 2) {
-        var x = ev.clientX / window.innerWidth - 0.5, y = ev.clientY / window.innerHeight - 0.5;
+        var x = e.clientX / window.innerWidth - 0.5, y = e.clientY / window.innerHeight - 0.5;
         formas[0].style.transform = "translate(" + (x * -40) + "px," + (y * -30) + "px)";
         formas[1].style.transform = "translate(" + (x * 50) + "px," + (y * 40) + "px)";
       }
+      var regua = e.target && e.target.closest && e.target.closest(".pf-rule");
       if (!regua) { return; }
-      cancelAnimationFrame(quadro);
-      quadro = requestAnimationFrame(function () {
-        regua.querySelectorAll(".pf-ticks__camada").forEach(function (camada) {
-          camada.querySelectorAll("i").forEach(function (t) {
-            var r = t.getBoundingClientRect(), d = Math.abs(ev.clientX - (r.left + 1.5));
-            var cls = t.classList.contains("is-major") ? "is-major" : t.classList.contains("is-mid") ? "is-mid" : "is-minor";
-            t.style.setProperty("--h", (base[cls] + Math.max(0, 26 * (1 - d / 90))) + "px");
-          });
-        });
+      regua.querySelectorAll(".pf-ticks__camada i").forEach(function (t) {
+        var r = t.getBoundingClientRect(), d = Math.abs(e.clientX - (r.left + 1.5));
+        var cls = t.classList.contains("is-major") ? "is-major" : t.classList.contains("is-mid") ? "is-mid" : "is-minor";
+        t.style.setProperty("--h", (base[cls] + Math.max(0, 26 * (1 - d / 90))) + "px");
       });
     });
-    document.addEventListener("pointerout", function (ev) {
-      if (ev.target.closest && ev.target.closest(".pf-rule") && !(ev.relatedTarget && ev.relatedTarget.closest && ev.relatedTarget.closest(".pf-rule"))) {
-        cancelAnimationFrame(quadro);
-        document.querySelectorAll(".pf-rule .pf-ticks i").forEach(function (t) { t.style.removeProperty("--h"); });
-      }
-    });
-  }
+  });
+  document.addEventListener("pointerout", function (ev) {
+    if (ev.target.closest && ev.target.closest(".pf-rule") && !(ev.relatedTarget && ev.relatedTarget.closest && ev.relatedTarget.closest(".pf-rule"))) {
+      document.querySelectorAll(".pf-rule .pf-ticks i").forEach(function (t) { t.style.removeProperty("--h"); });
+    }
+  });
 })();

@@ -6,6 +6,6 @@ Etiqueta de estado do domínio: forma, palavra e cor, nunca só cor.
 
 **Forma.** Pílula (`radius-pill`) com fundo `*-tint`, texto em negrito de 12px na cor do estado e ícone de 16px. Sem borda.
 
-**O que fornecer.** `<span class="pf-tag pf-tag--…">` com o SVG do ícone e o texto. Em tabelas, a etiqueta fica sozinha na célula e não quebra. `pf-tag--brand` existe só para marcas informativas (a etiqueta "E" do formulário de critério), nunca para estado do domínio.
+**O que fornecer.** `<span class="pf-tag pf-tag--…">` com o SVG do ícone e o texto. Em tabelas, a etiqueta fica sozinha na célula e não quebra. `pf-tag--accent` existe só para marcas informativas (a etiqueta "E" do formulário de critério), nunca para estado do domínio.
 
 **Não faça.** Inventar estados que o domínio não tem. Usar `brand` para estado. Mostrar o estado só pela cor.

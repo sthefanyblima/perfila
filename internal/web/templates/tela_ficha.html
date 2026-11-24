@@ -44,7 +44,7 @@
 
     <div class="pf-laudo">
       {{if not .Processado}}<p class="pf-laudo__texto" data-teste="nao-processado">Este cliente ainda não foi processado. Registre os eventos e use "Processar agora".</p>
-      {{else}}{{with .Resultado}}<p class="pf-laudo__texto" data-teste="laudo">{{primeiroNome $.Dados.Cliente.Nome}}{{with .Segmento}} está no segmento <mark>{{.Nome}}</mark>{{end}}{{with $.Dados.Recomendacao}}. Recomendamos <em>{{$.Dados.NomeProduto .ProdutoID}}</em>{{end}}.</p>{{end}}{{end}}
+      {{else}}{{with .Resultado}}<p class="pf-laudo__texto" data-teste="laudo">{{primeiroNome $.Dados.Cliente.Nome}}{{with .Segmento}} está no segmento <mark>{{.Nome}}</mark>{{else}} ainda não está em nenhum segmento{{end}}{{with $.Dados.Recomendacao}}. Recomendamos <em>{{$.Dados.NomeProduto .ProdutoID}}</em>{{end}}.</p>{{end}}{{end}}
     </div>
 
     {{if .Processado}}{{with .Resultado}}

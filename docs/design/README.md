@@ -61,7 +61,7 @@ Concedido: verde, borda dupla. Não concedido: neutro, tracejado, "nenhum regist
 Todo contêiner tolera nomes longos sem estourar ou se sobrepor:
 
 - Nome do cliente, título, células da primeira coluna, valores de `KeyValue`, avisos, diálogos e selo de segmento quebram com `overflow-wrap: anywhere`.
-- O nome grande da ficha reduz a fonte acima de 20 caracteres (`pf-record__name--lg`) e de 40 (`--xl`, com sobrenome corrido na mesma linha).
+- O nome grande da ficha reduz a fonte acima de 20 caracteres (`pf-ficha__nome--lg`) e de 40 (`--xl`, com sobrenome corrido na mesma linha).
 - Em tabelas, datas, números, etiquetas e e-mail mascarado não quebram (`white-space: nowrap`); a tabela rola na horizontal dentro do próprio contêiner. O nome ocupa uma linha própria e o ID vem abaixo.
 - Nome do operador no rodapé do menu termina em reticências. Botões de ação de uma célula ficam sempre lado a lado, à direita (`pf-acell`).
 - Grades e colunas de página usam `min-width: 0` nos filhos, para o conteúdo não alargar a página inteira no celular.
@@ -89,6 +89,10 @@ Tipos de evento: navegação (seta), compra (sacola), interação (envelope). A 
 - Alvo de clique ≥ 24×24px (46px nos controles principais, 36px nos pequenos).
 - A interface funciona a partir de 360px de largura: abaixo de 960px a barra lateral vira um menu em gaveta, abaixo de 900px as grades viram uma coluna e a faixa de processamento vira 2×2, e as tabelas rolam na horizontal dentro do próprio contêiner.
 - Contraste: ver a seção Contraste abaixo; todos os pares de texto e de campo passam.
+
+## Nomes de classe
+
+`bundle.css` e `internal/web/static/perfila.css` usam os mesmos nomes onde o componente existe nos dois: `pf-ficha`, `pf-stamp`, `pf-stage`, `pf-pipe__step--concluida`, `--atencao` e `--falhou`, `pf-laudo`, `pf-segseal`, `pf-ticket`, `pf-tag--accent` e os demais. Só existem no design system, sem uso no painel ainda: `pf-switch`, `pf-segctl`, `pf-steps`, `pf-stat`, `pf-skel`, `pf-pipe__step--run` e `--blocked`. O painel implementado acrescenta ainda `pf-kpi` (no lugar de `pf-stat`) e `pf-score` (gráfico em SVG, no lugar de `pf-pips`).
 
 ## Contraste (WCAG 2.2 AA)
 

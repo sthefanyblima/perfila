@@ -5,6 +5,7 @@
 @font-face { font-family: "Bricolage Grotesque"; font-weight: 400 800; font-style: normal; font-display: swap; src: url("fontes/BricolageGrotesque-Latin.woff2") format("woff2"); }
 @font-face { font-family: "DM Sans"; font-weight: 400 700; font-style: normal; font-display: swap; src: url("fontes/DMSans-Latin.woff2") format("woff2"); }
 @font-face { font-family: "JetBrains Mono"; font-weight: 400 500; font-style: normal; font-display: swap; src: url("fontes/JetBrainsMono-Latin.woff2") format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-weight: 400 500; font-style: normal; font-display: swap; src: url("fontes/JetBrainsMono-Simbolos.woff2") format("woff2"); unicode-range: U+2264-2265; } /* ≤ e ≥ dos critérios, fora do subconjunto latin */
 
 :root {
   color-scheme: light;
@@ -44,7 +45,7 @@ body.pf {
   font-family: var(--font-sans); font-size: 15.5px; line-height: 1.55;
   color: var(--ink); background: var(--surface-0); -webkit-font-smoothing: antialiased; overflow-x: hidden;
 }
-.pf :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 10px; }
+.pf :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 .pf a { color: var(--brand); text-underline-offset: 3px; }
 .pf a:hover { color: var(--ink); }
 .pf h1, .pf h2, .pf h3, .pf p { margin: 0; }

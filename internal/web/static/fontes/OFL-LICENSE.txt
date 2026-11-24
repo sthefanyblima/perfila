@@ -2,7 +2,7 @@ Fontes servidas pelo painel, todas sob a SIL Open Font License, Version 1.1 (tex
 - Bricolage Grotesque: Copyright 2022 The Bricolage Grotesque Project Authors (https://github.com/ateliertriay/bricolage)
 - DM Sans: Copyright 2014 The DM Sans Project Authors (https://github.com/googlefonts/dm-fonts)
 - JetBrains Mono: Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)
-Os arquivos woff2 vêm do Google Fonts, subconjunto latin.
+Os arquivos woff2 vêm do Google Fonts, subconjunto latin; JetBrainsMono-Simbolos.woff2 traz só os sinais ≤ e ≥.
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 
