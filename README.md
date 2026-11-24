@@ -29,7 +29,7 @@ Desenvolvido com **Spec-Driven Development** (a especificação é a fonte da ve
 | **Identidade visual Manhã** (PR #17, Q-71) | 24/11 | ✅ design system v2 (tokens, `bundle.css`, 29 componentes) · protótipo navegável · painel e portal do titular na nova identidade · fontes Bricolage Grotesque, DM Sans e JetBrains Mono embutidas · contraste AA conferido · celular e nomes longos revisados · sem mudança de regra de negócio |
 | Fechamento do escopo | 19/11 | ✅ fechado: nenhuma funcionalidade nova; a identidade visual de 24/11 mudou só a aparência |
 | **Encerramento do projeto** | 24/11 | ✅ design revisado (contraste, celular, nomes longos); PR #17 pronto para o evento final |
-| Ensaio · evento final | 23/11 · 24/11 | roteiro em `docs/ROTEIRO_DEMONSTRACAO.md` |
+| Evento final | quinta, 26/11 | roteiro em `docs/ROTEIRO_DEMONSTRACAO.md` |
 
 **518 cenários BDD** (513 no `make verify` + 5 de implantação), teste de arquitetura e suíte de contrato dos repositórios em memória e em PostgreSQL.
 
