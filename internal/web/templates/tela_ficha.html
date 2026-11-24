@@ -11,9 +11,9 @@
   {{else}}
     {{with .Inativo}}{{template "alerta" .}}{{end}}
     {{with .Falha}}{{template "alerta" .}}{{end}}
-    <section class="pf-panel" aria-labelledby="titulo-processamento" id="painel-processamento" data-teste="painel-processamento">
-      <div class="pf-panel__head">
-        <h2 class="pf-panel__title" id="titulo-processamento">Processamento</h2>
+    <section class="pf-stage" aria-labelledby="titulo-processamento" id="painel-processamento" data-teste="painel-processamento">
+      <div class="pf-stage__acao">
+        <h2 class="pf-stage__titulo" id="titulo-processamento">Processamento</h2>
         {{if .PodeAgir}}
         <form method="post" action="/painel/clientes/{{.Cliente.ID}}/processamento">
           {{template "csrf" $.CSRF}}
@@ -21,23 +21,34 @@
         </form>
         {{else}}<span class="pf-btn-motivo">Cadastro inativo: processamento bloqueado</span>{{end}}
       </div>
-      <div class="pf-panel__body">
-        <ol class="pf-pipe" aria-label="Etapas do processamento">
-          {{range .Etapas}}
-          <li class="pf-pipe__step pf-pipe__step--{{.Estado}}" data-teste="etapa" data-estado="{{.Estado}}">
-            <span class="pf-pipe__n">ETAPA {{.N}}</span>
-            <span class="pf-pipe__head">{{if eq .Estado "concluida"}}{{icone "ok"}}{{else if eq .Estado "atencao"}}{{icone "atencao"}}{{else if eq .Estado "falhou"}}{{icone "falha"}}{{else}}{{icone "pendente"}}{{end}}{{.Rotulo}}</span>
-            <span class="pf-sr">{{if eq .Estado "concluida"}}concluída{{else if eq .Estado "atencao"}}concluída com atenção{{else if eq .Estado "falhou"}}falhou{{else}}pendente{{end}}</span>
-            <span class="pf-pipe__res">{{if .Resumo}}{{.Resumo}}{{else if eq .Estado "pendente"}}Ainda não executada{{end}}</span>
-          </li>
-          {{end}}
-        </ol>
-        {{if not .Processado}}<p class="pf-muted" data-teste="nao-processado">Este cliente ainda não foi processado. Registre os eventos e use "Processar agora".</p>{{end}}
+      <ol class="pf-pipe" aria-label="Etapas do processamento">
+        {{range .Etapas}}
+        <li class="pf-pipe__step pf-pipe__step--{{.Estado}}" data-teste="etapa" data-estado="{{.Estado}}">
+          <span class="pf-pipe__n">ETAPA {{.N}}</span>
+          <span class="pf-pipe__head">{{if eq .Estado "concluida"}}{{icone "ok"}}{{else if eq .Estado "atencao"}}{{icone "atencao"}}{{else if eq .Estado "falhou"}}{{icone "falha"}}{{else}}{{icone "pendente"}}{{end}}{{.Rotulo}}</span>
+          <span class="pf-sr">{{if eq .Estado "concluida"}}concluída{{else if eq .Estado "atencao"}}concluída com atenção{{else if eq .Estado "falhou"}}falhou{{else}}pendente{{end}}</span>
+          <span class="pf-pipe__res">{{if .Resumo}}{{.Resumo}}{{else if eq .Estado "pendente"}}Ainda não executada{{end}}</span>
+        </li>
+        {{end}}
+      </ol>
+      {{with regua .Etapas}}
+      <div class="pf-rule" aria-hidden="true">
+        <div class="pf-ticks">
+          <div class="pf-ticks__camada">{{range .Marcas}}<i class="{{.Classe}}"></i>{{end}}</div>
+          <div class="pf-ticks__camada pf-ticks__camada--acesa">{{range .Marcas}}<i class="{{.Classe}}{{if .Apagada}} is-off{{end}}"></i>{{end}}</div>
+        </div>
+        {{if .Mostrar}}<div class="pf-needle pf-needle--{{.Agulha}}"><span>agora</span></div>{{end}}
       </div>
+      {{end}}
     </section>
 
+    <div class="pf-laudo">
+      {{if not .Processado}}<p class="pf-laudo__texto" data-teste="nao-processado">Este cliente ainda não foi processado. Registre os eventos e use "Processar agora".</p>
+      {{else}}{{with .Resultado}}<p class="pf-laudo__texto" data-teste="laudo">{{primeiroNome $.Dados.Cliente.Nome}}{{with .Segmento}} está no segmento <mark>{{.Nome}}</mark>{{end}}{{with $.Dados.Recomendacao}}. Recomendamos <em>{{$.Dados.NomeProduto .ProdutoID}}</em>{{end}}.</p>{{end}}{{end}}
+    </div>
+
     {{if .Processado}}{{with .Resultado}}
-    <div class="pf-grid-2">
+    <div class="pf-grid-3">
       <section class="pf-panel pf-panel--dados" aria-labelledby="titulo-perfil" data-teste="painel-perfil">
         <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-perfil">Perfil</h2></div>
         <div class="pf-panel__body">
@@ -61,9 +72,10 @@
       </section>
 
       <section class="pf-panel pf-panel--dados" aria-labelledby="titulo-segmento" data-teste="painel-segmento">
-        <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-segmento">Segmento</h2>{{with .Segmento}}<span class="pf-tag pf-tag--accent">{{.Nome}}</span>{{end}}</div>
+        <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-segmento">Segmento</h2></div>
         <div class="pf-panel__body">
           {{with .Segmento}}
+            <span class="pf-segseal"><i aria-hidden="true"></i>{{.Nome}}</span>
             <p>{{if .Descricao}}{{.Descricao}}{{else}}Sem descrição.{{end}}</p>
             <div class="pf-stack">
               <span class="pf-label">Por que este segmento</span>
@@ -80,18 +92,19 @@
           {{end}}
         </div>
       </section>
-    </div>
 
-    <section class="pf-panel pf-panel--dados" aria-labelledby="titulo-recomendacao" data-teste="painel-recomendacao">
-      <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-recomendacao">Recomendação</h2>{{with $.Dados.Recomendacao}}{{template "tag" (estado .Status)}}{{end}}</div>
+      <section class="pf-panel pf-panel--dados" aria-labelledby="titulo-recomendacao" data-teste="painel-recomendacao">
+      <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-recomendacao">Recomendação</h2></div>
       <div class="pf-panel__body">
         {{with $.Dados.Recomendacao}}
-        <dl class="pf-kv">
-          <dt>Produto</dt><dd class="pf-kv__destaque">{{$.Dados.NomeProduto .ProdutoID}}</dd>
-          <dt>Motivo</dt><dd>{{motivo .Motivo}}</dd>
-          <dt>Ativada em</dt><dd class="pf-num">{{dataHoraPtr .DataAtivacao}}</dd>
-          <dt>Válida até</dt><dd class="pf-num">{{dataHoraPtr .Validade}}</dd>
-        </dl>
+        <div class="pf-ticket">
+          <span class="pf-ticket__when">Produto recomendado</span>
+          <strong class="pf-ticket__title">{{$.Dados.NomeProduto .ProdutoID}}</strong>
+          <span class="pf-ticket__motivo">{{motivo .Motivo}}</span>
+          <hr>
+          {{template "tag" (estado .Status)}}
+          <div class="pf-ticket__datas"><span>Ativada em {{dataHoraPtr .DataAtivacao}}</span><span>Válida até {{dataHoraPtr .Validade}}</span></div>
+        </div>
         {{else}}
         {{template "alerta" (alertaAtencao "Sem recomendação ativa" (index $.Dados.Etapas 3).Resumo)}}
         {{end}}

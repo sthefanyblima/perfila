@@ -1,0 +1,726 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Perfila · Protótipo navegável (Manhã)</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=DM+Sans:opsz,wght@9..40,400..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#FBF6EE;--surf:#FFFFFF;--ink:#1F1A33;--muted:#6B6580;--line:#E8E0D2;
+  --pri:#5B3DF5;--pri-ink:#fff;--pri-t:#F0ECFF;--acc:#FF7A45;--acc-t:#FFE3D6;
+  --ok:#0F9D6B;--ok-t:#D9F5E9;--warn:#A86200;--warn-t:#FFEFC9;--crit:#D6334A;--crit-t:#FFE1E5;--neu:#6B6580;--neu-t:#ECE8F2;
+  --band:#5B3DF5;--band-ink:#fff;--band-mute:#D4CCFF;--lit:#FFC4A8;--blob1:#FFD9C7;--blob2:#DCD3FF;
+  --disp:"Bricolage Grotesque",sans-serif;--sans:"DM Sans",system-ui,sans-serif;--mono:"JetBrains Mono",Consolas,monospace;--r:18px;--ease:cubic-bezier(.2,.8,.2,1);
+}
+*,*::before,*::after{box-sizing:border-box}*{margin:0}
+html{scroll-behavior:smooth}
+body{font:400 15.5px/1.55 var(--sans);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:3px solid var(--pri);outline-offset:3px;border-radius:10px}
+.mono{font-family:var(--mono);font-size:12px}.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.bg{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.bg i{position:absolute;border-radius:50%;transition:transform 1.2s var(--ease)}
+.bg i:nth-child(1){width:44vw;height:44vw;right:-14vw;top:-18vw;background:var(--blob1);opacity:.55}
+.bg i:nth-child(2){width:32vw;height:32vw;left:-10vw;bottom:-12vw;background:var(--blob2);opacity:.55}
+
+/* ---------- moldura ---------- */
+.app{display:grid;grid-template-columns:288px minmax(0,1fr);min-height:100vh;position:relative;z-index:1}
+.side{position:sticky;top:0;height:100vh;padding:16px 0 16px 16px;z-index:20}
+.sbox{background:var(--surf);border:1px solid var(--line);border-radius:30px;height:100%;padding:20px 14px 14px;display:flex;flex-direction:column;overflow:auto}
+.logo{display:flex;align-items:center;gap:10px;font:800 24px var(--disp);letter-spacing:-.02em;padding:0 8px 18px}
+.logo i{width:30px;height:30px;border-radius:10px 10px 10px 3px;background:var(--pri);display:grid;place-items:center;color:#fff;font:700 16px var(--disp);transform:rotate(-6deg);transition:transform .4s var(--ease)}
+.logo:hover i{transform:rotate(6deg) scale(1.08)}
+.grp{font:600 11px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:16px 12px 6px}
+.nv{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:14px;font-weight:600;color:var(--muted);transition:background .2s,color .2s,transform .25s var(--ease)}
+.nv:hover{background:var(--pri-t);color:var(--ink);transform:translateX(3px)}
+.nv[aria-current=page]{background:var(--pri);color:#fff;box-shadow:0 8px 18px -8px var(--pri)}
+.sfoot{margin-top:auto;padding:14px 6px 2px;border-top:1px solid var(--line);display:grid;gap:8px}
+.who{display:flex;gap:10px;align-items:center}
+.av{width:36px;height:36px;border-radius:50%;background:var(--acc);color:#1B1408;font:800 14px var(--disp);display:grid;place-items:center}
+.who>div b{display:block;line-height:1.2}.who>div span{font-size:12px;color:var(--muted)}
+.sfoot select{height:36px;font-size:13px;border-radius:10px;padding:0 8px}
+.lnk{padding:0;font:inherit;font-size:13px;color:var(--muted);text-decoration:underline;text-underline-offset:3px;text-align:left}.lnk:hover{color:var(--ink)}
+.mtop{display:none;align-items:center;justify-content:space-between;padding:12px 16px}
+.main{padding:20px clamp(18px,3.4vw,52px) 110px;max-width:1280px;width:100%}
+.scrim{display:none}.app>div{min-width:0}
+@media(max-width:960px){
+  .app{grid-template-columns:minmax(0,1fr)}.side{position:fixed;left:0;top:0;bottom:0;width:min(300px,86vw);padding:10px;transform:translateX(-105%);transition:transform .35s var(--ease)}
+  .side.open{transform:none}.side.open~.scrim{display:block;position:fixed;inset:0;background:#1F1A3366;z-index:15}
+  .mtop{display:flex}.main{padding-top:6px}
+}
+
+/* ---------- cabeçalho de página ---------- */
+.crumb{display:flex;gap:8px;flex-wrap:wrap;font:500 12px var(--mono);color:var(--muted)}.crumb a:hover{color:var(--pri)}
+.ph{display:flex;justify-content:space-between;align-items:flex-end;gap:16px 24px;flex-wrap:wrap;margin:14px 0 30px}
+.ph h1{font:800 clamp(34px,5vw,64px)/.98 var(--disp);letter-spacing:-.035em;margin-top:8px}
+.ph .acts{display:flex;gap:10px;flex-wrap:wrap}
+.panel{background:var(--surf);border:1px solid var(--line);border-radius:28px;padding:clamp(18px,2.4vw,32px)}
+.panel>h2,.ph2{font:800 22px var(--disp);letter-spacing:-.02em;margin-bottom:6px}
+.panel>.sub{color:var(--muted);margin-bottom:16px;max-width:60ch}
+.panel+.panel,.panel+.alert,.alert+.panel,.alert+.alert,.panel+.demo,.alert+.demo,.panel+#pavisos,#pavisos+.demo,.stage+.laudo,.alert+.stage,.alert+.g3,.alert+.g2,.alert+.tablewrap{margin-top:22px}
+.stack>*,.g2>*,.g3>*{margin-top:0!important}
+/* nomes longos: nada estoura o contêiner */
+.g2>*,.g3>*,.stack>*,.fh>*,.laudo>*,.book>*{min-width:0}
+td:first-child,td.mono,.kv dd,.kv dt,.ph h1,.fh h1,.fh h1 span,.panel h2,.led .t,.tl li,.alert,.ticket,.seg,.laudo p.s,.stg p,.crumb,.chp,dialog p,dialog h3,.card h1,.portal h1,.empty h3,.empty p,.uuid{overflow-wrap:anywhere}
+.chp,.uuid{max-width:100%}
+.seg{max-width:100%;border-radius:22px;line-height:1.15}
+.who>div{min-width:0}.sfoot{grid-template-columns:minmax(0,1fr)}.sfoot>*{min-width:0}.sbox{overflow-x:hidden}.who>div b,.who>div span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stack{display:grid;gap:22px}.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+@media(max-width:900px){.g2,.g3{grid-template-columns:1fr}}
+
+/* ---------- componentes ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:46px;padding:0 20px;border-radius:15px;font-weight:700;background:var(--surf);border:1.5px solid var(--line);transition:transform .25s var(--ease),box-shadow .25s,background .2s,border-color .2s}
+.btn:hover{transform:translateY(-2px);border-color:var(--ink)}.btn:active{transform:scale(.98)}
+.btn.pri{background:var(--pri);border-color:var(--pri);color:#fff;box-shadow:0 8px 20px -8px var(--pri)}.btn.pri:hover{box-shadow:0 12px 26px -8px var(--pri)}
+.btn.crit{color:var(--crit);border-color:color-mix(in srgb,var(--crit) 45%,transparent);background:transparent}.btn.crit:hover{background:var(--crit-t);border-color:var(--crit)}
+.btn.crit.fill{background:var(--crit);color:#fff;border-color:var(--crit)}
+.btn.sm{min-height:36px;padding:0 14px;font-size:14px;border-radius:12px}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.why{color:var(--muted);font-size:13px;line-height:1.4}
+.tag{display:inline-flex;align-items:center;gap:6px;padding:3px 11px 3px 8px;border-radius:99px;font:700 12px/1.6 var(--sans);white-space:nowrap}
+.tag[data-k=ok]{background:var(--ok-t);color:var(--ok)}.tag[data-k=warn]{background:var(--warn-t);color:var(--warn)}.tag[data-k=crit]{background:var(--crit-t);color:var(--crit)}.tag[data-k=neu]{background:var(--neu-t);color:var(--neu)}.tag[data-k=pri]{background:var(--pri-t);color:var(--pri)}
+.alert{border-radius:20px;padding:18px 22px;display:grid;gap:10px;justify-items:start;background:var(--crit-t);border:1px solid color-mix(in srgb,var(--crit) 25%,transparent)}
+.alert strong{font:800 20px var(--disp);color:var(--crit)}
+.alert[data-k=neu],.alert[data-k=info]{background:var(--pri-t);border-color:color-mix(in srgb,var(--pri) 20%,transparent)}.alert[data-k=info] strong,.alert[data-k=neu] strong{color:var(--pri)}
+.alert[data-k=ok]{background:var(--ok-t);border-color:color-mix(in srgb,var(--ok) 25%,transparent)}.alert[data-k=ok] strong{color:var(--ok)}
+.alert[data-k=warn]{background:var(--warn-t);border-color:color-mix(in srgb,var(--warn) 25%,transparent)}.alert[data-k=warn] strong{color:var(--warn)}
+.empty{text-align:center;padding:48px 20px;display:grid;gap:10px;justify-items:center}
+.empty .ob{width:88px;height:88px;border-radius:50% 50% 50% 14px;background:var(--acc-t);display:grid;place-items:center;color:var(--acc);margin-bottom:6px;transform:rotate(-6deg)}
+.empty .ob svg{width:38px;height:38px}.empty h3{font:800 26px var(--disp);letter-spacing:-.02em}.empty p{color:var(--muted);max-width:44ch}
+.uuid{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:99px;background:var(--neu-t);color:var(--muted);font:500 12px var(--mono)}.uuid:hover{background:var(--pri-t);color:var(--pri)}
+.tablewrap{overflow-x:auto;margin:0 -8px}
+table{width:100%;border-collapse:collapse;min-width:620px}td .chips{max-width:360px}
+th{font:700 11px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;padding:10px 12px}
+td{padding:14px 12px;border-top:1px solid var(--line);vertical-align:middle}
+td.r,th.r{text-align:right}td.num,td .tag,td.mono{white-space:nowrap;overflow-wrap:normal}td:first-child{min-width:170px}
+.acell{display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-wrap:nowrap;white-space:nowrap}.acell .btn{flex:none}td.r:has(.acell){width:1%}
+tr.link{cursor:pointer}tr.link:hover td{background:var(--pri-t)}tr.link td:first-child{border-radius:14px 0 0 14px}tr.link td:last-child{border-radius:0 14px 14px 0}
+td b{font-weight:700;display:block}td b+.uuid{margin-top:4px}td small{display:block;color:var(--muted)}
+.bar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+.pager{display:flex;justify-content:space-between;align-items:center;margin-top:16px;color:var(--muted);font-size:14px}
+.field{display:grid;gap:6px;margin-bottom:16px}.field label{font-weight:700;font-size:14px}.field .h{font-size:13px;color:var(--muted)}
+input,select,textarea{width:100%;min-height:46px;border-radius:14px;border:1.5px solid var(--line);background:var(--surf);padding:0 14px;transition:border-color .2s,box-shadow .2s}
+textarea{padding:12px 14px;min-height:96px}
+input:focus,select:focus,textarea:focus{outline:0;border-color:var(--pri);box-shadow:0 0 0 4px var(--pri-t)}
+input[aria-invalid=true]{border-color:var(--crit)}.err{color:var(--crit);font-size:13px;font-weight:600}
+.form{max-width:520px}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.search{position:relative;flex:1;min-width:220px;max-width:380px}.search svg{position:absolute;left:14px;top:15px;color:var(--muted)}.search input{padding-left:40px}
+.seg-ctl{display:inline-flex;flex-wrap:wrap;max-width:100%;gap:4px;padding:4px;border-radius:24px;background:var(--surf);border:1px solid var(--line)}
+.seg-ctl button{padding:7px 14px;border-radius:99px;font-weight:700;font-size:14px;color:var(--muted)}.seg-ctl button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:10px 22px}.kv dt{color:var(--muted)}.kv dd{font-weight:600;text-align:right}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.cc{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:99px;font:500 12px var(--mono);background:var(--neu-t);color:var(--muted)}
+.cc[data-ok=true]{background:var(--ok-t);color:var(--ok)}.cc[data-ok=false]{background:var(--warn-t);color:var(--warn)}
+.stat{display:grid;gap:2px}.stat b{font:800 clamp(44px,5vw,72px)/1 var(--disp);letter-spacing:-.04em}.stat span{color:var(--muted);font-size:14px}
+.pips{display:flex;gap:4px;margin:8px 0 4px}.pips i{flex:1;height:10px;border-radius:5px;background:var(--line)}.pips i.on{background:var(--pri)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 26px}@media(max-width:700px){.tabs{flex-wrap:nowrap;overflow-x:auto;margin-left:-4px;padding:0 4px 4px;scrollbar-width:none}.tabs a{white-space:nowrap}}
+.tabs a{padding:10px 18px;border-radius:99px;font-weight:700;color:var(--muted);transition:background .2s,color .2s}.tabs a:hover{background:var(--surf);color:var(--ink)}.tabs a[aria-current=page]{background:var(--ink);color:var(--bg)}
+.tl{list-style:none;padding:0;position:relative}.tl::before{content:"";position:absolute;left:11px;top:14px;bottom:14px;width:2px;background:var(--line);border-radius:2px}
+.tl li{position:relative;padding:6px 0 14px 38px}.tl li::before{content:"";position:absolute;left:5px;top:11px;width:14px;height:14px;border-radius:50%;background:var(--surf);border:3px solid var(--pri)}
+.tl li[data-t=Revogação]::before{border-color:var(--crit)}.tl li small{display:block;color:var(--muted)}
+.skel{display:grid;gap:14px}.sk{height:18px;border-radius:9px;background:linear-gradient(90deg,var(--line) 30%,var(--surf) 50%,var(--line) 70%);background-size:300% 100%;animation:sh 1.2s linear infinite}
+@keyframes sh{to{background-position:-300% 0}}
+.steps{display:flex;gap:10px;margin-bottom:22px;flex-wrap:wrap}.steps span{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--muted)}.steps b{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--neu-t);font:700 13px var(--mono)}
+.steps .on{color:var(--ink)}.steps .on b{background:var(--pri);color:#fff}.steps .dn b{background:var(--ok);color:#fff}
+.sw{display:inline-flex;align-items:center;gap:10px;font-weight:600}.sw i{position:relative;width:46px;height:26px;border-radius:99px;background:var(--line);transition:background .3s}.sw i::after{content:"";position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .3s var(--ease)}.sw[aria-checked=true] i{background:var(--pri)}.sw[aria-checked=true] i::after{transform:translateX(20px)}
+
+/* carimbo e régua (ficha) */
+.stamp{--c:var(--ok);display:grid;gap:3px;justify-items:center;padding:12px 24px 10px;border:3px double var(--c);color:var(--c);border-radius:8px;transform:rotate(-4deg);filter:url(#rough);background:color-mix(in srgb,var(--c) 7%,transparent);user-select:none;width:max-content}
+.stamp[data-k=neu]{--c:var(--neu);border-style:dashed;border-width:2px}.stamp[data-k=crit]{--c:var(--crit)}
+.stamp small{font:500 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase}
+.stamp strong{font:700 clamp(24px,2.8vw,38px)/1 var(--disp);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.stamp[data-k=crit] strong{text-decoration:line-through;text-decoration-thickness:3px}
+.stamp{margin:10px 10px 16px}.stamp.sm{padding:8px 16px 7px;margin:8px 8px 22px}.stamp.sm strong{font-size:22px}
+.fh{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:20px 40px;align-items:end;margin:14px 0 26px}
+.fh h1{font:800 clamp(46px,8.4vw,128px)/.86 var(--disp);letter-spacing:-.04em;margin-top:14px;hyphens:auto}
+.fh h1.lg{font-size:clamp(38px,6vw,92px);line-height:.92}.fh h1.lg span,.fh h1.xl span{display:inline}.fh h1.xl{font-size:clamp(32px,4.4vw,64px);line-height:.98;letter-spacing:-.03em}
+.fh h1 span{display:block;color:var(--pri)}
+.chp{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:99px;background:var(--surf);border:1px solid var(--line);color:var(--muted);font:500 12px var(--mono)}
+.fh .meta{display:flex;flex-wrap:wrap;gap:8px}
+@media(max-width:760px){.fh{grid-template-columns:1fr}}
+.stage{background:var(--band);color:var(--band-ink);border-radius:36px;padding:clamp(20px,3vw,40px) clamp(18px,3vw,40px) 0;position:relative;overflow:hidden;margin-bottom:34px}
+.stage::before,.stage::after{content:"";position:absolute;border-radius:50%;border:1.5px solid #ffffff2e;pointer-events:none}
+.stage::before{width:520px;height:520px;right:-180px;top:-300px}.stage::after{width:280px;height:280px;left:34%;top:-190px}
+.stages{display:grid;grid-template-columns:repeat(4,1fr);position:relative}
+.stg{padding:0 14px 22px 16px;min-height:140px;--c:var(--band-mute);position:relative;border-radius:14px}
+.stg+.stg::before{content:"";position:absolute;left:0;top:6px;bottom:28px;width:1px;background:#ffffff38}
+.stg[data-s=done]{--c:var(--lit)}.stg[data-s=run]{--c:#fff}.stg[data-s=err]{--c:#FFB4B4}.stg[data-s=attn]{--c:#FFE08A}.stg[data-s=blk]{--c:#FFB4B4}
+.stg .rw{display:flex;align-items:center;gap:8px;color:var(--c);font:500 12px var(--mono)}
+.stg .dot{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 22%,transparent)}
+.stg[data-s=done] .dot{background:var(--c);color:var(--band)}.stg[data-s=run] svg{animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.stg h3{overflow-wrap:normal;hyphens:manual;font:800 clamp(18px,2vw,30px)/1.05 var(--disp);letter-spacing:-.02em;margin:12px 0 8px}
+.stg p{color:var(--band-mute);font-size:13.5px;max-width:26ch;min-height:2.8em}
+.rule{position:relative;height:68px;cursor:crosshair}
+.ticks{position:absolute;left:0;right:0;bottom:0;height:50px;display:flex;justify-content:space-between;align-items:flex-end}
+.ticks i{display:block;width:3px;border-radius:3px 3px 0 0;height:var(--h);background:#ffffff47;transition:background .15s,height .14s ease-out}
+.ticks i[data-lit=true]{background:var(--lit)}.ticks i.M{--h:34px}.ticks i.m{--h:20px}.ticks i.u{--h:10px}
+.needle{position:absolute;top:0;bottom:0;width:0;transition:left .75s linear,opacity .3s;pointer-events:none}
+.needle::before{content:"";position:absolute;bottom:0;top:16px;width:3px;margin-left:-1.5px;background:#fff;border-radius:3px}
+.needle span{position:absolute;top:0;transform:translateX(-50%);font:600 10px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;background:#fff;color:var(--band);padding:5px 9px;border-radius:99px}
+.needle[data-hide=true]{opacity:0}
+@media(max-width:900px){.stages{grid-template-columns:1fr 1fr}.stg:nth-child(3)::before{display:none}.stg{min-height:0}}
+.laudo{display:grid;grid-template-columns:minmax(0,1fr) minmax(240px,320px);gap:24px clamp(28px,6vw,96px);align-items:start;margin-bottom:34px}
+.laudo p.s{font:600 clamp(22px,2.6vw,36px)/1.22 var(--disp);letter-spacing:-.02em;max-width:26em;text-wrap:pretty}
+.laudo mark{background:var(--acc-t);color:var(--ink);padding:0 .22em;border-radius:.25em;font-weight:800}.laudo mark[data-k=blk]{background:var(--crit-t);color:var(--crit)}
+.laudo em{font-style:normal;color:var(--pri);font-weight:800}
+.acts-col{display:grid;gap:10px}
+@media(max-width:900px){.laudo{grid-template-columns:1fr}}
+.seg{display:inline-flex;align-items:center;gap:10px;padding:7px 18px 7px 8px;border-radius:99px;background:var(--acc);color:#1B1408;font:800 20px var(--disp)}.seg i{width:30px;height:30px;border-radius:50%;background:#ffffff80;display:grid;place-items:center}
+.ticket{position:relative;background:var(--pri);color:#fff;border-radius:var(--r);padding:22px;overflow:visible}
+.ticket::before,.ticket::after{content:"";position:absolute;top:56%;width:22px;height:22px;border-radius:50%;background:var(--surf)}.ticket::before{left:-11px}.ticket::after{right:-11px}
+.ticket small{font:500 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;opacity:.85}
+.ticket strong{display:block;font:800 26px/1.08 var(--disp);letter-spacing:-.02em;margin:8px 0 6px}.ticket hr{border:0;border-top:2px dashed #ffffff66;margin:18px -4px 12px}
+.ticket .tag{background:#fff;color:var(--pri)}.ticket .btn{background:#fff;color:var(--pri);border-color:transparent}
+
+/* ---------- entrar / portal ---------- */
+.center{min-height:100vh;display:grid;place-items:center;padding:24px;position:relative;z-index:1}
+.card{width:min(460px,100%);background:var(--surf);border:1px solid var(--line);border-radius:34px;padding:clamp(24px,4vw,40px);box-shadow:0 30px 60px -30px #5B3DF540}
+.card h1{font:800 34px/1.05 var(--disp);letter-spacing:-.03em;margin:18px 0 6px}.card .lead{color:var(--muted);margin-bottom:22px}
+.quick{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px;padding-top:18px;border-top:1px dashed var(--line);align-items:center}.quick small{width:100%;color:var(--muted)}
+.portal{max-width:640px;margin:0 auto;padding:22px 20px 100px;position:relative;z-index:1}
+.ptop{display:flex;justify-content:space-between;align-items:center;margin-bottom:34px}
+.portal h1{font:800 clamp(38px,7vw,60px)/.98 var(--disp);letter-spacing:-.035em;margin-bottom:22px}
+.demo{margin-top:22px;padding:14px 18px;border-radius:18px;border:1.5px dashed var(--line);color:var(--muted);font-size:14px;display:grid;gap:8px;justify-items:start}
+
+/* ---------- diálogo e toast ---------- */
+dialog{border:0;border-radius:30px;padding:28px;width:min(500px,92vw);background:var(--surf);color:var(--ink);box-shadow:0 30px 80px -20px #0007;margin:auto}
+dialog::backdrop{background:#1F1A3373}
+dialog h3{font:800 28px/1.1 var(--disp);letter-spacing:-.02em;margin-bottom:10px}dialog p.fx{color:var(--muted);margin-bottom:18px}
+dialog .fa{display:flex;gap:10px;justify-content:flex-end;margin-top:8px;flex-wrap:wrap}
+.toasts{position:fixed;right:20px;bottom:20px;display:grid;gap:8px;z-index:60;justify-items:end}
+.toast{background:var(--ink);color:var(--bg);padding:12px 20px;border-radius:99px;font-weight:600;animation:tin .3s var(--ease);box-shadow:0 12px 30px -10px #0006}
+@keyframes tin{from{opacity:0;transform:translateY(14px) scale(.95)}}
+.spark{position:fixed;width:9px;height:9px;border-radius:50%;pointer-events:none;z-index:70}
+.page{animation:pin .35s var(--ease)}@keyframes pin{from{opacity:0;transform:translateY(8px)}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="rough" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" seed="4" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" result="d"/><feTurbulence type="fractalNoise" baseFrequency=".55" numOctaves="2" seed="9" result="t"/><feColorMatrix in="t" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -7 4.8" result="m"/><feComposite in="d" in2="m" operator="in"/></filter></svg>
+<div class="bg" aria-hidden="true"><i id="b1"></i><i id="b2"></i></div>
+<div id="root"></div>
+<dialog id="dlg"></dialog>
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const brl=v=>Number(v).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const fmt=d=>new Date(d).toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"}).replace(",","");
+const fmtD=d=>new Date(d).toLocaleDateString("pt-BR");
+const DAY=864e5,NOW=Date.now(),ago=d=>new Date(NOW-d*DAY).toISOString(),ahead=d=>new Date(NOW+d*DAY).toISOString();
+const reduce=matchMedia("(prefers-reduced-motion:reduce)").matches;
+const wait=ms=>new Promise(r=>setTimeout(r,reduce?80:ms));
+const norm=s=>String(s).normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+const mask=e=>e?e[0]+"***"+e.slice(e.indexOf("@")):"—";
+function hex64(s){let h=[2166136261,2654435761,1597334677,3266489917,668265263,374761393,1540483477,2246822519],o="";for(let k=0;k<h.length;k++){let x=h[k];for(let i=0;i<s.length;i++){x=Math.imul(x^s.charCodeAt(i),16777619+k*2)>>>0}o+=x.toString(16).padStart(8,"0")}return o}
+function dl(name,text,type="text/plain"){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
+
+/* ---------- ícones ---------- */
+const P={ok:'<circle cx="8" cy="8" r="6"/><path d="M5.2 8.2l2 2 3.6-4"/>',check:'<path d="M3.6 8.4l3 3 5.8-6.6"/>',crit:'<circle cx="8" cy="8" r="6"/><path d="M3.8 12.2l8.4-8.4"/>',x:'<path d="M4 4l8 8M12 4l-8 8"/>',warn:'<path d="M8 2.2l6 10.6H2z"/><path d="M8 6.6v2.6M8 11h.01"/>',neu:'<circle cx="8" cy="8" r="6" stroke-dasharray="2 2"/>',pend:'<circle cx="8" cy="8" r="2"/>',run:'<path d="M8 2a6 6 0 1 1-6 6"/>',
+nav:'<path d="M3 8h10M9 4l4 4-4 4"/>',buy:'<path d="M3 5h10l-1 7H4zM6 5a2 2 0 0 1 4 0"/>',int:'<path d="M2.5 4.5h11v7h-11zM2.5 5l5.5 4 5.5-4"/>',star:'<path d="M8 2l1.8 3.8 4.2.5-3.1 2.9.8 4.1L8 11.2l-3.7 2.1.8-4.1L2 6.3l4.2-.5z"/>',
+users:'<circle cx="6" cy="5.5" r="2.5"/><path d="M1.8 13c.4-2.4 2.2-3.6 4.2-3.6s3.8 1.2 4.2 3.6M11 3.6a2.3 2.3 0 0 1 0 4.2M12.200 9.600c1.300.5 2.100 1.600 2.300 3.400"/>',
+chart:'<path d="M2.500 13.500h11M4.500 11V7M8 11V3.500M11.500 11V8.500"/>',mega:'<path d="M2.500 6.500v3l7 3.500V3zM9.500 5.500c2 .4 3.500 1.200 3.500 2.500s-1.500 2.100-3.500 2.500M4.500 10l1 3.500"/>',
+sliders:'<path d="M2.500 4.500h6M11.500 4.500h2M2.500 11.500h2M7.500 11.500h6"/><circle cx="10" cy="4.500" r="1.500"/><circle cx="6" cy="11.500" r="1.500"/>',shield:'<path d="M8 1.800l5 2v4c0 3-2 5-5 6.400-3-1.400-5-3.400-5-6.400v-4z"/>',
+tag:'<path d="M2.500 8.500V3h5.500l5.500 5.500-5.500 5.500z"/><circle cx="5.500" cy="5.500" r="1"/>',upload:'<path d="M8 11V3M4.500 6.500L8 3l3.500 3.500M3 13h10"/>',inbox:'<path d="M2.500 9l1.500-5.500h8L13.500 9v4h-11zM2.500 9h3.500l.5 1.500h3L10 9h3.500"/>',key:'<circle cx="5" cy="9.500" r="2.500"/><path d="M7.500 8.500L13.500 3M11 5.500l1.500 1.500"/>',
+out:'<path d="M6 2.500H3v11h3M10 5l3 3-3 3M13 8H6"/>',search:'<circle cx="7" cy="7" r="4.500"/><path d="M10.500 10.500L14 14"/>',plus:'<path d="M8 3v10M3 8h10"/>',dl:'<path d="M8 3v8M4.500 8L8 11.500 11.500 8M3 13.500h10"/>',menu:'<path d="M2.500 4.500h11M2.500 8h11M2.500 11.500h11"/>',copy:'<rect x="5" y="5" width="8" height="8" rx="1.500"/><path d="M3 10.500V3.500h7"/>',list:'<path d="M5.500 4.500h8M5.500 8h8M5.500 11.500h8M2.500 4.500h.01M2.500 8h.01M2.500 11.500h.01"/>',
+doc:'<path d="M4 2h5.500L13 5.500V14H4zM9 2v4h4"/>',heart:'<path d="M8 13.500S2.500 10 2.500 6.200A2.900 2.900 0 0 1 8 5a2.900 2.900 0 0 1 5.500 1.200C13.500 10 8 13.500 8 13.500z"/>'};
+const ic=k=>`<svg class="i" viewBox="0 0 16 16" aria-hidden="true">${P[k]||""}</svg>`;
+const tag=(k,t,i)=>`<span class="tag" data-k="${k}">${ic(i||{ok:"ok",warn:"warn",crit:"crit",neu:"neu",pri:"star"}[k])}${esc(t)}</span>`;
+const CONS={CONCEDIDO:["ok","Concedido"],NAO_CONCEDIDO:["neu","Não concedido"],REVOGADO:["crit","Revogado"]};
+const cTag=s=>tag(...CONS[s]);
+
+/* ---------- dados sintéticos ---------- */
+function rng(s){return()=>(s=(s*1664525+1013904223)%4294967296)/4294967296}
+const NOMES=["Marina Costa","Otávio Lima","Iara Nunes","Caetano Rocha","Lúcia Prado","Dante Alves","Yara Santos","Bento Moraes","Nina Duarte","Heitor Faria","Olívia Reis","Davi Teixeira","Aline Barros","Bruno Pires","Camila Freitas","Diego Azevedo","Elisa Monteiro","Fábio Cardoso","Gabriela Ramos","Hugo Neves","Isabela Cruz","João Mendes","Karina Lopes","Leandro Dias","Mônica Vidal","Nelson Aguiar"];
+const CATS=["livros","games","moda","casa"];
+const mkCons=(st,r,pub)=>{
+  if(st==="NAO_CONCEDIDO")return{status:st,termo:null,desde:null,revogado:null,tl:[]};
+  const desde=ago(20+Math.floor(r()*140)),tl=[{t:"Concessão",q:desde,por:"Rita (painel)",termo:"v1"}];
+  if(st==="REVOGADO"){const rv=ago(pub?10:Math.floor(r()*30)+(pub?0:0));tl.unshift({t:"Revogação",q:rv,por:pub?"Rita (painel)":"titular (portal)",termo:"v1"});return{status:st,termo:"v1",desde,revogado:rv,tl}}
+  return{status:st,termo:"v1",desde,revogado:null,tl};
+};
+function seed(){
+  const r=rng(11);
+  const catalogo=[["livros","Coleção de ficção, edição especial",189,true],["livros","Dom Casmurro",39.9,true],["livros","Memórias Póstumas",34.9,true],["games","Controle sem fio",249,true],["games","Jogo de aventura",179.9,true],["moda","Camisa de linho",129.9,true],["moda","Tênis urbano",299,true],["casa","Jogo de panelas",349,true],["casa","Luminária de mesa",119,false]].map(([cat,nome,preco,ativo],i)=>({id:"p-"+(i+1),cat,nome,preco,ativo}));
+  const segs=[{id:"premium",nome:"Premium",prio:1,desc:"Clientes de ticket alto e compra frequente.",conds:[{c:"ticket",op:">=",v:150},{c:"compras",op:">=",v:3}],ativo:true},
+    {id:"recorrente",nome:"Recorrente",prio:2,desc:"Compram com regularidade.",conds:[{c:"compras",op:">=",v:2}],ativo:true},
+    {id:"explorador",nome:"Explorador",prio:3,desc:"Navegam e interagem muito, mas ainda não compraram.",conds:[{c:"engajamento",op:">=",v:4},{c:"compras",op:"=",v:0}],ativo:true},
+    {id:"padrao",nome:"Padrão",prio:99,desc:"Quem não casa com nenhum outro segmento.",conds:[],ativo:true}];
+  const S={catalogo,segs,termo:"v1",falha:false,users:[
+    {u:"rita",nome:"Rita Andrade",papel:"Administrador",ativo:true},{u:"caio",nome:"Caio Mendes",papel:"Analista",ativo:true},{u:"bia",nome:"Bia Souza",papel:"Atendimento",ativo:true},{u:"leo",nome:"Leo Martins",papel:"Atendimento",ativo:false}],
+    audit:[],outbox:[],tokens:{},hist:[],snap:{},session:null,portal:null,prazo:365,clients:[]};
+  S.clients=NOMES.map((nome,i)=>{
+    const st=i%9===3?"NAO_CONCEDIDO":i%11===5?"REVOGADO":"CONCEDIDO";
+    const seg=mkCons(st,r,false),pst=st==="CONCEDIDO"?(r()<.6?"CONCEDIDO":i%7===0?"REVOGADO":"NAO_CONCEDIDO"):"NAO_CONCEDIDO";
+    const c={id:"c-"+String(i+1).padStart(3,"0"),nome,email:norm(nome.split(" ")[0])+"@exemplo.test",cadastro:ago(70+Math.floor(r()*220)),ativo:i!==14,eliminado:false,cons:{seg,pub:mkCons(pst,r,true)},events:[],proc:null,fail:null,pedido:null};
+    if(st!=="NAO_CONCEDIDO"){const n=3+Math.floor(r()*9);for(let k=0;k<n;k++){const x=r(),t=x<.4?"nav":x<.7?"buy":"int";c.events.push({t,cat:r()<.6?CATS[i%4]:CATS[Math.floor(r()*4)],v:t==="buy"?Math.round(30+r()*(i%3===0?420:200)):0,q:ago(r()*28),origem:"site"})}c.events.sort((a,b)=>b.q.localeCompare(a.q))}
+    return c;
+  });
+  S.clients.forEach((c,i)=>{if(c.cons.seg.status==="CONCEDIDO"&&c.events.length){const old=[1,6,9].includes(i);runProc(S,c,ago(old?40:1+Math.floor(r()*6)));if(i%2===0)c.proc.recStatus="ATIVA"}});
+  S.clients[11].cons.seg=mkCons("CONCEDIDO",r,false);
+  const rv=S.clients.find(c=>c.cons.seg.status==="REVOGADO");if(rv){rv.cons.seg.revogado=ago(400);rv.cons.seg.tl[0].q=ago(400)}
+  const pc=S.clients[2];pc.pedido=ago(2);S.outbox.push({para:"marina@exemplo.test",assunto:"Seu link de acesso ao Perfila",q:ago(.02),txt:"Abra este link para entrar: #/titular/acesso?t=demo"});
+  S.audit.push({q:ago(.1),op:"rita",acao:"Entrou",det:"Sessão iniciada"});
+  return S;
+}
+/* ---------- regras de domínio (simuladas) ---------- */
+const cmp=(a,op,b)=>op===">="?a>=b:op==="<="?a<=b:a===b;
+const val=(p,c)=>c==="compras"?p.compras:c==="ticket"?p.ticket:p.eng;
+const casa=(cs,p)=>cs.every(x=>cmp(val(p,x.c),x.op,Number(x.v)));
+const CAMPO={compras:"compras",ticket:"ticket médio",engajamento:"engajamento"};
+const fmtV=(c,v)=>c==="ticket"?brl(v):String(v);
+const condTxt=x=>`${CAMPO[x.c]} ${x.op} ${fmtV(x.c,x.v)}`;
+function perfil(c){const ev=c.events,b=ev.filter(e=>e.t==="buy"),cnt={};ev.forEach(e=>{if(e.cat)cnt[e.cat]=(cnt[e.cat]||0)+1});
+  const total=b.reduce((a,e)=>a+e.v,0);
+  return{n:ev.length,nav:ev.filter(e=>e.t==="nav").length,int:ev.filter(e=>e.t==="int").length,compras:b.length,total,ticket:b.length?total/b.length:0,cat:Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]||a.localeCompare(b))[0]||null,eng:ev.filter(e=>new Date(e.q).getTime()>NOW-30*DAY).length}}
+const segDe=(S,p,segs=S.segs)=>segs.filter(s=>s.ativo).sort((a,b)=>a.prio-b.prio).find(s=>casa(s.conds,p))||null;
+function recomendar(S,seg,p){if(!p.cat)return{sem:null};const pr=S.catalogo.filter(x=>x.ativo&&x.cat===p.cat).sort((a,b)=>a.nome.localeCompare(b.nome))[0];return pr?{nome:pr.nome,preco:pr.preco,motivo:`Segmento ${seg.nome.toLowerCase()}, categoria ${p.cat}`}:{sem:p.cat}}
+function runProc(S,c,when=new Date().toISOString()){const p=perfil(c),seg=segDe(S,p);c.proc={when,p,segId:seg.id,segNome:seg.nome,rec:recomendar(S,seg,p),recStatus:"GERADA",validade:new Date(new Date(when).getTime()+30*DAY).toISOString()};c.fail=null}
+const stale=c=>c.proc&&c.events.length>c.proc.p.n;
+const eligible=c=>c.ativo&&!c.eliminado&&c.cons.seg.status==="CONCEDIDO";
+
+let S=seed();
+const log=(acao,det)=>S.audit.unshift({q:new Date().toISOString(),op:S.session?.u||"—",acao,det});
+const cli=id=>S.clients.find(c=>c.id===id);
+
+/* ---------- permissões e navegação ---------- */
+const PERM={Administrador:["clientes","analise","campanhas","config","admin","pedidos"],Analista:["analise","campanhas","config"],Atendimento:["clientes","config"]};
+const can=g=>S.session&&PERM[S.session.papel].includes(g);
+const canEdit=()=>S.session&&S.session.papel!=="Atendimento";
+const NAV=[["Clientes","clientes",[["Clientes","#/clientes","users"],["Importar eventos","#/eventos/importar","upload"],["Pedidos do titular","#/pedidos","heart","pedidos"]]],
+ ["Análise","analise",[["Relatórios","#/relatorios","chart"]]],["Campanhas","campanhas",[["Públicos","#/publicos","mega"]]],
+ ["Configuração","config",[["Segmentos","#/segmentos","sliders"],["Catálogo","#/catalogo","tag"]]],
+ ["Administração","admin",[["Operação","#/operacao","shield"],["Caixa de saída","#/operacao/caixa-saida","inbox"],["Operadores","#/usuarios","users"],["Auditoria","#/auditoria","list"]]]];
+
+/* ---------- componentes de interface ---------- */
+const uuid=id=>`<button class="uuid" data-act="copy" data-v="${id}" title="Copiar ID">${id}${ic("copy")}</button>`;
+const alertH=(k,t,body="",extra="")=>`<div class="alert" data-k="${k}" role="${k==="crit"?"alert":"status"}"><strong>${t}</strong>${body?`<span>${body}</span>`:""}${extra}</div>`;
+const emptyH=(t,p,btn="",icon="users")=>`<div class="empty"><div class="ob">${ic(icon)}</div><h3>${t}</h3><p>${p}</p>${btn}</div>`;
+const ph=(crumb,title,acts="")=>`<div class="crumb">${crumb.map(([t,h])=>h?`<a href="${h}">${t}</a>`:`<span>${t}</span>`).join("<span>›</span>")}</div>${title?`<div class="ph"><h1>${title}</h1><div class="acts">${acts}</div></div>`:'<div style="height:6px"></div>'}`;
+const kv=rows=>`<dl class="kv">${rows.map(([k,v])=>`<dt>${k}</dt><dd class="num">${v}</dd>`).join("")}</dl>`;
+function toast(t){const e=document.createElement("div");e.className="toast";e.textContent=t;$("#toasts").append(e);setTimeout(()=>{e.style.transition="opacity .3s";e.style.opacity=0;setTimeout(()=>e.remove(),300)},2400)}
+function pulse(sel){if(reduce)return;const el=$(sel);el&&el.animate([{transform:"scale(.9)",opacity:.4},{transform:"scale(1.05)"},{transform:"scale(1)",opacity:1}],{duration:380,easing:"cubic-bezier(.2,.8,.2,1)"})}
+function stampH(st,when,label="Consentimento · termo v1",sm=""){const[k,t]=st==="ELIMINADO"?["neu","Eliminado"]:CONS[st];return`<div class="stamp ${sm}" data-k="${k}" role="status"><small>${label}</small><strong>${t}</strong><small>${when||"nenhum registro"}</small></div>`}
+function confetti(sel){const el=$(sel);if(!el||reduce)return;const r=el.getBoundingClientRect(),cs=getComputedStyle(document.documentElement),cols=["--pri","--acc","--ok","--lit"].map(v=>cs.getPropertyValue(v).trim());
+  for(let i=0;i<22;i++){const s=document.createElement("i");s.className="spark";s.style.cssText=`left:${r.left+r.width/2}px;top:${r.top+r.height/2}px;background:${cols[i%4]}`;document.body.append(s);const a=Math.random()*6.28,d=70+Math.random()*130;
+    s.animate([{transform:"translate(0,0) scale(1)",opacity:1},{transform:`translate(${Math.cos(a)*d}px,${Math.sin(a)*d+40}px) scale(.2)`,opacity:0}],{duration:700+Math.random()*400,easing:"cubic-bezier(.2,.8,.2,1)"}).onfinish=()=>s.remove()}}
+/* diálogo genérico */
+function dlg({title,body="",fx="",ok="Confirmar",kind="pri",cancel="Cancelar",onOk,focusCancel=true,single=false}){
+  const d=$("#dlg");d.innerHTML=`<h3>${title}</h3>${fx?`<p class="fx">${fx}</p>`:""}<form id="dlgf" novalidate>${body}<div class="fa">${single?"":`<button type="button" class="btn" data-d="no" ${focusCancel?"autofocus":""}>${cancel}</button>`}<button type="submit" class="btn ${kind==="crit"?"crit fill":"pri"}">${ok}</button></div></form>`;
+  d.onclose=null;if(!d.open)d.showModal();
+  $("#dlgf").onsubmit=e=>{e.preventDefault();const fd=Object.fromEntries(new FormData(e.target));if(onOk&&onOk(fd)===false)return;d.close()};
+  $("[data-d=no]",d)?.addEventListener("click",()=>d.close());
+}
+$("#dlg").addEventListener("click",e=>{if(e.target===e.currentTarget)e.currentTarget.close()});
+const field=(id,label,val="",o={})=>`<div class="field"><label for="${id}">${label}</label>${o.type==="select"?`<select id="${id}" name="${id}">${o.opts.map(x=>`<option ${x===val?"selected":""}>${x}</option>`).join("")}</select>`:`<input id="${id}" name="${id}" type="${o.type||"text"}" value="${esc(val)}" ${o.ro?"readonly":""} ${o.ph?`placeholder="${o.ph}"`:""} ${o.step?`step="${o.step}"`:""} ${o.req?"required":""} ${o.ac?`autocomplete="${o.ac}"`:""}>`}${o.h?`<span class="h">${o.h}</span>`:""}<span class="err" id="${id}-e"></span></div>`;
+const setErr=(id,m)=>{const e=$("#"+id+"-e");if(e)e.textContent=m;const i=$("#"+id);if(i)i.setAttribute("aria-invalid",m?"true":"false")};
+
+/* ---------- régua de processamento ---------- */
+const STEPS=["Coletar eventos","Calcular perfil","Atribuir segmento","Gerar recomendação"];
+let RUN=null;
+function stageInfo(c){
+  const consent=c.cons.seg.status==="CONCEDIDO";
+  return STEPS.map((n,i)=>{
+    if(!consent)return["blk","Bloqueada sem consentimento"];
+    if(RUN&&RUN.id===c.id){if(RUN.i===i)return["run","Em andamento…"];if(i<RUN.i)return["done","Concluída"];return["pend","Aguardando"]}
+    if(c.fail){if(i<c.fail.i)return["done",["Eventos lidos","Perfil atualizado"][i]];if(i===c.fail.i)return["err","Falha de configuração dos segmentos"];return["pend","Não executada"]}
+    if(c.proc){const p=c.proc,q=p.p;if(i===0)return["done",`${q.n} eventos lidos`];if(i===1)return["done",`${q.nav} navegação · ${q.compras} compra · ${q.int} interação`];if(i===2)return["done",`Segmento ${p.segNome}`];
+      return p.rec.sem!==undefined?["attn",p.rec.sem?`Nenhum produto ativo na categoria preferida (${p.rec.sem}).`:"Sem categoria preferida ainda."]:["done",p.rec.nome]}
+    return["pend","Aguardando"];
+  });
+}
+function litOf(c){if(c.cons.seg.status!=="CONCEDIDO")return 0;if(RUN&&RUN.id===c.id)return(RUN.i+1)*25;if(c.fail)return c.fail.i*25+12;return c.proc?100:0}
+function stageH(c){
+  const inf=stageInfo(c),lit=litOf(c);
+  return`<section class="stage" id="stage" aria-label="Processamento"><div class="stages" id="stages">${inf.map(([s,d],i)=>`<div class="stg" data-s="${s}"><div class="rw"><span class="dot">${ic(s==="done"?"check":s==="run"?"run":s==="err"||s==="blk"?"x":s==="attn"?"warn":"pend")}</span><span>0${i+1}</span></div><h3>${STEPS[i]}</h3><p>${esc(d)}</p></div>`).join("")}</div>
+  <div class="rule" id="rule"><div class="ticks" id="ticks" aria-hidden="true">${Array.from({length:101},(_,i)=>`<i class="${i%25===0?"M":i%5===0?"m":"u"}" data-lit="${lit>0&&i<=lit}"></i>`).join("")}</div><div class="needle" id="needle" style="left:${lit}%" data-hide="${lit===0}"><span>agora</span></div></div></section>`;
+}
+function paintStage(c,perTick=30){
+  const inf=stageInfo(c),lit=litOf(c),ticks=$$("#ticks i");const prev=ticks.filter(t=>t.dataset.lit==="true").length-1;
+  $("#stages").innerHTML=inf.map(([s,d],i)=>`<div class="stg" data-s="${s}"><div class="rw"><span class="dot">${ic(s==="done"?"check":s==="run"?"run":s==="err"||s==="blk"?"x":s==="attn"?"warn":"pend")}</span><span>0${i+1}</span></div><h3>${STEPS[i]}</h3><p>${esc(d)}</p></div>`).join("");
+  ticks.forEach((t,i)=>{const on=lit>0&&i<=lit;t.style.transitionDelay=(on&&i>prev&&!reduce)?((i-prev)*perTick)+"ms":"0ms";t.dataset.lit=String(on)});
+  const n=$("#needle");n.style.left=lit+"%";n.dataset.hide=String(lit===0);
+}
+const BASE={M:34,m:20,u:10};let raf=0;
+document.addEventListener("pointermove",e=>{
+  const rule=e.target.closest?.("#rule");if(!rule||reduce)return;cancelAnimationFrame(raf);
+  raf=requestAnimationFrame(()=>$$("#ticks i").forEach(t=>{const r=t.getBoundingClientRect(),d=Math.abs(e.clientX-(r.left+1.5));t.style.setProperty("--h",(BASE[t.className]+Math.max(0,26*(1-d/90)))+"px")}));
+});
+document.addEventListener("pointerout",e=>{if(e.target.closest?.("#rule")&&!e.relatedTarget?.closest?.("#rule")){cancelAnimationFrame(raf);$$("#ticks i").forEach(t=>t.style.removeProperty("--h"))}});
+document.addEventListener("pointermove",e=>{if(reduce)return;const x=e.clientX/innerWidth-.5,y=e.clientY/innerHeight-.5;$("#b1").style.transform=`translate(${x*-40}px,${y*-30}px)`;$("#b2").style.transform=`translate(${x*50}px,${y*40}px)`});
+
+/* =============================================================
+   PÁGINAS DO PAINEL
+   ============================================================= */
+const PAGE=20;
+function pgClientes(q){
+  const term=(q.q||"").trim(),f=q.c||"Todos",p=+(q.p||1);
+  let l=S.clients.filter(c=>!c.eliminado||!term);
+  if(term.length>=2)l=l.filter(c=>norm(c.nome).includes(norm(term))||c.id.includes(norm(term)));
+  if(f!=="Todos"){const k={Concedido:"CONCEDIDO","Não concedido":"NAO_CONCEDIDO",Revogado:"REVOGADO"}[f];l=l.filter(c=>c.cons.seg.status===k)}
+  const tot=l.length,rows=l.slice((p-1)*PAGE,p*PAGE);
+  const filt=`<div class="bar"><div class="search">${ic("search")}<input id="busca" type="search" placeholder="Buscar por nome ou ID" value="${esc(term)}" aria-label="Buscar cliente"></div>
+    <div class="seg-ctl" role="group" aria-label="Filtrar consentimento">${["Todos","Concedido","Não concedido","Revogado"].map(x=>`<button data-act="filtro" data-v="${x}" aria-pressed="${x===f}">${x}</button>`).join("")}</div></div>`;
+  let body;
+  if(!S.clients.length)body=emptyH("Nenhum cliente cadastrado","Cadastre o primeiro cliente para registrar consentimento e eventos.",`<a class="btn pri" href="#/clientes/novo">Cadastrar cliente</a>`);
+  else if(!tot)body=emptyH(`Nenhum cliente encontrado${term?` para “${esc(term)}”`:""}`,"Tente outro nome ou limpe os filtros.",`<button class="btn" data-act="limpar">Limpar busca</button>`,"search");
+  else body=`<div class="tablewrap"><table><thead><tr><th>Cliente</th><th>E-mail</th><th>Consentimento</th><th>Segmento</th><th>Cadastro</th></tr></thead><tbody>${rows.map(c=>`<tr class="link" data-go="#/clientes/${c.id}"><td><b>${esc(c.eliminado?"Titular eliminado":c.nome)}</b><small class="mono">${c.id}</small></td><td class="mono">${mask(c.email)}</td><td>${c.eliminado?tag("neu","Eliminado"):cTag(c.cons.seg.status)}</td><td>${c.proc&&eligible(c)?esc(c.proc.segNome):"—"}</td><td class="num">${fmtD(c.cadastro)}</td></tr>`).join("")}</tbody></table></div>
+    <div class="pager"><span class="num">${(p-1)*PAGE+1}–${Math.min(p*PAGE,tot)} de ${tot}</span><span class="row">${p>1?`<a class="btn sm" href="#/clientes?p=${p-1}&q=${encodeURIComponent(term)}&c=${f}">← Anterior</a>`:""}${p*PAGE<tot?`<a class="btn sm" href="#/clientes?p=${p+1}&q=${encodeURIComponent(term)}&c=${f}">Próxima →</a>`:""}</span></div>`;
+  return{html:ph([["Clientes"]],"Clientes",`<a class="btn pri" href="#/clientes/novo">${ic("plus")}Cadastrar cliente</a>`)+`<div class="panel">${filt}${body}</div>`,perm:"clientes"};
+}
+function pgNovo(){
+  return{html:ph([["Clientes","#/clientes"],["Cadastrar"]],"Cadastrar cliente")+`<div class="panel form"><form id="fnovo" novalidate>${field("nome","Nome completo","",{ac:"off"})}${field("email","E-mail","",{type:"email",ac:"off"})}<div class="row"><button class="btn pri" type="submit">Cadastrar cliente</button><a class="btn" href="#/clientes">Cancelar</a></div></form></div>`,perm:"clientes"};
+}
+function fichaHead(c){
+  if(c.eliminado)return`<div class="fh"><div><div class="meta">${uuid(c.id)}<span class="chp">dados eliminados</span></div><h1>Titular <span>eliminado</span></h1></div>${stampH("ELIMINADO",fmt(c.eliminadoEm),"Situação")}</div>`;
+  const nome=c.nome.split(" "),pub=c.cons.pub.status;
+  return`<div class="fh"><div><div class="meta">${uuid(c.id)}<span class="chp">${esc(c.email)}</span><span class="chp">cadastro ${fmtD(c.cadastro)}</span><span class="chp">${c.ativo?"ativo":"inativo"}</span><span class="chp">Publicidade: ${CONS[pub][1]}</span></div><h1 class="${c.nome.length>40?"xl":c.nome.length>20?"lg":""}">${esc(nome[0])} <span>${esc(nome.slice(1).join(" "))}</span></h1></div><div id="stampbox">${stampH(c.cons.seg.status,c.cons.seg.status==="CONCEDIDO"?fmt(c.cons.seg.desde):c.cons.seg.status==="REVOGADO"?fmt(c.cons.seg.revogado):"")}</div></div>`;
+}
+function tabsH(c,tab){const T=[["visao","Visão geral"],["eventos","Eventos"],["consentimento","Consentimento"],["direitos","Direitos do titular"]];return`<nav class="tabs" aria-label="Seções da ficha">${T.map(([k,t])=>`<a href="#/clientes/${c.id}${k==="visao"?"":"/"+k}" ${k===tab?'aria-current="page"':""}>${t}</a>`).join("")}</nav>`}
+function pgFicha(id,tab="visao"){
+  const c=cli(id);if(!c)return{html:ph([["Clientes","#/clientes"],["Não encontrado"]],"Cliente não encontrado")+emptyH("Cliente não encontrado","O ID não existe ou o titular foi eliminado.",`<a class="btn" href="#/clientes">Voltar à lista</a>`),perm:"clientes"};
+  let body="";
+  if(c.eliminado)body=alertH("neu",`Dados eliminados em ${fmt(c.eliminadoEm)}`,"O cadastro foi anonimizado; resta o histórico do consentimento, guardado como prova.")+`<div class="panel" style="margin-top:22px"><h2>Histórico do consentimento</h2>${tlH(c.cons.seg.tl)}</div>`;
+  else body=tabsH(c,tab)+({visao:fVisao,eventos:fEventos,consentimento:fConsent,direitos:fDireitos}[tab]||fVisao)(c);
+  return{html:ph([["Clientes","#/clientes"],[c.eliminado?"Titular eliminado":esc(c.nome)]],"")+fichaHead(c)+body,perm:"clientes"};
+}
+function tlH(tl){return tl.length?`<ul class="tl">${tl.map(x=>`<li data-t="${x.t}"><b>${x.t}</b> <span class="muted">· termo ${x.termo}</span><small>${fmt(x.q)} · por ${esc(x.por)}</small></li>`).join("")}</ul>`:`<p class="muted">Nenhum registro de consentimento.</p>`}
+function blockedH(c){return c.cons.seg.status==="REVOGADO"
+  ?alertH("crit","Consentimento revogado",`Os dados de comportamento deste cliente não podem mais ser usados desde ${fmt(c.cons.seg.revogado)}.`,`<button class="btn pri sm" data-act="conceder" data-id="${c.id}" data-f="seg">Conceder consentimento</button>`)
+  :alertH("crit","Sem consentimento válido","Os dados de comportamento deste cliente não podem ser usados. Registre o consentimento do titular para continuar.",`<button class="btn pri sm" data-act="conceder" data-id="${c.id}" data-f="seg">Conceder consentimento</button>`)}
+function fVisao(c){
+  if(c.cons.seg.status!=="CONCEDIDO")return blockedH(c);
+  const p=c.proc,busy=RUN&&RUN.id===c.id;
+  let laudo;
+  if(busy)laudo=`Processando os ${c.events.length} eventos de ${esc(c.nome.split(" ")[0])}, na ordem do fluxo…`;
+  else if(c.fail)laudo=`O perfil foi atualizado, mas a <mark data-k="blk">segmentação falhou</mark>. Nada mais foi alterado. Código da requisição: <span class="mono">${c.fail.code}</span>.`;
+  else if(!p)laudo=`Este cliente ainda não foi processado. Há <mark>${c.events.length} eventos</mark> esperando para virar um perfil.`;
+  else laudo=`${stale(c)?"Chegaram eventos novos desde o último cálculo. ":""}${esc(c.nome.split(" ")[0])} está no segmento <mark>${esc(p.segNome)}</mark>${p.p.compras?`: ${p.p.compras} compras, ticket médio de ${brl(p.p.ticket)}`:""}.${p.rec.nome?` Recomendamos <em>${esc(p.rec.nome)}</em>.`:""}`;
+  const acts=`<div class="acts-col"><button class="btn ${!p||stale(c)||c.fail?"pri":""}" data-act="processar" data-id="${c.id}" ${busy?"disabled":""}>${busy?"Processando…":"Processar agora"}</button></div>`;
+  let panels="";
+  if(p){const q=p.p,seg=S.segs.find(s=>s.id===p.segId);
+    const pips=Array.from({length:10},(_,i)=>`<i class="${i<Math.min(10,q.eng)?"on":""}"></i>`).join("");
+    panels=`<div class="g3" style="margin-bottom:22px"><section class="panel"><h2>Perfil</h2>${kv([["Frequência de compras",`${q.compras} no período`],["Ticket médio",brl(q.ticket)],["Categoria preferida",q.cat||"—"]])}<p style="margin-top:14px;font-weight:700">Engajamento</p><div class="pips" aria-hidden="true">${pips}</div><span class="why">${q.eng} de 10 eventos em 30 dias</span>${stale(c)?`<p style="margin-top:12px">${tag("warn","Perfil desatualizado")}</p>`:""}</section>
+      <section class="panel"><h2>Segmento</h2><div class="seg" style="margin:6px 0 12px"><i>${ic("star")}</i>${esc(p.segNome)}</div><p class="muted" style="margin-bottom:12px">${esc(seg?.desc||"")}</p>${seg&&seg.conds.length?`<div class="chips">${seg.conds.map(x=>{const ok=cmp(val(q,x.c),x.op,Number(x.v));return`<span class="cc" data-ok="${ok}">${ic(ok?"check":"x")}${esc(condTxt(x))}</span>`}).join("")}</div><p class="why" style="margin-top:10px">Cada condição mostra se o perfil atual a atende.</p>`:`<span class="cc">Critério vazio: casa sempre</span>`}</section>
+      <section class="panel"><h2>Recomendação</h2>${p.rec.nome?`<div class="ticket" id="ticket"><small>${fmtD(p.when)} · válida até ${fmtD(p.validade)}</small><strong>${esc(p.rec.nome)}</strong><span style="opacity:.9">${brl(p.rec.preco)} · ${esc(p.rec.motivo)}</span><hr>${p.recStatus==="ATIVA"?tag("ok","Ativa","check"):p.recStatus==="EXPIRADA"?tag("neu","Expirada","neu"):`<button class="btn sm" data-act="ativar" data-id="${c.id}">Ativar recomendação</button>`}</div>`:`<div class="alert" data-k="warn"><strong>Sem produto elegível</strong><span>${p.rec.sem?`Nenhum produto ativo na categoria preferida (${esc(p.rec.sem)}).`:"Este cliente ainda não tem categoria preferida."} Não é um erro.</span></div>`}</section></div>`}
+  const failA=c.fail?alertH("crit","A segmentação falhou","O perfil foi atualizado, mas nada mais foi alterado. A equipe técnica foi avisada pelo log.",`<span class="mono">Código da requisição: ${c.fail.code}</span>`)+`<div style="height:22px"></div>`:"";
+  return failA+stageH(c)+`<div class="laudo"><p class="s" id="laudo">${laudo}</p>${acts}</div>`+panels;
+}
+function fEventos(c){
+  const ok=c.cons.seg.status==="CONCEDIDO",dis=ok?"":"disabled";
+  const form=`<form id="fev" class="row" style="align-items:flex-end;gap:12px" novalidate>
+    <div class="field" style="margin:0;width:150px"><label for="ev-t">Tipo</label><select id="ev-t" name="t" ${dis}><option value="buy">Compra</option><option value="nav">Navegação</option><option value="int">Interação</option></select></div>
+    <div class="field" style="margin:0;width:130px"><label for="ev-v">Valor (R$)</label><input id="ev-v" name="v" inputmode="decimal" placeholder="89,90" ${dis}></div>
+    <div class="field" style="margin:0;width:150px"><label for="ev-c">Categoria</label><select id="ev-c" name="cat" ${dis}>${CATS.map(x=>`<option>${x}</option>`).join("")}</select></div>
+    <div class="field" style="margin:0;width:120px"><label for="ev-o">Origem</label><select id="ev-o" name="origem" ${dis}><option>site</option><option>app</option><option>loja</option></select></div>
+    <button class="btn pri" ${dis}>Registrar evento</button></form>${ok?"":`<p class="why" style="margin-top:10px">Conceda o consentimento para registrar eventos.</p>`}<div id="evt-e" class="err"></div>`;
+  const list=ok?(c.events.length?`<ul class="tl" style="margin-top:22px">${c.events.map(e=>`<li data-t="${e.t}"><b>${{nav:"Navegação",buy:"Compra",int:"Interação"}[e.t]}</b> <span class="muted">· ${esc(e.cat||"")} · ${esc(e.origem)}</span>${e.v?` <b class="num" style="float:right">${brl(e.v)}</b>`:""}<small>${fmt(e.q)}</small></li>`).join("")}</ul>`:`<p class="muted" style="margin-top:20px">Nenhum evento registrado.</p>`):`<p class="muted" style="margin-top:20px">Os eventos não são carregados sem consentimento válido.</p>`;
+  return`<section class="panel"><h2>Registrar evento</h2><p class="sub">Eventos entram no topo da linha do tempo e viram perfil no próximo processamento.</p>${form}${list}</section>`;
+}
+function consRec(c,f,titulo,fin){
+  const k=c.cons[f],ok=k.status==="CONCEDIDO";
+  const nota=f==="pub"&&k.status==="CONCEDIDO"&&c.cons.seg.status!=="CONCEDIDO"?`<p class="why" style="margin:10px 0">Sem a Segmentação, este cliente não entra em nenhum público.</p>`:"";
+  return`<section class="panel"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><h2>${titulo}</h2><p class="sub" style="margin-bottom:12px">${fin}</p></div>${stampH(k.status,k.status==="CONCEDIDO"?fmt(k.desde):k.status==="REVOGADO"?fmt(k.revogado):"",`Termo ${k.termo||"—"}`,"sm")}</div>${kv([["Finalidade",f==="seg"?"segmentacao":"publicidade_terceiros"],["Versão do termo",k.termo||"—"],["Consentimento em",k.desde?fmt(k.desde):"—"],["Revogação em",k.revogado?fmt(k.revogado):"—"],["Atualizado em",k.tl[0]?fmt(k.tl[0].q):"—"]])}${nota}<div class="row" style="margin:16px 0 8px">${ok?`<button class="btn crit" data-act="revogar" data-id="${c.id}" data-f="${f}">Revogar consentimento</button>`:`<button class="btn pri" data-act="conceder" data-id="${c.id}" data-f="${f}">Conceder consentimento</button>`}</div><h3 class="ph2" style="margin-top:18px;font-size:17px">Linha do tempo</h3>${tlH(k.tl)}</section>`;
+}
+const fConsent=c=>`<div class="stack">${consRec(c,"seg","Segmentação","Perfil, segmento e recomendação, uso interno.")}${consRec(c,"pub","Publicidade com terceiros","Entrar nos públicos enviados a plataformas de anúncio.")}</div>`;
+function fDireitos(c){
+  const conc=c.cons.seg.status==="CONCEDIDO"||c.cons.pub.status==="CONCEDIDO";
+  return`${c.pedido?alertH("warn",`O titular pediu a eliminação pelo portal em ${fmt(c.pedido)}`,"Atenda o pedido pela eliminação abaixo.")+'<div style="height:22px"></div>':""}<div class="g3">
+  <section class="panel"><h2>Corrigir cadastro</h2><p class="sub">Altera nome e e-mail do titular.</p><form id="fcorr" novalidate>${field("cn","Nome",c.nome)}${field("ce","E-mail",c.email,{type:"email"})}<button class="btn pri">Salvar correção</button></form></section>
+  <section class="panel"><h2>Acesso e portabilidade</h2><p class="sub">O arquivo leva o cadastro, os consentimentos, os eventos, o perfil e a recomendação deste titular.</p><button class="btn" data-act="baixar" data-id="${c.id}">${ic("dl")}Baixar dados (JSON)</button></section>
+  <section class="panel"><h2>Eliminação</h2><p class="sub">Anonimiza o cadastro e apaga eventos, perfil e recomendação. O histórico do consentimento permanece como prova.</p>${conc?alertH("warn","Revogue o consentimento antes de eliminar os dados.","A ação fica na aba Consentimento."):`<button class="btn crit" data-act="eliminar" data-id="${c.id}">Eliminar dados</button>`}</section></div>`;
+}
+
+/* ----- importar eventos ----- */
+let IMP={step:1,rows:[],err:null,res:null,text:""};
+const CSVH="cliente_id,tipo,valor,categoria,origem,data";
+function csvExemplo(){const a=S.clients.filter(eligible);const l=[CSVH];
+  l.push(`${a[0].id},compra,89.90,livros,site,${new Date().toISOString()}`);l.push(`${a[1].id},navegacao,,games,app,${new Date().toISOString()}`);
+  const d=a[2].events[0];l.push(`${a[2].id},${d.t==="buy"?"compra":d.t==="nav"?"navegacao":"interacao"},${d.v?d.v.toFixed(2):""},${d.cat},${d.origem},${d.q}`);
+  const nc=S.clients.find(c=>c.cons.seg.status!=="CONCEDIDO");if(nc)l.push(`${nc.id},compra,50.00,moda,site,${new Date().toISOString()}`);l.push(`x-999,compra,10.00,casa,site,${new Date().toISOString()}`);return l.join("\n")}
+function conferir(text){
+  const ls=text.replace(/\r/g,"").split("\n").filter(x=>x.trim());
+  if(!ls.length)return{err:"Arquivo vazio. Use o modelo e preencha ao menos uma linha."};
+  if(ls.length>1001)return{err:"Arquivo com mais de 1.000 linhas. Divida em arquivos menores."};
+  if(ls[0].trim()!==CSVH)return{err:`Cabeçalho incorreto. Use exatamente: ${CSVH}`};
+  const rows=ls.slice(1).map((l,i)=>{const[id,tp,v,cat,origem,q]=l.split(",").map(x=>x.trim());const o={linha:i+2,id,tp,v,cat,origem,q,st:"ok",motivo:""};const c=cli(id);
+    if(!c)return{...o,st:"err",motivo:"Cliente não encontrado."};
+    if(c.cons.seg.status!=="CONCEDIDO")return{...o,st:"err",motivo:"Sem consentimento válido."};
+    if(!["compra","navegacao","interacao"].includes(tp))return{...o,st:"err",motivo:"Tipo inválido. Use compra, navegacao ou interacao."};
+    if(tp==="compra"&&!(+v>0))return{...o,st:"err",motivo:"Compra precisa de valor maior que zero, com ponto decimal."};
+    if(isNaN(new Date(q)))return{...o,st:"err",motivo:"Data inválida. Use o formato ISO com fuso."};
+    const t={compra:"buy",navegacao:"nav",interacao:"int"}[tp];
+    if(c.events.some(e=>e.t===t&&e.q===new Date(q).toISOString()&&(e.v||0)===(+v||0)))return{...o,st:"dup",motivo:"Evento já importado."};
+    return{...o,t};});
+  return{rows};
+}
+function pgImportar(){
+  const st=IMP.step,stp=`<div class="steps">${["Enviar","Prévia","Relatório"].map((t,i)=>`<span class="${i+1===st?"on":i+1<st?"dn":""}"><b>${i+1<st?"✓":i+1}</b>${t}</span>`).join("")}</div>`;
+  let b="";
+  if(st===1)b=`${IMP.err?alertH("crit","Arquivo recusado",esc(IMP.err))+'<div style="height:18px"></div>':""}<div class="panel"><h2>Arquivo de eventos</h2><p class="sub">Arquivo .csv com as colunas <span class="mono">${CSVH}</span>. Data com fuso, valor com ponto, até 1.000 linhas e 256 KiB. Nada é gravado neste passo.</p><div class="field"><label for="arq">Arquivo</label><input id="arq" type="file" accept=".csv" style="padding-top:10px"></div><div class="row"><button class="btn pri" data-act="conferir">Conferir arquivo</button><button class="btn" data-act="exemplo">Usar arquivo de exemplo</button><button class="btn" data-act="modelo">${ic("dl")}Baixar modelo</button></div></div>`;
+  else{const rs=IMP.rows,ok=rs.filter(r=>r.st==="ok").length,dup=rs.filter(r=>r.st==="dup").length,er=rs.filter(r=>r.st==="err").length,fin=st===3;
+    const L=fin?["Importados","Duplicados ignorados","Com erro"]:["Prontas para importar","Duplicadas","Com erro"];
+    b=`${fin?alertH("ok","Importação concluída","Reenviar o mesmo arquivo é seguro: o que já entrou aparece como duplicado.")+'<div style="height:18px"></div>':""}<div class="g3" style="margin-bottom:22px">${[ok,dup,er].map((n,i)=>`<div class="panel stat"><b>${n}</b><span>${L[i]}</span></div>`).join("")}</div>
+    ${rs.some(r=>r.st!=="ok")?`<div class="panel"><h2>Linhas não aceitas</h2><div class="tablewrap"><table><thead><tr><th>Linha</th><th>Cliente</th><th>Situação</th><th>Motivo</th></tr></thead><tbody>${rs.filter(r=>r.st!=="ok").map(r=>`<tr><td class="num">${r.linha}</td><td>${cli(r.id)?uuid(r.id):"—"}</td><td>${r.st==="dup"?tag("neu","Duplicada"):tag("crit","Com erro")}</td><td>${r.motivo}</td></tr>`).join("")}</tbody></table></div></div>`:""}
+    <div class="row" style="margin-top:22px">${!fin&&ok?`<button class="btn pri" data-act="importar">Importar ${ok} eventos</button>`:""}${!fin&&!ok?alertH("warn","Nenhuma linha pronta","Corrija o arquivo e envie de novo."):""}<button class="btn" data-act="novoarq">Enviar outro arquivo</button></div>`}
+  return{html:ph([["Clientes","#/clientes"],["Importar eventos"]],"Importar eventos")+stp+b,perm:"clientes"};
+}
+function pgPedidos(){
+  const l=S.clients.filter(c=>c.pedido).sort((a,b)=>(a.eliminado-b.eliminado));
+  return{html:ph([["Clientes","#/clientes"],["Pedidos do titular"]],"Pedidos do titular")+`<div class="panel">${l.length?`<div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Pedido em</th><th>Situação</th><th>Consentimento</th></tr></thead><tbody>${l.map(c=>`<tr class="link" data-go="#/clientes/${c.id}/direitos"><td><b>${esc(c.eliminado?"Titular eliminado":c.nome)}</b>${uuid(c.id)}</td><td class="num">${fmt(c.pedido)}</td><td>${c.eliminado?tag("ok","Atendido"):tag("warn","Aberto")}</td><td>${cTag(c.cons.seg.status)}</td></tr>`).join("")}</tbody></table></div>`:emptyH("Nenhum pedido do titular.","Os pedidos de eliminação feitos pelo portal aparecem aqui.","","heart")}</div>`,perm:"pedidos"};
+}
+
+/* ----- análise e campanhas ----- */
+function grupos(){return S.segs.filter(s=>s.ativo).sort((a,b)=>a.prio-b.prio).map(s=>{const l=S.clients.filter(c=>eligible(c)&&c.proc&&c.proc.segId===s.id);const cats={};l.forEach(c=>{if(c.proc.p.cat)cats[c.proc.p.cat]=(cats[c.proc.p.cat]||0)+1});const tk=l.filter(c=>c.proc.p.compras);return{s,n:l.length,tk:tk.length?tk.reduce((a,c)=>a+c.proc.p.ticket,0)/tk.length:0,cat:Object.keys(cats).sort((a,b)=>cats[b]-cats[a])[0]||"—"}}).filter(g=>g.n>0)}
+function pgRelatorios(){
+  const g=grupos();
+  return{html:ph([["Análise"],["Relatórios agregados"]],"Relatórios",`<button class="btn" data-act="csv">${ic("dl")}Baixar CSV</button>`)+`<div class="panel"><h2>Por segmento</h2><p class="sub">Grupos com menos de 5 clientes não são detalhados, para ninguém ser identificado. Nenhum nome, e-mail ou ID aparece.</p>${g.length?`<div class="tablewrap"><table><thead><tr><th>Segmento</th><th class="r">Clientes</th><th class="r">Ticket médio</th><th>Categoria mais comum</th></tr></thead><tbody>${g.map(x=>x.n<5?`<tr><td><b>${esc(x.s.nome)}</b></td><td class="r">menos de 5</td><td class="r">—</td><td>—</td></tr>`:`<tr><td><b>${esc(x.s.nome)}</b></td><td class="r num">${x.n}</td><td class="r num">${brl(x.tk)}</td><td>${x.cat}</td></tr>`).join("")}</tbody></table></div>`:emptyH("Nenhum cliente processado ainda","Processe clientes com consentimento para ver o relatório.","","chart")}</div>`,perm:"analise"};
+}
+const entram=sid=>S.clients.filter(c=>eligible(c)&&c.cons.pub.status==="CONCEDIDO"&&c.proc&&c.proc.segId===sid);
+function pgPublicos(q){
+  const ativos=S.segs.filter(s=>s.ativo).sort((a,b)=>a.prio-b.prio),sid=q.seg||"";
+  let body="";
+  if(sid){const s=S.segs.find(x=>x.id===sid),en=entram(sid),all=S.clients.filter(c=>c.proc&&c.proc.segId===sid),fora=all.length-en.length,snap=S.snap[sid]||[],rem=snap.filter(id=>!en.some(c=>c.id===id)),hist=S.hist.filter(h=>h.sid===sid);
+    body=`<div class="g2" style="margin:22px 0"><section class="panel"><h2>Público</h2><div class="stat" style="margin:10px 0"><b>${en.length}</b><span>entram</span></div>${kv([["Ficam de fora",fora]])}<p class="why" style="margin:8px 0 16px">Sem a finalidade, inativos ou sem consentimento.</p><button class="btn pri" data-act="gerar" data-s="${sid}" ${en.length?"":"disabled"}>Gerar arquivo</button>${en.length?"":`<p class="why" style="margin-top:8px">Nenhum cliente entra neste público.</p>`}</section>
+    <section class="panel"><h2>Remoções pendentes</h2><div class="stat" style="margin:10px 0"><b>${rem.length}</b><span>saíram e ainda estão no público da plataforma</span></div><button class="btn" data-act="gerarrem" data-s="${sid}" ${rem.length?"":"disabled"}>Gerar arquivo de remoção</button></section></div>
+    <section class="panel"><h2>Histórico</h2>${hist.length?`<div class="tablewrap"><table><thead><tr><th>Data</th><th>Tipo</th><th>Operador</th><th class="r">Clientes</th><th>Hash</th><th>Arquivo</th></tr></thead><tbody>${hist.map((h,i)=>`<tr><td class="num">${fmt(h.q)}</td><td>${h.tipo==="Inclusão"?tag("ok","Inclusão"):tag("neu","Remoção")}</td><td>${h.op}</td><td class="r num">${h.n}</td><td class="mono" title="${h.hash}">${h.hash.slice(0,12)}</td><td><button class="btn sm" data-act="baixarh" data-i="${S.hist.indexOf(h)}">Baixar até ${fmtD(h.ate)}</button></td></tr>`).join("")}</tbody></table></div>`:`<p class="muted">Nenhum arquivo gerado para este segmento.</p>`}</section>`;
+  }
+  return{html:ph([["Campanhas"],["Públicos"]],"Públicos",`<a class="btn" href="#/publicos/relatorio">Relatório agregado</a>`)+alertH("info","Quem entra no público","Entra quem está no segmento, está ativo e concedeu Segmentação e Publicidade com terceiros. O arquivo leva só o e-mail em hash (SHA-256), que ainda é dado pessoal.")+`<div class="panel" style="margin-top:22px"><div class="row" style="align-items:flex-end"><div class="field" style="margin:0;min-width:260px"><label for="psel">Segmento</label><select id="psel"><option value="">Escolha um segmento</option>${ativos.map(s=>`<option value="${s.id}" ${s.id===sid?"selected":""}>${esc(s.nome)}</option>`).join("")}</select></div></div></div>${body}`,perm:"campanhas"};
+}
+function pgPubRel(){const g=grupos();return{html:ph([["Campanhas","#/publicos"],["Relatório agregado"]],"Relatório de públicos")+`<div class="panel"><p class="sub">Candidatos por segmento: quem concedeu Segmentação e Publicidade. Grupos com menos de 5 não são detalhados.</p><div class="tablewrap"><table><thead><tr><th>Segmento</th><th class="r">Entram no público</th></tr></thead><tbody>${S.segs.filter(s=>s.ativo).map(s=>{const n=entram(s.id).length;return`<tr><td><b>${esc(s.nome)}</b></td><td class="r num">${n<5&&n>0?"menos de 5":n}</td></tr>`}).join("")}</tbody></table></div></div>`,perm:"campanhas"}}
+
+/* ----- configuração ----- */
+let DRAFT=null;
+const chipsH=cs=>cs.length?`<div class="chips">${cs.map(x=>`<span class="cc">${esc(condTxt(x))}</span>`).join("")}</div>`:`<span class="cc">Critério vazio: casa sempre</span>`;
+function pgSegmentos(){
+  const ed=canEdit(),a=S.segs.filter(s=>s.ativo).sort((x,y)=>x.prio-y.prio),i=S.segs.filter(s=>!s.ativo);
+  const row=s=>`<tr><td class="num"><b>${s.prio}</b></td><td><b>${esc(s.nome)}</b></td><td class="muted">${esc(s.desc)}</td><td>${chipsH(s.conds)}</td>${ed?`<td class="r"><div class="acell"><a class="btn sm" href="#/segmentos/${s.id}">Editar</a>${s.id!=="padrao"?`<button class="btn sm ${s.ativo?"crit":""}" data-act="toggleseg" data-id="${s.id}">${s.ativo?"Desativar":"Ativar"}</button>`:""}</div></td>`:""}</tr>`;
+  const head=`<thead><tr><th>Prioridade</th><th>Nome</th><th>Descrição</th><th>Critério</th>${ed?"<th></th>":""}</tr></thead>`;
+  return{html:ph([["Configuração"],["Segmentos"]],"Segmentos",ed?`<a class="btn pri" href="#/segmentos/novo">${ic("plus")}Novo segmento</a>`:"")+(ed?"":alertH("info","Somente leitura","Seu papel não permite editar segmentos.")+'<div style="height:22px"></div>')+`<div class="panel"><div class="tablewrap"><table>${head}<tbody>${a.map(row).join("")}</tbody></table></div></div>${i.length?`<div class="panel" style="margin-top:22px"><h2>Inativos</h2><div class="tablewrap"><table>${head}<tbody>${i.map(row).join("")}</tbody></table></div></div>`:""}`,perm:"config"};
+}
+function pgSegForm(id){
+  if(!canEdit())return{html:alertH("crit","Sem permissão","Seu papel só lê segmentos."),perm:"config"};
+  if(!DRAFT||DRAFT.src!==id){const s=S.segs.find(x=>x.id===id);DRAFT=s?{src:id,id:s.id,nome:s.nome,prio:s.prio,desc:s.desc,ativo:s.ativo,conds:s.conds.map(x=>({...x}))}:{src:id,id:null,nome:"",prio:10,desc:"",ativo:true,conds:[{c:"compras",op:">=",v:1}]}}
+  const d=DRAFT,pad=d.id==="padrao";
+  const cond=(x,i)=>`<div class="row" style="margin-bottom:10px">${i?`<span class="tag" data-k="pri">E</span>`:""}<select data-cond="c" data-i="${i}" style="width:160px">${Object.keys(CAMPO).map(k=>`<option value="${k}" ${x.c===k?"selected":""}>${CAMPO[k]}</option>`).join("")}</select><select data-cond="op" data-i="${i}" style="width:90px">${[">=","<=","="].map(o=>`<option ${x.op===o?"selected":""}>${o}</option>`).join("")}</select><input data-cond="v" data-i="${i}" value="${esc(x.v)}" style="width:120px" inputmode="decimal"><button type="button" class="btn sm crit" data-act="rmcond" data-i="${i}" aria-label="Remover condição">${ic("x")}</button></div>`;
+  return{html:ph([["Configuração"],["Segmentos","#/segmentos"],[d.id?esc(d.nome):"Novo"]],d.id?"Editar segmento":"Novo segmento")+`<div class="stack"><form id="fseg" novalidate class="stack">
+  <section class="panel form" style="max-width:none"><h2>Dados</h2><div class="g2">${field("sn","Nome",d.nome,{ro:pad})}${field("sp","Prioridade",d.prio,{type:"number",ro:pad})}</div>${field("sd","Descrição",d.desc)}</section>
+  <section class="panel"><h2>Critério</h2><p class="sub">${pad?"O segmento padrão casa sempre.":"Todas as condições precisam ser atendidas, ligadas por E."}</p><p class="mono muted" style="margin-bottom:14px">${esc(d.conds.map(condTxt).join(" E ")||"(vazio)")}</p>${pad?"":d.conds.map(cond).join("")}<div id="cond-e" class="err"></div>${pad?"":`<button type="button" class="btn sm" data-act="addcond">${ic("plus")}Adicionar condição</button>`}</section>
+  <section class="panel"><h2>Testar critério</h2><p class="sub">Digite um perfil e veja se o critério casa.</p><div class="row" style="align-items:flex-end"><div class="field" style="margin:0;width:130px"><label for="tc">Compras</label><input id="tc" value="3" inputmode="numeric"></div><div class="field" style="margin:0;width:150px"><label for="tt">Ticket médio (R$)</label><input id="tt" value="180" inputmode="decimal"></div><div class="field" style="margin:0;width:130px"><label for="te">Engajamento</label><input id="te" value="5" inputmode="numeric"></div><button type="button" class="btn" data-act="testar">Testar</button><span id="tres"></span></div></section>
+  <div class="row"><button class="btn pri" type="submit">Ver prévia</button><a class="btn" href="#/segmentos">Cancelar</a></div></form></div>`,perm:"config"};
+}
+function preview(draft,mode){
+  const nova=S.segs.map(s=>({...s}));
+  if(mode==="toggle"){const s=nova.find(x=>x.id===draft.id);s.ativo=!s.ativo}
+  else{const o={id:draft.id||"novo-"+draft.nome,nome:draft.nome,prio:+draft.prio,desc:draft.desc,conds:draft.conds.map(x=>({...x,v:Number(String(x.v).replace(",","."))})),ativo:true};const k=nova.findIndex(x=>x.id===draft.id);k>=0?nova[k]={...nova[k],...o,ativo:nova[k].ativo}:nova.push(o)}
+  const base=S.clients.filter(c=>eligible(c)&&c.proc),cnt=(segs)=>{const m={};base.forEach(c=>{const s=segDe(S,c.proc.p,segs);m[s.nome]=(m[s.nome]||0)+1});return m};
+  return{hoje:cnt(S.segs),novo:cnt(nova),nova};
+}
+function pgPrevia(){
+  if(!DRAFT||!DRAFT.mode)return{html:alertH("warn","Nada para prever","Abra um segmento e escolha Ver prévia."),perm:"config"};
+  const p=preview(DRAFT,DRAFT.mode),nomes=[...new Set([...Object.keys(p.hoje),...Object.keys(p.novo)])];
+  return{html:ph([["Configuração"],["Segmentos","#/segmentos"],["Prévia"]],"Prévia da mudança")+`<div class="panel"><p class="sub">Só conta clientes ativos com consentimento, pelo perfil salvo. Quem já foi segmentado muda no próximo processamento.</p><div class="tablewrap"><table><thead><tr><th>Segmento</th><th class="r">Hoje</th><th class="r">Com a mudança</th><th class="r">Diferença</th></tr></thead><tbody>${nomes.map(n=>{const a=p.hoje[n]||0,b=p.novo[n]||0,d=b-a;return`<tr><td><b>${esc(n)}</b></td><td class="r num">${a}</td><td class="r num">${b}</td><td class="r num"><span class="tag" data-k="${d>0?"ok":d<0?"warn":"neu"}">${d>0?"+":""}${d}</span></td></tr>`}).join("")}</tbody></table></div><div class="row" style="margin-top:20px"><button class="btn pri" data-act="salvarseg">${DRAFT.mode==="toggle"?"Confirmar":"Salvar alterações"}</button><a class="btn" href="${DRAFT.mode==="toggle"?"#/segmentos":"#/segmentos/"+(DRAFT.id||"novo")}">Voltar${DRAFT.mode==="toggle"?"":" ao formulário"}</a></div></div>`,perm:"config"};
+}
+function pgCatalogo(){
+  const ed=canEdit();
+  return{html:ph([["Configuração"],["Catálogo"]],"Catálogo",ed?`<a class="btn pri" href="#/catalogo/novo">${ic("plus")}Novo produto</a>`:"")+alertH("info","Como a recomendação escolhe","A recomendação escolhe o primeiro produto ativo da categoria preferida, por ordem alfabética.")+`<div class="stack" style="margin-top:22px">${CATS.map(cat=>{const l=S.catalogo.filter(p=>p.cat===cat).sort((a,b)=>a.nome.localeCompare(b.nome));return l.length?`<section class="panel"><h2 style="text-transform:capitalize">${cat}</h2><div class="tablewrap"><table><thead><tr><th>Nome</th><th class="r">Preço</th><th>Situação</th>${ed?"<th></th>":""}</tr></thead><tbody>${l.map(p=>`<tr><td><b>${ed?`<a href="#/catalogo/${p.id}" style="text-decoration:underline;text-underline-offset:4px">${esc(p.nome)}</a>`:esc(p.nome)}</b></td><td class="r num">${brl(p.preco)}</td><td>${p.ativo?tag("ok","Ativo"):tag("neu","Inativo")}</td>${ed?`<td class="r"><div class="acell"><button class="btn sm ${p.ativo?"crit":""}" data-act="toggleprod" data-id="${p.id}">${p.ativo?"Desativar":"Ativar"}</button></div></td>`:""}</tr>`).join("")}</tbody></table></div></section>`:""}).join("")}</div>`,perm:"config"};
+}
+function pgProdForm(id){
+  if(!canEdit())return{html:alertH("crit","Sem permissão","Seu papel só lê o catálogo."),perm:"config"};
+  const p=S.catalogo.find(x=>x.id===id)||{nome:"",cat:"livros",preco:""};
+  return{html:ph([["Configuração"],["Catálogo","#/catalogo"],[p.nome||"Novo"]],id==="novo"?"Novo produto":"Editar produto")+`<div class="panel form"><form id="fprod" data-id="${id}" novalidate>${field("pn","Nome",p.nome)}<div class="field"><label for="pc">Categoria</label><input id="pc" name="pc" list="cats" value="${esc(p.cat)}"><datalist id="cats">${CATS.map(c=>`<option>${c}</option>`).join("")}</datalist><span class="h">Gravada em minúsculas.</span><span class="err" id="pc-e"></span></div>${field("pp","Preço (R$)",p.preco===""?"":String(p.preco).replace(".",","),{ph:"89,90"})}<div class="row"><button class="btn pri">Salvar produto</button><a class="btn" href="#/catalogo">Cancelar</a></div></form></div>`,perm:"config"};
+}
+
+/* ----- administração ----- */
+function pgOperacao(){
+  const venc=S.clients.filter(c=>c.proc&&c.proc.recStatus==="ATIVA"&&new Date(c.proc.validade)<NOW).length;
+  return{html:ph([["Administração"],["Operação"]],"Operação")+`<div class="g2"><section class="panel"><h2>Saúde</h2><div class="stack" style="gap:12px;margin-top:10px"><div class="row" style="justify-content:space-between"><span>Banco de dados</span>${tag("ok","Operacional")}</div><div class="row" style="justify-content:space-between"><span>Migrações</span><span class="mono">versão 14</span></div><div class="row" style="justify-content:space-between"><span>Réplicas</span><span class="mono">2 de 2 ativas</span></div></div></section>
+  <section class="panel"><h2>Expirar recomendações vencidas</h2><p class="sub">Recomendações ativas com validade vencida passam a Expirada.</p><button class="btn" data-act="expirar">Expirar agora</button></section>
+  <section class="panel"><h2>Retenção após a revogação</h2><p class="sub">Titulares que revogaram há mais de ${S.prazo} dias têm os dados eliminados. O histórico do consentimento permanece.</p><button class="btn crit" data-act="reter">Aplicar retenção</button></section>
+  <section class="panel"><h2>Simulação</h2><p class="sub">Somente na demonstração: faz a etapa de segmento falhar no próximo processamento, para ver o fluxo de erro.</p><button class="sw" role="switch" aria-checked="${S.falha}" data-act="falha"><i></i>Falha de configuração dos segmentos</button></section></div>`,perm:"admin"};
+}
+function pgCaixa(){return{html:ph([["Administração","#/operacao"],["Caixa de saída"]],"Caixa de saída")+alertH("info","Simulação para a demonstração","Nenhum e-mail sai do sistema. Mensagens com mais de 24 horas são apagadas.")+`<div class="panel" style="margin-top:22px">${S.outbox.length?`<div class="tablewrap"><table><thead><tr><th>Para</th><th>Assunto</th><th>Enviada em</th><th>Mensagem</th></tr></thead><tbody>${S.outbox.map(m=>`<tr><td class="mono">${mask(m.para)}</td><td><b>${esc(m.assunto)}</b></td><td class="num">${fmt(m.q)}</td><td>${esc(m.txt.split("#")[0])}${m.txt.includes("#")?`<a class="mono" style="color:var(--pri);text-decoration:underline" href="#${m.txt.split("#")[1]}">abrir link</a>`:""}</td></tr>`).join("")}</tbody></table></div>`:emptyH("Nenhuma mensagem nas últimas 24 horas.","Quando o titular pedir um link no portal, ele aparece aqui.","","inbox")}</div>`,perm:"admin"}}
+function pgUsuarios(){return{html:ph([["Administração"],["Operadores"]],"Operadores",`<button class="btn pri" data-act="novouser">${ic("plus")}Novo operador</button>`)+`<div class="panel"><div class="tablewrap"><table><thead><tr><th>Operador</th><th>Papel</th><th>Situação</th><th></th></tr></thead><tbody>${S.users.map(u=>`<tr><td><b>${esc(u.nome)}</b><small class="mono">${u.u}</small></td><td><select data-chg="papel" data-u="${u.u}" style="width:170px;min-height:38px">${Object.keys(PERM).map(p=>`<option ${p===u.papel?"selected":""}>${p}</option>`).join("")}</select></td><td>${u.ativo?tag("ok","Ativo"):tag("neu","Inativo")}</td><td class="r"><div class="acell"><button class="btn sm" data-act="senhaprov" data-u="${u.u}">Redefinir senha</button><button class="btn sm ${u.ativo?"crit":""}" data-act="toggleuser" data-u="${u.u}">${u.ativo?"Desativar":"Ativar"}</button></div></td></tr>`).join("")}</tbody></table></div></div>`,perm:"admin"}}
+function pgAuditoria(q){const ops=[...new Set(S.audit.map(a=>a.op))],l=S.audit.filter(a=>(!q.op||a.op===q.op));return{html:ph([["Administração"],["Auditoria"]],"Auditoria")+`<div class="panel"><div class="bar"><div class="field" style="margin:0;width:220px"><label for="aop">Operador</label><select id="aop"><option value="">Todos</option>${ops.map(o=>`<option ${o===q.op?"selected":""}>${o}</option>`).join("")}</select></div></div>${l.length?`<div class="tablewrap"><table><thead><tr><th>Quando</th><th>Operador</th><th>Ação</th><th>Detalhe</th></tr></thead><tbody>${l.slice(0,60).map(a=>`<tr><td class="num">${fmt(a.q)}</td><td class="mono">${a.op}</td><td><b>${esc(a.acao)}</b></td><td class="muted">${esc(a.det)}</td></tr>`).join("")}</tbody></table></div>`:emptyH("Nenhum registro","As ações do painel aparecem aqui.","","list")}</div>`,perm:"admin"}}
+function pgSenha(){return{html:ph([["Minha senha"]],"Minha senha")+`<div class="panel form"><form id="fsenha" novalidate>${field("s0","Senha atual","",{type:"password",ac:"current-password"})}${field("s1","Nova senha","",{type:"password",h:"Pelo menos 8 caracteres.",ac:"new-password"})}${field("s2","Repita a nova senha","",{type:"password",ac:"new-password"})}<button class="btn pri">Trocar senha</button></form></div>`,perm:"*"}}
+
+/* =============================================================
+   MOLDURA, ENTRAR E ROTEADOR
+   ============================================================= */
+function shell(page){
+  const cur=CUR.split("?")[0],hrefs=NAV.flatMap(g=>g[2].map(i=>i[1])),best=hrefs.filter(h=>cur===h||cur.startsWith(h+"/")).sort((a,b)=>b.length-a.length)[0];
+  const nav=NAV.filter(([,g])=>can(g)).map(([t,g,items])=>`<div class="grp">${t}</div>${items.filter(i=>!i[3]||can(i[3])).map(([n,h,ico])=>`<a class="nv" href="${h}" ${h===best?'aria-current="page"':""}>${ic(ico)}${n}</a>`).join("")}`).join("");
+  return`<div class="app"><aside class="side" id="side"><div class="sbox"><div class="logo"><i>p</i>perfila</div><nav aria-label="Principal">${nav}</nav>
+  <div class="sfoot"><div class="who"><span class="av">${S.session.nome[0]}</span><div><b>${esc(S.session.nome)}</b><span>${S.session.papel}</span></div></div>
+  <label class="sr" for="trocapapel">Papel (demonstração)</label><select id="trocapapel">${Object.keys(PERM).map(p=>`<option ${p===S.session.papel?"selected":""}>${p}</option>`).join("")}</select><span class="why">Troque o papel para ver as permissões.</span>
+  <a class="lnk" href="#/minha-senha">Minha senha</a><a class="lnk" href="#/titular/entrar">Abrir portal do titular</a><button class="lnk" data-act="reset">Reiniciar demonstração</button><button class="lnk" data-act="sair">Sair</button></div></div></aside><div class="scrim" data-act="menu"></div>
+  <div><div class="mtop"><div class="logo" style="padding:0"><i>p</i>perfila</div><button class="btn sm" data-act="menu">${ic("menu")}Menu</button></div><main class="main" id="main"><div class="page" id="pg">${page.html}</div></main></div></div>`;
+}
+function entrar(msg=""){
+  return`<div class="center"><div class="card"><div class="logo" style="padding:0"><i>p</i>perfila</div><h1>Entre no painel</h1><p class="lead">Segmentação e perfilamento de clientes, sempre com consentimento.</p>${msg?alertH(msg.k,msg.t)+'<div style="height:16px"></div>':""}<form id="flogin" novalidate>${field("lu","Usuário","rita",{ac:"username"})}${field("ls","Senha","demonstracao",{type:"password",ac:"current-password"})}<button class="btn pri" style="width:100%">Entrar</button></form><div class="quick"><small>Atalho da demonstração: entrar como</small>${Object.entries({rita:"Administrador",caio:"Analista",bia:"Atendimento"}).map(([u,p])=>`<button class="btn sm" data-act="entrarcomo" data-u="${u}">${p}</button>`).join("")}<a class="btn sm" href="#/titular/entrar" style="margin-top:8px">Portal do titular</a></div></div></div>`;
+}
+const FIRST={Administrador:"#/clientes",Analista:"#/relatorios",Atendimento:"#/clientes"};
+function parse(){
+  const h=CUR.slice(1)||"/",[path,qs]=h.split("?"),q=Object.fromEntries(new URLSearchParams(qs||""));
+  return{parts:path.split("/").filter(Boolean),q};
+}
+let lastPath="";
+let CUR=location.hash||"#/";
+function nav(h){if(h===CUR){route("nav");return}CUR=h;try{history.pushState(null,"",h)}catch(_){}route("nav")}
+document.addEventListener("click",e=>{const a=e.target.closest('a[href^="#/"]');if(a&&!e.defaultPrevented&&!e.metaKey&&!e.ctrlKey){e.preventDefault();nav(a.getAttribute("href"))}});
+addEventListener("popstate",()=>{CUR=location.hash||"#/";DLG_CLOSE();route("nav")});
+function route(skel){
+  const{parts,q}=parse();
+  if(parts[0]==="titular")return portal(parts,q);
+  if(!S.session){$("#root").innerHTML=entrar(S.expirou?{k:"warn",t:"Sua sessão expirou. Entre de novo para continuar."}:"");return}
+  if(!parts.length||parts[0]==="entrar"){nav(FIRST[S.session.papel]);return}
+  let pg,[a,b,c]=parts;
+  if(a==="clientes"){pg=!b?pgClientes(q):b==="novo"?pgNovo():pgFicha(b,c||"visao")}
+  else if(a==="eventos"&&b==="importar")pg=pgImportar();
+  else if(a==="pedidos")pg=pgPedidos();
+  else if(a==="relatorios")pg=pgRelatorios();
+  else if(a==="publicos")pg=b==="relatorio"?pgPubRel():pgPublicos(q);
+  else if(a==="segmentos")pg=!b?pgSegmentos():b==="previa"?pgPrevia():pgSegForm(b);
+  else if(a==="catalogo")pg=!b?pgCatalogo():pgProdForm(b);
+  else if(a==="operacao")pg=b==="caixa-saida"?pgCaixa():pgOperacao();
+  else if(a==="usuarios")pg=pgUsuarios();
+  else if(a==="auditoria")pg=pgAuditoria(q);
+  else if(a==="minha-senha")pg=pgSenha();
+  else pg={html:emptyH("Página não encontrada","O endereço não existe.",`<a class="btn" href="#/">Ir ao início</a>`,"search"),perm:"*"};
+  if(pg.perm!=="*"&&!can(pg.perm))pg={html:ph([["Sem permissão"]],"Sem permissão")+emptyH("Seu papel não abre esta área","Troque de papel no rodapé do menu para ver o que cada um acessa.",`<a class="btn" href="${FIRST[S.session.papel]}">Ir ao início</a>`,"shield")};
+  const open=$("#side")?.classList.contains("open"),sc=scrollY;
+  const full=!$("#pg")||skel;
+  if(full){$("#root").innerHTML=shell(pg);if(skel==="nav"&&lastPath.split("?")[0]!==CUR.split("?")[0]&&!reduce&&/^(clientes|relatorios|segmentos|catalogo|publicos|usuarios|auditoria)$/.test(a)&&!c&&b!=="novo"){/* esqueleto breve */const box=$("#pg");const html=pg.html;box.innerHTML=`<div class="skel" style="margin-top:60px"><div class="sk" style="width:30%;height:44px"></div><div class="sk" style="height:220px;border-radius:24px"></div><div class="sk" style="width:70%"></div></div>`;setTimeout(()=>{if($("#pg")===box)box.innerHTML=html},170)}}
+  else{$("#pg").innerHTML=pg.html;$$(".nv").forEach(n=>n.removeAttribute("aria-current"))}
+  if(!full)scrollTo(0,sc);
+  if(skel==="nav"&&lastPath.split("?")[0]!==CUR.split("?")[0])scrollTo(0,0);
+  lastPath=CUR;
+}
+const draw=()=>{const sc=scrollY;const{parts,q}=parse();const html=$("#pg");if(!html||parts[0]==="titular"){route(true);return}route(true);scrollTo(0,sc)};
+
+function DLG_CLOSE(){const d=$("#dlg");if(d.open)d.close()}
+
+/* =============================================================
+   PORTAL DO TITULAR
+   ============================================================= */
+function portal(parts,q){
+  const b=parts[1]||"entrar";let body="";
+  const top=`<div class="ptop"><div class="logo" style="padding:0"><i>p</i>perfila</div>${S.portal?`<button class="lnk" data-act="psair">Sair</button>`:`<a class="lnk" href="#/">Painel da equipe</a>`}</div>`;
+  const c=S.portal&&cli(S.portal);
+  if(b==="entrar")body=`<h1>Acesse seus dados</h1><div class="panel"><form id="fpe" novalidate>${field("pe","E-mail","",{type:"email",ph:"voce@exemplo.test",h:"Dica da demonstração: marina@exemplo.test"})}<button class="btn pri">Enviar link de acesso</button></form></div>${S.lastTok?`<div id="pavisos">${alertH("info","Link enviado","Se o e-mail estiver cadastrado, enviamos um link de acesso. Ele vale por 30 minutos e só pode ser usado uma vez.")}</div><div class="demo"><span>Demonstração: a equipe veria esta mensagem na Caixa de saída. Na vida real, você abriria o e-mail.</span><a class="btn sm" href="#/titular/acesso?t=${S.lastTok}">Abrir o link recebido</a></div>`:""}`;
+  else if(b==="acesso"){const t=S.tokens[q.t];
+    body=t&&!t.used&&t.exp>Date.now()?`<h1>Pronto para entrar</h1><div class="panel"><p class="sub">Confirme para abrir seus dados.</p><button class="btn pri" data-act="pentrar" data-t="${q.t}">Entrar no portal</button></div>`:`<h1>Link inválido</h1>${alertH("crit","Este link não vale mais.","Peça um novo.",`<a class="btn pri sm" href="#/titular/entrar">Pedir novo link</a>`)}`}
+  else if(!c||c.eliminado){body=`<h1>Sessão encerrada</h1>${alertH("neu","Entre de novo","Peça um novo link de acesso.",`<a class="btn pri sm" href="#/titular/entrar">Pedir link</a>`)}`}
+  else if(b==="meus-dados"){
+    const k=c.cons.seg,ok=k.status==="CONCEDIDO";
+    body=`<h1>Olá, ${esc(c.nome.split(" ")[0])}</h1><div class="stack"><section class="panel"><h2>Seus dados de cadastro</h2>${kv([["Nome",esc(c.nome)],["E-mail",esc(c.email)],["Cadastro",fmtD(c.cadastro)]])}</section>
+    <section class="panel"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><h2>Sua autorização</h2><p class="sub">Segmentação: entender seu comportamento de compra para recomendar produtos.</p></div>${stampH(k.status,ok?fmt(k.desde):k.status==="REVOGADO"?fmt(k.revogado):"","Autorização","sm")}</div>${kv([["Termo",k.termo||"—"],["Autorizada em",k.desde?fmt(k.desde):"—"],["Retirada em",k.revogado?fmt(k.revogado):"—"]])}<div style="margin:16px 0">${ok?`<button class="btn crit" data-act="pretirar">Retirar autorização</button>`:`<button class="btn pri" data-act="pautorizar">Autorizar de novo</button>`}</div><h3 class="ph2" style="font-size:17px">Histórico</h3>${tlH(k.tl)}</section>
+    <section class="panel"><h2>Seus direitos</h2><div class="stack" style="gap:12px;margin-top:10px"><button class="btn" data-act="baixar" data-id="${c.id}">${ic("dl")}Baixar meus dados (JSON)</button>${c.pedido?alertH("info",`Você pediu a eliminação em ${fmt(c.pedido)}.`,"A equipe vai atender o pedido."):ok?alertH("warn","Para pedir a eliminação, retire a autorização antes."):`<button class="btn crit" data-act="peliminar">Pedir eliminação</button>`}</div></section></div>`}
+  else body=emptyH("Página não encontrada","","","search");
+  $("#root").innerHTML=`<div class="portal page">${top}${body}</div>`;
+}
+
+/* =============================================================
+   AÇÕES
+   ============================================================= */
+function conceder(id,f){const c=cli(id);
+  dlg({title:"Conceder consentimento",fx:`A partir de agora, ${f==="seg"?"os eventos deste cliente podem ser usados para perfil, segmento e recomendação":"este cliente pode entrar nos públicos enviados a plataformas de anúncio"}.`,body:field("df","Finalidade",f==="seg"?"segmentacao":"publicidade_terceiros",{ro:true})+field("dt","Versão do termo",S.termo,{type:"select",opts:["v1","v2"]}),ok:"Conceder",focusCancel:false,onOk:fd=>{
+    const k=c.cons[f],q=new Date().toISOString();k.status="CONCEDIDO";k.termo=fd.dt;k.desde=q;k.revogado=null;k.tl.unshift({t:"Concessão",q,por:S.session.nome.split(" ")[0]+" (painel)",termo:fd.dt});log("Consentimento concedido",`${c.id} · ${f}`);draw();toast("Consentimento concedido");pulse(".stamp");}});}
+function revogar(id,f){const c=cli(id);
+  dlg({title:"Revogar consentimento?",fx:"O processamento dos dados deste cliente para imediatamente. Os dados já registrados continuam guardados. Você pode conceder de novo depois.",ok:"Revogar consentimento",kind:"crit",onOk:()=>{const k=c.cons[f],q=new Date().toISOString();k.status="REVOGADO";k.revogado=q;k.tl.unshift({t:"Revogação",q,por:S.session.nome.split(" ")[0]+" (painel)",termo:k.termo});log("Consentimento revogado",`${c.id} · ${f}`);draw();toast("Consentimento revogado");}});}
+async function processar(id){
+  const c=cli(id);if(RUN)return;RUN={id,i:0};draw();
+  const fail=S.falha;
+  for(let i=0;i<4;i++){
+    RUN.i=i;paintStage(c);$("#laudo")&&($("#laudo").innerHTML=`Processando os ${c.events.length} eventos de ${esc(c.nome.split(" ")[0])}, na ordem do fluxo…`);await wait(750);
+    if(fail&&i===2){RUN=null;c.fail={i:2,code:"4f2a"+Math.floor(1000+Math.random()*8999).toString(16)};c.proc=c.proc;log("Processamento com falha",c.id);draw();toast("Falha na segmentação");return}
+  }
+  RUN=null;runProc(S,c);log("Processamento concluído",c.id);draw();confetti("#ticket");pulse("#ticket");toast("Processamento concluído");
+}
+function eliminar(id){const c=cli(id);
+  dlg({title:"Eliminar dados?",fx:`Esta ação anonimiza o cadastro e apaga eventos, perfil e recomendação de ${c.nome}. O histórico do consentimento permanece como prova. Não há como desfazer.`,body:field("dn",`Digite o nome do cliente para confirmar`,"",{h:c.nome}),ok:"Eliminar dados",kind:"crit",onOk:fd=>{if(fd.dn.trim()!==c.nome){setErr("dn","O nome digitado é diferente do nome do cliente.");return false}
+    elim(c);log("Dados eliminados",c.id);nav("#/clientes/"+c.id);draw();toast("Dados eliminados");}});}
+function elim(c){c.nome="Titular eliminado";c.email="";c.events=[];c.proc=null;c.fail=null;c.eliminado=true;c.eliminadoEm=new Date().toISOString();c.ativo=false}
+function dados(c){return JSON.stringify({id:c.id,nome:c.nome,email:c.email,cadastro:c.cadastro,consentimentos:c.cons,eventos:c.events,perfil:c.proc?.p||null,segmento:c.proc?.segNome||null,recomendacao:c.proc?.rec||null},null,2)}
+
+document.addEventListener("click",e=>{
+  const go=e.target.closest("[data-go]");if(go&&!e.target.closest("button,a")){nav(go.dataset.go);return}
+  const b=e.target.closest("[data-act]");if(!b)return;const a=b.dataset.act,d=b.dataset;
+  switch(a){
+    case"copy":navigator.clipboard?.writeText(d.v).catch(()=>{});toast("ID copiado");break;
+    case"menu":$("#side").classList.toggle("open");break;
+    case"sair":S.session=null;S.expirou=false;nav("#/");route(true);break;
+    case"reset":S=seed();DRAFT=null;IMP={step:1,rows:[],err:null,res:null};S.session=null;nav("#/");route(true);toast("Demonstração reiniciada");break;
+    case"entrarcomo":{const u=S.users.find(x=>x.u===d.u);S.session=u;log("Entrou","Sessão iniciada");nav(FIRST[u.papel]);route(true);break}
+    case"filtro":{const{q}=parse();nav(`#/clientes?c=${encodeURIComponent(d.v)}&q=${encodeURIComponent(q.q||"")}`);break}
+    case"limpar":nav("#/clientes");break;
+    case"conceder":conceder(d.id,d.f);break;
+    case"revogar":revogar(d.id,d.f);break;
+    case"processar":processar(d.id);break;
+    case"ativar":{const c=cli(d.id);c.proc.recStatus="ATIVA";log("Recomendação ativada",c.id);draw();confetti("#ticket");toast("Recomendação ativada");break}
+    case"baixar":{const c=cli(d.id);dl(`perfila-dados-${c.id}.json`,dados(c),"application/json");toast("Arquivo baixado");break}
+    case"eliminar":eliminar(d.id);break;
+    case"exemplo":IMP.text=csvExemplo();{const r=conferir(IMP.text);r.err?IMP.err=r.err:(IMP.rows=r.rows,IMP.step=2,IMP.err=null)}draw();break;
+    case"conferir":{const f=$("#arq").files[0];if(!f){IMP.err="Nenhum arquivo escolhido. Escolha um .csv ou use o arquivo de exemplo.";draw();break}if(f.size>262144){IMP.err="Arquivo maior que 256 KiB.";draw();break}f.text().then(t=>{const r=conferir(t);r.err?IMP.err=r.err:(IMP.rows=r.rows,IMP.step=2,IMP.err=null);draw()});break}
+    case"modelo":dl("modelo.csv",CSVH+"\nc-001,compra,89.90,livros,site,"+new Date().toISOString()+"\n","text/csv");break;
+    case"importar":{IMP.rows.filter(r=>r.st==="ok").forEach(r=>cli(r.id).events.unshift({t:r.t,cat:r.cat,v:+r.v||0,q:new Date(r.q).toISOString(),origem:r.origem||"importação"}));IMP.rows=IMP.rows.map(r=>r.st==="ok"?{...r,st:"ok"}:r);IMP.step=3;log("Eventos importados",`${IMP.rows.filter(r=>r.st==="ok").length} eventos`);draw();toast("Importação concluída");break}
+    case"novoarq":IMP={step:1,rows:[],err:null,res:null};draw();break;
+    case"csv":{const g=grupos();dl("relatorio.csv","segmento,clientes,ticket_medio,categoria\n"+g.map(x=>x.n<5?`${x.s.nome},menos de 5,,`:`${x.s.nome},${x.n},${x.tk.toFixed(2)},${x.cat}`).join("\n"),"text/csv");break}
+    case"gerar":{const en=entram(d.s);dlg({title:"Gerar arquivo do público?",fx:`O arquivo leva ${en.length} clientes, só com o e-mail em hash (SHA-256). Fica disponível por 7 dias.`,ok:"Gerar arquivo",focusCancel:false,onOk:()=>{const h=hex64(en.map(c=>c.email).join()+Date.now());S.hist.unshift({sid:d.s,q:new Date().toISOString(),tipo:"Inclusão",op:S.session.u,n:en.length,hash:h,ate:ahead(7),lines:en.map(c=>hex64(c.email))});S.snap[d.s]=en.map(c=>c.id);log("Público gerado",`${d.s} · ${en.length}`);draw();toast(`Arquivo gerado com ${en.length} clientes`)}});break}
+    case"gerarrem":{const snap=S.snap[d.s]||[],rem=snap.filter(id=>!entram(d.s).some(c=>c.id===id));S.hist.unshift({sid:d.s,q:new Date().toISOString(),tipo:"Remoção",op:S.session.u,n:rem.length,hash:hex64("rem"+Date.now()),ate:ahead(7),lines:rem.map(id=>hex64(cli(id).email))});S.snap[d.s]=snap.filter(id=>!rem.includes(id));log("Remoção gerada",`${d.s} · ${rem.length}`);draw();toast("Arquivo de remoção gerado");break}
+    case"baixarh":{const h=S.hist[+d.i];dl(`publico-${h.sid}-${h.tipo}.txt`,h.lines.join("\n"));break}
+    case"toggleseg":{const s=S.segs.find(x=>x.id===d.id);DRAFT={src:"t",id:s.id,nome:s.nome,mode:"toggle"};nav("#/segmentos/previa");break}
+    case"addcond":syncDraft();DRAFT.conds.push({c:"compras",op:">=",v:1});draw();break;
+    case"rmcond":syncDraft();DRAFT.conds.splice(+d.i,1);draw();break;
+    case"testar":{syncDraft();const p={compras:+$("#tc").value,ticket:+String($("#tt").value).replace(",","."),eng:+$("#te").value};const ok=casa(DRAFT.conds.map(x=>({...x,v:Number(String(x.v).replace(",","."))})),p);$("#tres").innerHTML=ok?tag("ok","O critério casa"):tag("warn","O critério não casa");break}
+    case"salvarseg":{const D=DRAFT;if(D.mode==="toggle"){const s=S.segs.find(x=>x.id===D.id);s.ativo=!s.ativo;log(s.ativo?"Segmento ativado":"Segmento desativado",s.id)}else{const o={nome:D.nome,prio:+D.prio,desc:D.desc,conds:D.conds.map(x=>({...x,v:Number(String(x.v).replace(",","."))}))};if(D.id)Object.assign(S.segs.find(x=>x.id===D.id),o);else S.segs.push({id:norm(D.nome).replace(/\W+/g,"-"),ativo:true,...o});log("Segmento salvo",D.nome)}DRAFT=null;nav("#/segmentos");toast("Segmento salvo");break}
+    case"toggleprod":{const p=S.catalogo.find(x=>x.id===d.id);dlg({title:p.ativo?"Desativar produto?":"Ativar produto?",fx:p.ativo?`${p.nome} deixa de ser recomendado. Quem já tem esta recomendação continua com ela até expirar.`:`${p.nome} volta a poder ser recomendado.`,ok:p.ativo?"Desativar":"Ativar",kind:p.ativo?"crit":"pri",onOk:()=>{p.ativo=!p.ativo;log(p.ativo?"Produto ativado":"Produto desativado",p.nome);draw();toast(p.ativo?"Produto ativado":"Produto desativado")}});break}
+    case"expirar":dlg({title:"Expirar recomendações vencidas?",fx:"Recomendações ativas com validade vencida passam a Expirada.",ok:"Expirar agora",focusCancel:false,onOk:()=>{let n=0;S.clients.forEach(c=>{if(c.proc&&c.proc.recStatus==="ATIVA"&&new Date(c.proc.validade)<NOW){c.proc.recStatus="EXPIRADA";n++}});log("Recomendações expiradas",String(n));toast(n?`${n} recomendações expiradas`:"Nenhuma recomendação vencida")}});break;
+    case"reter":dlg({title:"Aplicar retenção?",fx:`Titulares que revogaram há mais de ${S.prazo} dias têm os dados eliminados. Não há como desfazer.`,ok:"Aplicar retenção",kind:"crit",onOk:()=>{let n=0;S.clients.forEach(c=>{if(!c.eliminado&&c.cons.seg.status==="REVOGADO"&&NOW-new Date(c.cons.seg.revogado)>S.prazo*DAY){elim(c);n++}});log("Retenção aplicada",String(n));toast(n?`Retenção aplicada a ${n} clientes`:"Nenhum cliente com a retenção vencida")}});break;
+    case"falha":S.falha=!S.falha;draw();toast(S.falha?"Falha simulada ligada":"Falha simulada desligada");break;
+    case"novouser":dlg({title:"Novo operador",body:field("un","Nome")+field("uu","Usuário")+field("up","Papel","Atendimento",{type:"select",opts:Object.keys(PERM)}),ok:"Criar operador",focusCancel:false,onOk:fd=>{if(!fd.un||!fd.uu)return false;S.users.push({u:fd.uu,nome:fd.un,papel:fd.up,ativo:true});log("Operador criado",fd.uu);draw();toast("Operador criado")}});break;
+    case"toggleuser":{const u=S.users.find(x=>x.u===d.u);u.ativo=!u.ativo;log(u.ativo?"Operador ativado":"Operador desativado",u.u);draw();break}
+    case"senhaprov":toast("Senha provisória gerada: troque no primeiro acesso");log("Senha redefinida",d.u);break;
+    /* portal */
+    case"pentrar":{const t=S.tokens[d.t];t.used=true;S.portal=t.id;nav("#/titular/meus-dados");break}
+    case"psair":S.portal=null;nav("#/titular/entrar");break;
+    case"pretirar":dlg({title:"Retirar autorização?",fx:"A Perfila para de usar seus dados para recomendar produtos, agora. Você pode autorizar de novo quando quiser.",ok:"Retirar autorização",kind:"crit",onOk:()=>{const c=cli(S.portal),k=c.cons.seg,q=new Date().toISOString();k.status="REVOGADO";k.revogado=q;k.tl.unshift({t:"Revogação",q,por:"você, no portal",termo:k.termo});log("Revogação pelo portal",c.id);route(true);toast("Autorização retirada")}});break;
+    case"pautorizar":dlg({title:"Autorizar de novo?",fx:`Você autoriza o uso dos seus dados para segmentação, com o termo vigente (${S.termo}).`,ok:"Autorizar",focusCancel:false,onOk:()=>{const c=cli(S.portal),k=c.cons.seg,q=new Date().toISOString();k.status="CONCEDIDO";k.termo=S.termo;k.desde=q;k.revogado=null;k.tl.unshift({t:"Concessão",q,por:"você, no portal",termo:S.termo});log("Concessão pelo portal",c.id);route(true);toast("Autorização registrada")}});break;
+    case"peliminar":dlg({title:"Pedir eliminação?",fx:"Você pede que seus dados sejam eliminados. A equipe vai atender o pedido e você não poderá autorizar de novo antes disso.",ok:"Pedir eliminação",kind:"crit",onOk:()=>{const c=cli(S.portal);c.pedido=new Date().toISOString();log("Pedido de eliminação",c.id);route(true);toast("Pedido enviado")}});break;
+  }
+});
+function syncDraft(){if(!DRAFT||!$("#fseg"))return;DRAFT.nome=$("#sn").value;DRAFT.prio=$("#sp").value;DRAFT.desc=$("#sd").value;$$("[data-cond]").forEach(el=>{DRAFT.conds[+el.dataset.i][el.dataset.cond]=el.value})}
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.id==="trocapapel"){const p=t.value;S.session={...S.session,papel:p};nav(FIRST[p]);route(true);toast("Papel: "+p)}
+  if(t.id==="psel"){nav("#/publicos?seg="+t.value)}
+  if(t.id==="aop"){nav("#/auditoria"+(t.value?"?op="+t.value:""))}
+  if(t.dataset.chg==="papel"){S.users.find(u=>u.u===t.dataset.u).papel=t.value;log("Papel alterado",t.dataset.u+" → "+t.value);toast("Papel atualizado")}
+  if(t.dataset.cond)syncDraft();
+});
+let busT;document.addEventListener("input",e=>{if(e.target.id==="busca"){clearTimeout(busT);busT=setTimeout(()=>{const{q}=parse();const v=e.target.value;nav(`#/clientes?q=${encodeURIComponent(v)}&c=${encodeURIComponent(q.c||"Todos")}`);setTimeout(()=>{const i=$("#busca");i&&(i.focus(),i.setSelectionRange(v.length,v.length))},260)},350)}});
+document.addEventListener("submit",e=>{
+  const f=e.target;if(f.id==="dlgf")return;e.preventDefault();
+  if(f.id==="flogin"){const u=$("#lu").value.trim(),s=$("#ls").value;const us=S.users.find(x=>x.u===u&&x.ativo);if(!us||!s||s==="errada"){$("#root").innerHTML=entrar({k:"crit",t:"Usuário ou senha incorretos."});return}S.session=us;S.expirou=false;log("Entrou","Sessão iniciada");nav(FIRST[us.papel]);route(true)}
+  if(f.id==="fnovo"){const n=$("#nome").value.trim(),m=$("#email").value.trim();setErr("nome","");setErr("email","");let bad=false;if(n.length<3){setErr("nome","Informe o nome completo.");bad=true}if(!/^\S+@\S+\.\S+$/.test(m)){setErr("email","Informe um e-mail válido.");bad=true}if(bad)return;const id="c-"+String(S.clients.length+1).padStart(3,"0");S.clients.unshift({id,nome:n,email:m,cadastro:new Date().toISOString(),ativo:true,eliminado:false,cons:{seg:mkCons("NAO_CONCEDIDO"),pub:mkCons("NAO_CONCEDIDO")},events:[],proc:null,fail:null,pedido:null});log("Cliente cadastrado",id);nav("#/clientes/"+id);toast("Cliente cadastrado")}
+  if(f.id==="fev"){const c=cli(parse().parts[1]),fd=Object.fromEntries(new FormData(f)),v=Number(String(fd.v).replace(",","."))||0;if(fd.t==="buy"&&!(v>0)){$("#evt-e").textContent="Compra precisa de valor maior que zero.";return}c.events.unshift({t:fd.t,cat:fd.cat,v:fd.t==="buy"?v:0,q:new Date().toISOString(),origem:fd.origem});log("Evento registrado",c.id);draw();toast("Evento registrado")}
+  if(f.id==="fcorr"){const c=cli(parse().parts[1]);c.nome=$("#cn").value.trim()||c.nome;c.email=$("#ce").value.trim()||c.email;log("Cadastro corrigido",c.id);draw();toast("Cadastro corrigido")}
+  if(f.id==="fseg"){syncDraft();const D=DRAFT;setErr("sn","");$("#cond-e").textContent="";if(!D.nome.trim()){setErr("sn","Informe o nome do segmento.");return}const bad=D.conds.findIndex(x=>isNaN(Number(String(x.v).replace(",","."))));if(bad>=0){$("#cond-e").textContent=`Condição ${bad+1} (${CAMPO[D.conds[bad].c]}): o valor precisa ser um número.`;return}D.mode="save";nav("#/segmentos/previa")}
+  if(f.id==="fprod"){const nome=$("#pn").value.trim(),cat=$("#pc").value.trim().toLowerCase(),pr=Number($("#pp").value.replace(",","."));setErr("pn","");setErr("pp","");let bad=false;if(!nome){setErr("pn","Informe o nome.");bad=true}if(!(pr>0)){setErr("pp","Informe o preço com vírgula, por exemplo 89,90.");bad=true}if(!cat){setErr("pc","Informe a categoria.");bad=true}if(bad)return;
+    if(f.dataset.id==="novo"){S.catalogo.push({id:"p-"+(S.catalogo.length+1),cat,nome,preco:pr,ativo:true});if(!CATS.includes(cat))CATS.push(cat)}else Object.assign(S.catalogo.find(x=>x.id===f.dataset.id),{nome,cat,preco:pr});log("Produto salvo",nome);nav("#/catalogo");toast("Produto salvo")}
+  if(f.id==="fsenha"){const a=$("#s1").value,b=$("#s2").value;setErr("s1","");setErr("s2","");if(a.length<8){setErr("s1","A nova senha precisa ter pelo menos 8 caracteres.");return}if(a!==b){setErr("s2","As senhas não são iguais.");return}log("Senha trocada",S.session.u);f.reset();toast("Senha alterada")}
+  if(f.id==="fpe"){const m=$("#pe").value.trim().toLowerCase(),c=S.clients.find(x=>x.email===m&&!x.eliminado);const tok=(c?"t"+Math.random().toString(36).slice(2,8):"nada");if(c){S.tokens[tok]={id:c.id,used:false,exp:Date.now()+30*60*1e3};S.outbox.unshift({para:c.email,assunto:"Seu link de acesso ao Perfila",q:new Date().toISOString(),txt:`Abra este link para entrar: #/titular/acesso?t=${tok}`})}S.lastTok=c?tok:"nada";route(true)}
+});
+/* esqueleto de arquivo: o input de arquivo precisa sobreviver a draw() */
+route(true);
+</script>
+</body>
+</html>

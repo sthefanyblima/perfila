@@ -1,7 +1,9 @@
 # PageHeader
 
-Trilha, título da página, metadados e ações: o topo de toda tela.
+Trilha, título da página e ações: o topo de toda tela, exceto a ficha do cliente (que tem o cabeçalho de nome grande).
 
-**O que fornecer.** `pf-header` com `pf-crumbs` (links até a página atual, que não é link), `h1.pf-header__title` (estilo `display`, uma vez por tela), `pf-header__meta` opcional (ID, e-mail, cadastro, situação) e as ações à direita: no máximo uma primária.
+**O que fornecer.** `pf-crumbs` (mono, links até a página atual, que não é link), `h1.pf-header__title` (estilo `display`, uma vez por tela) e, à direita, `pf-header__actions` com no máximo uma ação primária. Em telas estreitas as ações descem para baixo do título.
 
-**Regras.** O título é o nome do objeto ("Cliente Sintético 1") ou da lista ("Clientes"), nunca "Detalhes" ou "Página do cliente".
+**Ficha do cliente.** O título é o nome do cliente em `pf-record__name`: primeiro nome em `ink` e o resto em `brand`, em tamanho enorme. Acima dele, os chips de metadados (ID, e-mail, cadastro, situação, Publicidade) em `pf-record__meta`; à direita, o carimbo do consentimento. Nomes longos reduzem a fonte (`--lg`, `--xl`). Cliente eliminado: título "Titular eliminado" e carimbo Eliminado.
+
+**Regras.** O título é o nome do objeto ("Marina Costa") ou da lista ("Clientes"), nunca "Detalhes" ou "Página do cliente".

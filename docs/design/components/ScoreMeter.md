@@ -1,7 +1,7 @@
 # ScoreMeter
 
-Mostra o score de engajamento (0 a 1) como barra com a explicação do cálculo.
+Mostra o engajamento do cliente como uma fileira de 10 marcas.
 
-**O que fornecer.** `pf-score` com o valor ("0,40"), o rótulo, a trilha (`pf-score__fill` com `width` igual ao score em %) e a nota "4 de 10 eventos em 30 dias", com a meta de `ENGAJAMENTO_META_EVENTOS`. Opcional: `pf-score__mark` na posição do limiar de um segmento ("engajado ≥ 0,70"), com a legenda na nota.
+**O que fornecer.** O rótulo "Engajamento" em negrito, `pf-pips` com 10 `<i>` que acendem (`is-on`, `brand`) conforme os eventos dos últimos 30 dias (máximo 10), e a nota em `pf-why`: "4 de 10 eventos em 30 dias", com a meta de `ENGAJAMENTO_META_EVENTOS`.
 
-**Regras.** O número sempre aparece; a barra só reforça. `role="meter"` com `aria-valuenow`, `aria-valuemin="0"`, `aria-valuemax="1"`.
+**Regras.** A frase com o número sempre aparece; as marcas só reforçam. Dentro do painel Perfil, abaixo do `KeyValue`. `role="meter"` com `aria-valuenow`, `aria-valuemin="0"` e `aria-valuemax="10"` no contêiner.

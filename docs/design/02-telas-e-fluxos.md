@@ -43,9 +43,9 @@ O portal do titular (`/titular`, v1.10) tem mapa e moldura próprios (seção Po
 
 ## Moldura de toda tela
 
-- `SideNav` à esquerda (`size-sidebar`) em `surface-2`; nome "Perfila" no topo; login e papel do operador, "Minha senha" e "Sair" no rodapé.
-- Área de trabalho em `surface-0`, até `size-content`, com margem lateral `space-6`.
-- `PageHeader`: trilha (Clientes › Nome), título `display`, ações da página à direita (no máximo uma primária).
+- `SideNav` à esquerda (`size-sidebar`), numa caixa branca arredondada que flutua com 16px de margem; marca "perfila" no topo; avatar, nome e papel do operador, "Minha senha" e "Sair" no rodapé.
+- Área de trabalho em `surface-0` (papel quente, com as formas de fundo), até `size-content`, com margem lateral `space-page`.
+- `PageHeader`: trilha (Clientes › Nome), título `display`, ações da página à direita (no máximo uma primária). A ficha do cliente tem o cabeçalho próprio de nome grande com o carimbo do consentimento.
 - Toasts no canto inferior direito, acima de tudo.
 - Abaixo de 960px, a barra lateral vira um botão "Menu" no cabeçalho.
 
