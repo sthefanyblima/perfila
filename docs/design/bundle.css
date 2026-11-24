@@ -351,4 +351,9 @@
 }
 @media (max-width: 760px) { .pf-record { grid-template-columns: 1fr; } }
 @media (max-width: 700px) { .pf-tabs { flex-wrap: nowrap; overflow-x: auto; margin-left: -4px; padding: 0 4px 4px; scrollbar-width: none; } .pf-tab { white-space: nowrap; } }
+@media (max-width: 560px) {
+  .pf-stamp { width: auto; max-width: calc(100% - 20px); }
+  .pf-stamp strong { font-size: clamp(20px, 7vw, 28px); white-space: normal; text-align: center; }
+  .pf-stamp small { letter-spacing: 0.08em; text-align: center; }
+}
 @media (prefers-reduced-motion: reduce) { .pf *, .pf *::before, .pf *::after { transition-duration: 0.01ms !important; animation: none !important; } }

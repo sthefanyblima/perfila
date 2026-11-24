@@ -88,23 +88,30 @@ Tipos de evento: navegação (seta), compra (sacola), interação (envelope). A 
 - Leitores de tela: tabelas com `<th scope>`; etiquetas e carimbo com texto real (não só ícone); toasts em `aria-live="polite"`, erros de formulário em `aria-live="assertive"` e ligados ao campo por `aria-describedby`; a trilha de processamento também diz o estado em texto.
 - Alvo de clique ≥ 24×24px (46px nos controles principais, 36px nos pequenos).
 - A interface funciona a partir de 360px de largura: abaixo de 960px a barra lateral vira um menu em gaveta, abaixo de 900px as grades viram uma coluna e a faixa de processamento vira 2×2, e as tabelas rolam na horizontal dentro do próprio contêiner.
-- Contraste: veja as pendências abaixo. O protótipo foi transcrito sem ajuste de cor, e alguns pares ficaram abaixo do mínimo.
+- Contraste: ver a seção Contraste abaixo; todos os pares de texto e de campo passam.
 
-## Pendências conhecidas
+## Contraste (WCAG 2.2 AA)
 
-Medidas feitas sobre os valores do protótipo. Nada disso foi alterado nos tokens, para a identidade ficar idêntica ao protótipo; cada item precisa de decisão.
+Conferido sobre os valores finais dos tokens (razão de contraste, texto de 12px ou mais pequeno exige 4,5:1; borda de campo e marcação gráfica, 3:1):
 
-| Par | Razão medida | Exigido (AA) | Onde aparece |
-| --- | --- | --- | --- |
-| `ok` sobre `ok-tint` | 3,0:1 | 4,5:1 (texto de 12px) | Etiqueta Concedido/Ativa, aviso ok |
-| `critical` sobre `critical-tint` | 3,87:1 | 4,5:1 | Etiqueta Revogado, aviso crítico |
-| `warn` sobre `warn-tint` | 4,18:1 | 4,5:1 | Etiqueta Gerada, aviso de atenção |
-| `stage-muted` sobre `stage` | 4,05:1 | 4,5:1 (texto de 13,5px) | Resultado de cada etapa |
-| `stage-lit` sobre `stage` | 4,0:1 | 3:1 (marcação gráfica): atende | Marcações da régua |
-| `line` sobre `surface-1` | 1,31:1 | 3:1 (borda de campo e de botão) | Borda de campo e de botão secundário |
+| Par | Razão | Onde aparece |
+| --- | --- | --- |
+| `ok` sobre `ok-tint` | 4,64:1 | Etiqueta Concedido/Ativa, aviso ok |
+| `critical` sobre `critical-tint` | 4,78:1 | Etiqueta Revogado, aviso crítico |
+| `warn` sobre `warn-tint` | 4,93:1 | Etiqueta Gerada, aviso de atenção |
+| `ok` e `critical` sobre `surface-0` | 4,98:1 e 5,44:1 | Texto de estado direto sobre o fundo |
+| `stage-muted` sobre `stage` | 5,0:1 | Resultado de cada etapa |
+| `stage-lit`, `stage-warn`, `stage-critical` sobre `stage` | 4,77:1, 4,75:1 e 4,59:1 | Número e nome da etapa concluída, com atenção e com falha |
+| `line-strong` sobre `surface-1` | 3,57:1 | Borda de campo de formulário |
+| `ink` | 15,6:1 a 16,8:1 | Texto principal |
+| `ink-muted` | 4,6:1 a 5,5:1 | Texto secundário |
+| `brand` e `on-brand` sobre `brand` | 6,1:1 | Ação primária, aba ativa |
+| `on-accent` sobre `accent` | 7,1:1 | Selo de segmento e avatar |
 
-Passam: `ink` (15,6:1 a 16,8:1), `ink-muted` (4,8:1 a 5,5:1), `brand` sobre branco (6,1:1), `on-brand` sobre `brand` (6,1:1), `critical` sobre branco (4,7:1), `on-accent` sobre `accent` (7,1:1).
+Os valores de `ok`, `warn`, `critical`, `stage-muted`, `stage-lit` e `stage-critical` ficaram um pouco mais escuros ou claros que na primeira versão do protótipo para passar; `line-strong` foi acrescentado para a borda dos campos. A borda `line` continua só decorativa (painéis, divisórias). Texto e estado nunca dependem só de cor.
 
-O protótipo também não tem o link "Pular para o conteúdo" que a lista de acessibilidade pede; ele entra na implementação.
+## Limites conhecidos
+
+O protótipo não tem o link "Pular para o conteúdo"; a interface implementada tem.
 
 Fora isso, ainda não existe o **tema escuro** (removido porque o protótipo não o define). A interface implementada (`internal/web`) já usa a identidade Manhã, só no tema claro.
