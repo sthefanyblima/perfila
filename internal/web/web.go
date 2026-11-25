@@ -172,6 +172,11 @@ func cabecalhosSeguranca(next http.Handler) http.Handler {
 		h.Set("Referrer-Policy", "same-origin")
 		h.Set("X-Frame-Options", "DENY")
 		h.Set("Cache-Control", "no-store")
+		// Atrás de um proxy que termina o TLS (hospedagem gratuita da demonstração), o HSTS vem daqui;
+		// em HTTP puro (desenvolvimento local) o cabeçalho não é enviado.
+		if r.Header.Get("X-Forwarded-Proto") == "https" {
+			h.Set("Strict-Transport-Security", "max-age=31536000")
+		}
 		next.ServeHTTP(w, r)
 	})
 }
