@@ -1,4 +1,4 @@
-# Roteiro de demonstração — evento final (24/11)
+# Roteiro de demonstração — evento final (26/11)
 
 Perfila · Equipe Omega · ensaio em 23/11 · duração alvo: **15 minutos**
 

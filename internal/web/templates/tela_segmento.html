@@ -9,7 +9,7 @@
   </div>
 </header>
 {{with .Erro}}{{template "alerta" .}}{{end}}
-<form class="pf-stack" method="post" action="/painel/segmentos/previa" data-teste="form-segmento">
+<form class="pf-stack pf-stack--paineis" method="post" action="/painel/segmentos/previa" data-teste="form-segmento">
   {{template "csrf" $.CSRF}}
   {{if not .Novo}}<input type="hidden" name="id" value="{{.Seg.ID}}">{{end}}
   <section class="pf-panel" aria-labelledby="titulo-dados">
@@ -64,7 +64,7 @@
   </section>
   <div class="pf-form__foot">
     <button type="submit" class="pf-btn pf-btn--primary" data-teste="acao-ver-previa">Ver prévia</button>
-    <a class="pf-btn pf-btn--quiet" href="/painel/segmentos">Cancelar</a>
+    <a class="pf-btn" href="/painel/segmentos">Cancelar</a>
     <span class="pf-muted pf-small">Nada é salvo antes de você confirmar na prévia.</span>
   </div>
 </form>

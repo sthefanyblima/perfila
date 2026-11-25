@@ -8,15 +8,17 @@
 </header>
 {{template "alerta" (alertaInfo "Quem entra no público" "Entra no público quem está no segmento, está ativo e concedeu Segmentação e Publicidade com terceiros. O arquivo leva só o e-mail em hash (SHA-256), que ainda é dado pessoal.")}}
 
+<section class="pf-panel" aria-label="Escolher o segmento">
 <form class="pf-filters" method="get" action="/painel/publicos">
-  <div class="pf-field">
+  <div class="pf-field pf-field--estreito">
     <label class="pf-field__label" for="segmento">Segmento</label>
-    <select class="pf-input" id="segmento" name="segmento">
+    <select class="pf-select" id="segmento" name="segmento">
       {{range .Segmentos}}<option value="{{.ID}}"{{if $.Dados.Escolhido}}{{if eq $.Dados.Escolhido.ID .ID}} selected{{end}}{{end}}>{{.Nome}}</option>{{end}}
     </select>
   </div>
-  <button type="submit" class="pf-btn">Ver público</button>
+  <div class="pf-filters__acoes"><button type="submit" class="pf-btn">Ver público</button></div>
 </form>
+</section>
 
 {{if .Escolhido}}{{$seg := .Escolhido}}
 {{if .Confirmar}}
@@ -51,14 +53,13 @@
 </div>
 {{end}}
 
-<div class="pf-grid">
+<div class="pf-grid-2">
   <section class="pf-panel" aria-labelledby="titulo-publico">
     <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-publico">Público do segmento {{$seg.Nome}}</h2></div>
     <div class="pf-panel__body">
-      <dl class="pf-kv">
-        <dt>Entram</dt><dd class="pf-num" data-teste="publico-entram" data-n="{{len .Publico.Membros}}">{{len .Publico.Membros}}</dd>
-        <dt>Ficam de fora</dt><dd class="pf-num" data-teste="publico-fora" data-n="{{.Publico.Fora}}">{{.Publico.Fora}} <span class="pf-muted pf-small">sem a finalidade, inativos ou sem consentimento</span></dd>
-      </dl>
+      <div class="pf-stat"><b class="pf-num" data-teste="publico-entram" data-n="{{len .Publico.Membros}}">{{len .Publico.Membros}}</b><span>entram</span></div>
+      <dl class="pf-kv"><dt>Ficam de fora</dt><dd class="pf-num" data-teste="publico-fora" data-n="{{.Publico.Fora}}">{{.Publico.Fora}}</dd></dl>
+      <p class="pf-field__hint">Sem a finalidade, inativos ou sem consentimento.</p>
       {{if .Publico.Membros}}
       <a class="pf-btn pf-btn--primary" href="/painel/publicos/exportar?segmento={{$seg.ID}}" data-teste="acao-gerar">Gerar arquivo</a>
       {{else}}
@@ -70,7 +71,8 @@
   <section class="pf-panel" aria-labelledby="titulo-remocoes">
     <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-remocoes">Remoções pendentes</h2></div>
     <div class="pf-panel__body">
-      <p><span class="pf-num" data-teste="publico-pendentes" data-n="{{.Publico.RemocoesPendentes}}">{{.Publico.RemocoesPendentes}}</span> {{if eq .Publico.RemocoesPendentes 1}}remoção pendente{{else}}remoções pendentes{{end}}: clientes que saíram (revogaram ou deixaram de se qualificar) e ainda estão no público da plataforma.</p>
+      <div class="pf-stat"><b class="pf-num" data-teste="publico-pendentes" data-n="{{.Publico.RemocoesPendentes}}">{{.Publico.RemocoesPendentes}}</b><span>{{if eq .Publico.RemocoesPendentes 1}}remoção pendente{{else}}remoções pendentes{{end}}</span></div>
+      <p class="pf-field__hint">Clientes que saíram (revogaram ou deixaram de se qualificar) e ainda estão no público da plataforma.</p>
       {{if .Publico.RemocoesPendentes}}
       <a class="pf-btn" href="/painel/publicos/remocoes?segmento={{$seg.ID}}" data-teste="acao-gerar-remocao">Gerar arquivo de remoção</a>
       {{end}}

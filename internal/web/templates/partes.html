@@ -2,7 +2,8 @@
 
 {{define "nav"}}
 <nav id="navegacao" class="pf-nav" aria-label="Navegação principal">
-  <a class="pf-nav__brand" href="/painel/"><span class="pf-nav__marca" aria-hidden="true">P</span>Perfila <span class="pf-nav__env">console</span></a>
+<div class="pf-nav__box">
+  <a class="pf-nav__brand" href="/painel/"><span class="pf-nav__marca" aria-hidden="true">P</span>Perfila</a>
   {{- if .Pode.clientes}}
   <div class="pf-nav__group">
     <span class="pf-nav__heading">Clientes</span>
@@ -60,6 +61,7 @@
       <button type="submit" class="pf-btn pf-btn--quiet pf-btn--sm">{{icone "sair"}} Sair</button>
     </form>
   </div>
+</div>
 </nav>
 {{end}}
 
@@ -89,27 +91,27 @@
 {{define "ficha-cabecalho"}}{{with .D}}
 <header class="pf-header">
   <ol class="pf-crumbs"><li><a href="/painel/clientes">Clientes</a></li><li aria-current="page">{{.Cliente.Nome}}</li></ol>
-  <div class="pf-header__row">
+  <div class="pf-ficha">
     <div>
-      <h1 class="pf-header__title">{{.Cliente.Nome}}</h1>
-      <div class="pf-header__meta">
+      <div class="pf-ficha__meta">
         {{template "uuid" .Cliente.ID}}
-        <span>{{.Cliente.Email}}</span>
-        <span>Cadastro em {{data .Cliente.DataCadastro}}</span>
-        {{if .Cliente.Ativo}}<span>Ativo</span>{{else}}{{template "tag" "INATIVO"}}{{end}}
-        <span class="pf-tag pf-tag--neutral" data-teste="selo-publicidade" data-estado="{{estado .Publicidade.Status}}">Publicidade: {{rotulo (estado .Publicidade.Status)}}</span>
+        <span class="pf-chip">{{.Cliente.Email}}</span>
+        <span class="pf-chip">cadastro {{data .Cliente.DataCadastro}}</span>
+        {{if .Cliente.Ativo}}<span class="pf-chip">ativo</span>{{else}}{{template "tag" "INATIVO"}}{{end}}
+        <span class="pf-chip" data-teste="selo-publicidade" data-estado="{{estado .Publicidade.Status}}">Publicidade: {{rotulo (estado .Publicidade.Status)}}</span>
       </div>
+      {{with nomeFicha .Cliente.Nome}}<h1 class="pf-ficha__nome{{.Classe}}">{{.Primeiro}}{{if .Resto}} <span>{{.Resto}}</span>{{end}}</h1>{{end}}
     </div>
-    <div id="selo-consentimento" class="pf-consent pf-consent--compact pf-consent--{{.EstadoSelo}}" data-teste="selo" data-estado="{{.EstadoSelo}}">
-      <span class="pf-consent__seal" aria-hidden="true">{{icone (iconeEstado .EstadoSelo)}}</span>
-      <div>
-        <div class="pf-consent__state"><span class="pf-sr">{{if .Eliminado}}Dados do titular: {{else}}Consentimento: {{end}}</span>{{rotulo .EstadoSelo}}</div>
-        <div class="pf-consent__sub">
-          {{- if .Eliminado}}Eliminado em {{dataHoraPtr .Cliente.DataEliminacao}}
-          {{- else if eq (estado .Consentimento.Status) "CONCEDIDO"}}Desde {{dataHora .Consentimento.DataConsentimento}} · termo {{.Consentimento.VersaoTermo}}
-          {{- else if eq (estado .Consentimento.Status) "REVOGADO"}}Revogado em {{dataHoraPtr .Consentimento.DataRevogacao}}
-          {{- else}}Nenhum consentimento registrado{{end -}}
-        </div>
+    <div id="selo-consentimento" class="pf-ficha__selo">
+      <div class="pf-stamp pf-stamp--{{tom .EstadoSelo}}" data-teste="selo" data-estado="{{.EstadoSelo}}" role="status">
+        <small>{{if .Eliminado}}Situação do titular{{else}}Consentimento{{if .Consentimento.VersaoTermo}} · termo {{.Consentimento.VersaoTermo}}{{end}}{{end}}</small>
+        <strong><span class="pf-sr">{{if .Eliminado}}Dados do titular: {{else}}Consentimento: {{end}}</span>{{rotulo .EstadoSelo}}</strong>
+        <small>
+          {{- if .Eliminado}}{{dataHoraPtr .Cliente.DataEliminacao}}
+          {{- else if eq (estado .Consentimento.Status) "CONCEDIDO"}}{{dataHora .Consentimento.DataConsentimento}}
+          {{- else if eq (estado .Consentimento.Status) "REVOGADO"}}{{dataHoraPtr .Consentimento.DataRevogacao}}
+          {{- else}}nenhum registro{{end -}}
+        </small>
       </div>
       {{if and (ne .Aba "consentimento") (not .Eliminado)}}<div class="pf-consent__actions">{{template "acao-consentimento" .}}</div>{{end}}
     </div>

@@ -9,23 +9,21 @@
   </div>
 </header>
 
-<form class="pf-filters" method="get" action="/painel/clientes" role="search" aria-label="Buscar clientes">
-  <div class="pf-field">
-    <label class="pf-field__label" for="q">Buscar por nome ou ID</label>
-    <input class="pf-input" id="q" name="q" value="{{.Busca}}" minlength="2" placeholder="Ex.: Joana ou 6200ae2f-…" aria-describedby="q-dica">
-    <span class="pf-field__hint" id="q-dica">{{if .BuscaCurta}}Digite pelo menos 2 caracteres para buscar pelo nome.{{else}}A partir de 2 caracteres; aceita o ID completo colado.{{end}}</span>
+<section class="pf-panel" aria-label="Lista de clientes">
+<form class="pf-filters pf-filters--barra" method="get" action="/painel/clientes" role="search" aria-label="Buscar clientes">
+  <div class="pf-search">
+    {{icone "busca"}}
+    <label class="pf-sr" for="q">Buscar por nome ou ID</label>
+    <input class="pf-input" id="q" name="q" value="{{.Busca}}" minlength="2" placeholder="Buscar por nome ou ID" aria-describedby="q-dica">
   </div>
-  <div class="pf-field pf-field--estreito">
-    <label class="pf-field__label" for="consentimento">Consentimento</label>
-    <select class="pf-select" id="consentimento" name="consentimento" data-filtrar>
-      {{range .Filtros}}<option value="{{.Valor}}"{{if .Atual}} selected{{end}}>{{.Rotulo}}</option>{{end}}
-    </select>
-  </div>
-  <div class="pf-filters__acoes">
-    <button type="submit" class="pf-btn">{{icone "busca"}} Buscar</button>
-    {{if .FiltroAtivo}}<a class="pf-btn pf-btn--quiet" href="/painel/clientes">Limpar busca</a>{{end}}
-  </div>
+  {{range .Filtros}}{{if .Atual}}<input type="hidden" name="consentimento" value="{{.Valor}}">{{end}}{{end}}
+  <button type="submit" class="pf-btn pf-btn--sm">Buscar</button>
+  <nav class="pf-segctl" aria-label="Filtrar por consentimento" data-teste="filtro-consentimento">
+    {{range .Filtros}}<a href="/painel/clientes?consentimento={{.Valor}}&q={{$.Dados.Busca}}"{{if .Atual}} aria-current="true"{{end}}>{{.Rotulo}}</a>{{end}}
+  </nav>
+  {{if .FiltroAtivo}}<a class="pf-btn pf-btn--quiet pf-btn--sm" href="/painel/clientes">Limpar busca</a>{{end}}
 </form>
+<p class="pf-field__hint" id="q-dica">{{if .BuscaCurta}}Digite pelo menos 2 caracteres para buscar pelo nome.{{else}}A busca aceita o nome e o ID completo colado, a partir de 2 caracteres.{{end}}</p>
 
 {{if .Lista.Linhas}}
 <div class="pf-tablewrap">
@@ -38,9 +36,9 @@
     {{range .Lista.Linhas}}
       <tr data-href="/painel/clientes/{{.Cliente.ID}}" data-teste="linha-cliente">
         <td><span class="pf-cell-main"><a href="/painel/clientes/{{.Cliente.ID}}">{{.Cliente.Nome}}</a></span>{{template "uuid" .Cliente.ID}}</td>
-        <td>{{mascara .Cliente.Email}}</td>
+        <td class="pf-mono">{{mascara .Cliente.Email}}</td>
         <td>{{template "tag" (estado .Consentimento)}}{{if not .Cliente.Ativo}} {{template "tag" "INATIVO"}}{{end}}</td>
-        <td>{{if .Segmento}}<span class="pf-tag pf-tag--accent">{{.Segmento}}</span>{{else}}<span class="pf-muted">—</span>{{end}}</td>
+        <td>{{if .Segmento}}{{.Segmento}}{{else}}<span class="pf-muted">—</span>{{end}}</td>
         <td class="pf-num">{{data .Cliente.DataCadastro}}</td>
       </tr>
     {{end}}
@@ -49,21 +47,22 @@
   <div class="pf-table__foot">
     <span class="pf-num">{{.Inicio}}–{{.Fim}} de {{.Lista.Total}}</span>
     <span class="pf-row">
-      {{if .Anterior}}<a class="pf-btn pf-btn--sm" href="{{.Anterior}}" rel="prev">Anterior</a>{{else}}<span class="pf-btn pf-btn--sm" aria-disabled="true">Anterior</span>{{end}}
-      {{if .Proxima}}<a class="pf-btn pf-btn--sm" href="{{.Proxima}}" rel="next">Próxima</a>{{else}}<span class="pf-btn pf-btn--sm" aria-disabled="true">Próxima</span>{{end}}
+      {{if .Anterior}}<a class="pf-btn pf-btn--sm" href="{{.Anterior}}" rel="prev">← Anterior</a>{{else}}<span class="pf-btn pf-btn--sm" aria-disabled="true">← Anterior</span>{{end}}
+      {{if .Proxima}}<a class="pf-btn pf-btn--sm" href="{{.Proxima}}" rel="next">Próxima →</a>{{else}}<span class="pf-btn pf-btn--sm" aria-disabled="true">Próxima →</span>{{end}}
     </span>
   </div>
 </div>
 {{else if .FiltroAtivo}}
-<div class="pf-panel"><div class="pf-empty" data-teste="vazio-busca">
+<div class="pf-empty" data-teste="vazio-busca">
   <h2 class="pf-empty__title">Nenhum cliente encontrado{{if .Busca}} para "{{.Busca}}"{{end}}</h2>
   <p class="pf-empty__text">Confira a grafia, busque pelo ID completo ou troque o filtro de consentimento.</p>
   <a class="pf-btn" href="/painel/clientes">Limpar busca</a>
-</div></div>
+</div>
 {{else}}
-<div class="pf-panel"><div class="pf-empty" data-teste="vazio-clientes">
+<div class="pf-empty" data-teste="vazio-clientes">
   <h2 class="pf-empty__title">Nenhum cliente cadastrado</h2>
   <p class="pf-empty__text">Os clientes aparecem aqui com o estado do consentimento e o segmento atual. Use "Cadastrar cliente" para incluir o primeiro.</p>
-</div></div>
+</div>
 {{end}}
+</section>
 {{end}}{{end}}

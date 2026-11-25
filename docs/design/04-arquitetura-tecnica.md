@@ -22,7 +22,7 @@ internal/web/                 adaptador de apresentação HTML (irmão de intern
   formato.go                  datas (UTC → America/Sao_Paulo), R$, decimal com vírgula, máscara de e-mail, ID truncado
   mensagens.go                código de erro → mensagem (seção Textos)
   templates/*.html            layout, telas e fragmentos (embed)
-  static/                     perfila.css (tokens + componentes), htmx.min.js fixado, fontes IBM Plex woff2, ícones SVG (embed)
+  static/                     perfila.css (tokens + componentes), htmx.min.js fixado, fontes Bricolage Grotesque, DM Sans e JetBrains Mono em woff2, ícones SVG (embed)
 internal/application/usecase/ casos de uso novos de leitura e a orquestração do processamento
 cmd/omega-server/main.go      monta web.NovoRouter junto da API (raiz de composição, C-08)
 ```
@@ -58,7 +58,7 @@ Vira **Spec v1.3** antes do código (ordem Spec → features → código; regist
 - **CSRF:** o token vem dentro da sessão; vai em campo oculto `_csrf` nos formulários e no cabeçalho `X-CSRF-Token` nas requisições htmx (`hx-headers` no `<body>`). Todo POST confere.
 - **Limite de tentativas no login:** 5 por IP em 5 minutos, em memória por réplica (aceitável no MVP; anotar).
 - **Cabeçalhos em toda resposta do painel:** `Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; form-action 'self'`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin`, `Cache-Control: no-store` nas páginas com dado pessoal. Estáticos com `Cache-Control: public, max-age=31536000, immutable` e nome com hash.
-- **Fontes e scripts locais:** nada de CDN nem do Google Fonts (CSP `'self'` e nenhuma requisição a terceiros com o IP de quem opera). Fontes IBM Plex (licença OFL) e `htmx.min.js` com versão fixada ficam em `static/`.
+- **Fontes e scripts locais:** nada de CDN nem do Google Fonts (CSP `'self'` e nenhuma requisição a terceiros com o IP de quem opera). Fontes Bricolage Grotesque, DM Sans e JetBrains Mono (licença OFL) e `htmx.min.js` com versão fixada ficam em `static/`.
 
 ## Interação
 
@@ -78,5 +78,5 @@ Vira **Spec v1.3** antes do código (ordem Spec → features → código; regist
   - processamento com falha de configuração mostra a etapa que falhou;
   - os logs do painel não contêm nome nem e-mail.
 - **Testes unitários** de `formato.go` (datas, dinheiro, máscara) e `sessao.go` (assinatura, expiração, adulteração), orientados a tabela.
-- **Acessibilidade:** navegação completa por teclado nos fluxos A e B; leitor de tela (NVDA) na ficha; contraste já conferido nos tokens.
+- **Acessibilidade:** navegação completa por teclado nos fluxos A e B; leitor de tela (NVDA) na ficha; contraste dos tokens medido, com as pendências listadas no README.
 - **Implantação:** o cenário `@implantacao` passa a abrir `/painel/entrar` pelo Nginx e conferir 200 com os cabeçalhos de segurança.

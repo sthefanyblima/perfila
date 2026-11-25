@@ -10,15 +10,11 @@
   </div>
 </header>
 
-<form class="pf-filters" method="get" action="/painel/relatorios" aria-label="Período do relatório">
-  <div class="pf-field pf-field--estreito">
-    <label class="pf-field__label" for="periodo">Período</label>
-    <select class="pf-select" id="periodo" name="periodo" data-filtrar>
-      {{range .Periodos}}<option value="{{.Valor}}"{{if .Atual}} selected{{end}}>{{.Rotulo}}</option>{{end}}
-    </select>
-  </div>
-  <div class="pf-filters__acoes"><button type="submit" class="pf-btn">Aplicar</button></div>
-</form>
+<div class="pf-filters pf-filters--barra">
+  <nav class="pf-segctl" aria-label="Período do relatório" data-teste="filtro-periodo">
+    {{range .Periodos}}<a href="/painel/relatorios?periodo={{.Valor}}"{{if .Atual}} aria-current="true"{{end}}>{{.Rotulo}}</a>{{end}}
+  </nav>
+</div>
 
 {{template "alerta" (alertaInfo "Só números agregados" "Nenhum cliente é identificado. Comportamento conta só quem tem consentimento válido, e grupos com menos de 5 clientes aparecem como \"menos de 5\".")}}
 

@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"io/fs"
 	"log/slog"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -90,12 +91,110 @@ type alerta struct {
 	AcaoHref, AcaoTexto, AcaoDialogo string
 }
 
+// marcaRegua é uma marcação da régua do processamento (PipelineTrace): classe de altura e,
+// na camada acesa, se está apagada.
+type marcaRegua struct {
+	Classe  string
+	Apagada bool
+}
+
+// reguaVista descreve a régua da faixa de processamento: as 101 marcações com as acesas, a
+// posição da agulha e se ela aparece. Spec: UC-04 RN-09, UML4.
+type reguaVista struct {
+	Marcas  []marcaRegua
+	Agulha  string
+	Mostrar bool
+}
+
+// regua monta a régua a partir das etapas: cada etapa concluída acende um quarto; uma falha para
+// a agulha no meio da etapa que falhou; sem processamento nada acende.
+func regua(etapas []etapaVista) reguaVista {
+	feitas, parou := 0, ""
+	for _, e := range etapas {
+		if e.Estado == "falhou" {
+			parou = "falha"
+			break
+		}
+		if e.Estado == "concluida" || e.Estado == "atencao" {
+			feitas++
+			continue
+		}
+		break
+	}
+	acesas := feitas * 25
+	if parou == "falha" {
+		acesas += 12
+	}
+	r := reguaVista{Mostrar: feitas > 0 || parou != ""}
+	switch {
+	case parou != "":
+		r.Agulha = "falha"
+	case feitas > 0:
+		r.Agulha = fmt.Sprint(feitas)
+	}
+	for i := 0; i <= 100; i++ {
+		c := "is-minor"
+		if i%25 == 0 {
+			c = "is-major"
+		} else if i%5 == 0 {
+			c = "is-mid"
+		}
+		r.Marcas = append(r.Marcas, marcaRegua{Classe: c, Apagada: !r.Mostrar || i > acesas})
+	}
+	return r
+}
+
+// marcasScore devolve as 10 marcas do engajamento (ScoreMeter): acende as primeiras, em número
+// igual ao score arredondado. Spec: RN-05.
+func marcasScore(score float64) []bool {
+	n := int(math.Round(score * 10))
+	if n < 0 {
+		n = 0
+	}
+	if n > 10 {
+		n = 10
+	}
+	m := make([]bool, 10)
+	for i := 0; i < n; i++ {
+		m[i] = true
+	}
+	return m
+}
+
+// nomeFichaVista divide o nome do cliente para o cabeçalho da ficha: primeiro nome em tinta, o
+// resto em violeta; nomes longos reduzem a fonte (README, Nomes longos).
+type nomeFichaVista struct {
+	Primeiro, Resto, Classe string
+}
+
+func nomeFicha(nome string) nomeFichaVista {
+	partes := strings.Fields(nome)
+	v := nomeFichaVista{Primeiro: nome}
+	if len(partes) > 1 {
+		v.Primeiro, v.Resto = partes[0], strings.Join(partes[1:], " ")
+	}
+	switch n := len([]rune(nome)); {
+	case n > 40:
+		v.Classe = " pf-ficha__nome--xl"
+	case n > 20:
+		v.Classe = " pf-ficha__nome--lg"
+	}
+	return v
+}
+
+func primeiroNome(nome string) string {
+	if p := strings.Fields(nome); len(p) > 0 {
+		return p[0]
+	}
+	return nome
+}
+
 // funcoes recebe versoes, o hash de cada estático, usado na URL para o cache imutável.
 func funcoes(versoes map[string]string, prefixo string) template.FuncMap {
 	return template.FuncMap{
 		"dataHora": dataHora, "data": soData, "dataHoraPtr": dataHoraPtr, "dinheiro": dinheiro,
 		"decimal": decimal, "mascara": mascararEmail, "uuidCurto": uuidCurto, "rotulo": rotulo,
-		"tom": tomDoEstado, "iconeEstado": iconeDoEstado, "condicoes": condicoes, "porcento": porcento, "icone": icone,
+		"tom": tomDoEstado, "iconeEstado": iconeDoEstado, "condicoes": condicoes, "porcento": porcento, "icone": icone, "regua": regua, "marcasScore": marcasScore, "nomeFicha": nomeFicha, "primeiroNome": primeiroNome,
 		"estatico": func(nome string) string { return prefixo + nome + "?v=" + versoes[nome] },
 		"estado":   func(v any) string { return fmt.Sprint(v) },
 		"soma":     func(a, b int) int { return a + b },

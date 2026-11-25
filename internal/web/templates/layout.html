@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="light">
 <meta name="htmx-config" content='{"includeIndicatorStyles":false,"allowEval":false,"allowScriptTags":false,"historyCacheSize":0,"responseHandling":[{"code":"204","swap":false},{"code":"[2345]..","swap":true}]}'>
 <title>{{.Titulo}} · Perfila</title>
 <link rel="stylesheet" href="{{estatico "perfila.css"}}">
@@ -12,10 +12,12 @@
 </head>
 <body class="pf"{{if .CSRF}} hx-headers='{"X-CSRF-Token": "{{.CSRF}}"}'{{end}} hx-boost="true" hx-target="#app" hx-select="#app" hx-swap="outerHTML show:window:top">
 <a class="pf-skip" href="#principal">Pular para o conteúdo</a>
+<div class="pf-bg" aria-hidden="true"><i></i><i></i></div>
+<svg width="0" height="0" class="pf-defs" aria-hidden="true" focusable="false"><filter id="pf-rough" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" seed="4" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" result="d"/><feTurbulence type="fractalNoise" baseFrequency=".55" numOctaves="2" seed="9" result="t"/><feColorMatrix in="t" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -7 4.8" result="m"/><feComposite in="d" in2="m" operator="in"/></filter></svg>
 <div id="app" class="pf-app{{if not .Operador}} pf-app--solo{{end}}">
 {{- if .Operador}}
   <header class="pf-topbar">
-    <span class="pf-nav__brand">Perfila</span>
+    <span class="pf-nav__brand"><span class="pf-nav__marca" aria-hidden="true">P</span>Perfila</span>
     <button type="button" class="pf-btn pf-btn--sm" data-menu aria-expanded="false" aria-controls="navegacao">{{icone "menu"}} Menu</button>
   </header>
   {{template "nav" .}}

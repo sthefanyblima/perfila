@@ -8,7 +8,7 @@ O Perfila transforma eventos de comportamento (navegação, compra, interação)
 
 Desenvolvido com **Spec-Driven Development** (a especificação é a fonte da verdade e o agente de IA implementa) e **Behavior-Driven Development** (cenários Gherkin executáveis provam o comportamento).
 
-## Estado (19/11/2026): MVP concluído + painel, portal do titular, públicos e auditoria; escopo fechado, só correções
+## Estado (24/11/2026): MVP concluído + painel, portal do titular, públicos e auditoria; escopo fechado em 19/11, só correções
 
 | Marco | Período | Estado |
 |---|---|---|
@@ -26,8 +26,10 @@ Desenvolvido com **Spec-Driven Development** (a especificação é a fonte da ve
 | **Públicos para campanhas** (Spec v1.11, T-80 a T-85, Q-61 a Q-67) | 13–14/11 | ✅ consentimento por finalidade · 36 cenários de aplicação, domínio e API · 10 `@web` · contrato e migração 011 nos dois backends |
 | **Auditoria dos pedidos do titular, da importação e dos públicos** (Spec v1.12, T-86 a T-89, Q-68, Q-69) | 16/11 | ✅ 8 ações novas na trilha (RN-13) · 26 cenários novos · migração 012 · contrato nos dois backends |
 | **Revisão de 19/11** (PR #14 e #15, Q-70) | 19/11 | ✅ categoria dos eventos normalizada · e-mail validado no cadastro · identidade visual do painel · menu do celular como gaveta e página de erro com menu |
-| Fechamento do escopo | 19/11 | daqui em diante, só correções |
-| Ensaio · evento final | 23/11 · 24/11 | roteiro em `docs/ROTEIRO_DEMONSTRACAO.md` |
+| **Identidade visual Manhã** (PR #17, Q-71) | 24/11 | ✅ design system v2 (tokens, `bundle.css`, 29 componentes) · protótipo navegável · painel e portal do titular na nova identidade · fontes Bricolage Grotesque, DM Sans e JetBrains Mono embutidas · contraste AA conferido · celular e nomes longos revisados · sem mudança de regra de negócio |
+| Fechamento do escopo | 19/11 | ✅ fechado: nenhuma funcionalidade nova; a identidade visual de 24/11 mudou só a aparência |
+| **Encerramento do projeto** | 24/11 | ✅ design revisado (contraste, celular, nomes longos); PR #17 pronto para o evento final |
+| Evento final | quinta, 26/11 | roteiro em `docs/ROTEIRO_DEMONSTRACAO.md` |
 
 **518 cenários BDD** (513 no `make verify` + 5 de implantação), teste de arquitetura e suíte de contrato dos repositórios em memória e em PostgreSQL.
 
@@ -113,7 +115,7 @@ Erros: JSON `{codigo, mensagem}` com códigos estáveis (Spec 3.5): 401 sem toke
 
 ## Painel do operador (Spec 3.7.1)
 
-Interface web em `/painel`, servida pelo próprio `omega-server`, seguindo o design system "Perfila Console" (`docs/design/`) com cantos suaves, neutros cinza, primária petróleo claro, acento ameixa e verde positivo próprio (Q-27). HTML gerado no servidor (`html/template`), CSS próprio a partir dos tokens, htmx 2.0.3 e fontes IBM Plex embutidos no binário: nenhuma requisição a terceiros.
+Interface web em `/painel`, servida pelo próprio `omega-server`, seguindo o design system "Perfila Console" (`docs/design/`) na identidade **Manhã** (Q-71): papel quente, violeta como cor de ação, laranja como acento, formas macias, o consentimento como carimbo e o processamento numa faixa com régua. Só o tema claro. HTML gerado no servidor (`html/template`), CSS próprio a partir dos tokens, htmx 2.0.3 e fontes Bricolage Grotesque, DM Sans e JetBrains Mono embutidos no binário: nenhuma requisição a terceiros. O protótipo navegável de todas as telas é `docs/design/prototipo-manha.html`.
 
 | Tela | O que faz |
 |---|---|
@@ -175,7 +177,7 @@ CLAUDE.md                   constituição para o agente (C-01..C-12) e mapa de 
 OPEN_QUESTIONS.md           decisões Q-01..Q-46, com o porquê
 specs/                      spec.md (v1.7) · plan.md (roadmap) · tasks.md · bdd-rules.md
 docs/uml/                   UML1..UML8 em texto (Mermaid) + imagens originais e corrigidas (img/v1)
-docs/design/                design system Perfila Console (princípios, telas, textos, tokens, componentes)
+docs/design/                design system Perfila Console, identidade Manhã (princípios, telas, textos, tokens, componentes, protótipo navegável)
 docs/                       checklist LGPD · roteiro de demonstração · relatório parcial · auditoria
 docs/pdf/                   os documentos em PDF para entrega (Spec, Plano, Tarefas e BDD v1.2, decisões, checklist, roteiro)
 features/                   cenários Gherkin + passos godog

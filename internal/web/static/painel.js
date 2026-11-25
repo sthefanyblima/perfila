@@ -127,8 +127,45 @@
     iniciar();
   }
 
+  // Confete: ao voltar do processamento (aviso "Processamento concluído"), um estouro de pontos sai
+  // do ingresso da recomendação. Só Web Animations e CSSOM (compatível com a CSP); nada com movimento
+  // reduzido.
+  function rodarFaixa() {
+    var t = Array.prototype.filter.call(document.querySelectorAll(".pf-toast"), function (x) {
+      return /^\s*Processamento concluído/.test(x.textContent || "");
+    })[0];
+    var faixa = document.querySelector(".pf-stage");
+    if (t && faixa && !faixa.classList.contains("pf-stage--rodando")) { faixa.classList.add("pf-stage--rodando"); }
+  }
+
+  function confete(raiz) {
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) { return; }
+    var t = Array.prototype.filter.call(raiz.querySelectorAll(".pf-toast"), function (x) {
+      return !x.hasAttribute("data-confete") && /^\s*Processamento concluído/.test(x.textContent || "");
+    })[0];
+    var alvo = document.querySelector(".pf-ticket");
+    if (!t || !alvo || !alvo.animate) { return; }
+    t.setAttribute("data-confete", "1");
+    var r = alvo.getBoundingClientRect(), cores = ["var(--brand)", "var(--accent)", "var(--ok)", "var(--stage-lit)"];
+    for (var i = 0; i < 22; i++) {
+      var p = document.createElement("i");
+      p.className = "pf-confete";
+      p.style.left = (r.left + r.width / 2) + "px";
+      p.style.top = (r.top + r.height / 2) + "px";
+      p.style.background = cores[i % 4];
+      document.body.appendChild(p);
+      var a = Math.random() * Math.PI * 2, d = 70 + Math.random() * 130;
+      p.animate([
+        { transform: "translate(0,0) scale(1)", opacity: 1 },
+        { transform: "translate(" + (Math.cos(a) * d) + "px," + (Math.sin(a) * d + 40) + "px) scale(.2)", opacity: 0 }
+      ], { duration: 700 + Math.random() * 400, easing: "cubic-bezier(.2,.8,.2,1)" }).onfinish = (function (el) { return function () { el.remove(); }; })(p);
+    }
+  }
+
   function preparar(raiz) {
     raiz.querySelectorAll(".pf-toast").forEach(agendar);
+    rodarFaixa();
+    confete(document);
     // O botão de copiar já chega visível (não pisca); só some se o navegador não puder copiar.
     if (!navigator.clipboard) {
       raiz.querySelectorAll("[data-copiar]").forEach(function (b) { b.hidden = true; });
@@ -155,5 +192,40 @@
     if (alvo) { alvo.focus({ preventScroll: true }); return; }
     var h1 = document.querySelector("#principal h1");
     if (h1) { h1.setAttribute("tabindex", "-1"); h1.focus({ preventScroll: true }); }
+  });
+
+  // Movimento da identidade Manhã, só com ponteiro e sem alterar o conteúdo: as marcações da régua
+  // do processamento perto do cursor crescem, e as formas de fundo acompanham o cursor de leve.
+  // Desligado com prefers-reduced-motion (lido a cada evento, então vale se o sistema mudar).
+  // Só CSSOM (style.setProperty/transform), compatível com a CSP. Um requestAnimationFrame por quadro.
+  var reduz = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+  var base = { "is-major": 34, "is-mid": 20, "is-minor": 10 };
+  var quadro = 0, ultimo = null;
+  document.addEventListener("pointermove", function (ev) {
+    if (reduz && reduz.matches) { return; }
+    ultimo = ev;
+    if (quadro) { return; }
+    quadro = requestAnimationFrame(function () {
+      quadro = 0;
+      var e = ultimo;
+      var formas = document.querySelectorAll(".pf-bg i");
+      if (formas.length === 2) {
+        var x = e.clientX / window.innerWidth - 0.5, y = e.clientY / window.innerHeight - 0.5;
+        formas[0].style.transform = "translate(" + (x * -40) + "px," + (y * -30) + "px)";
+        formas[1].style.transform = "translate(" + (x * 50) + "px," + (y * 40) + "px)";
+      }
+      var regua = e.target && e.target.closest && e.target.closest(".pf-rule");
+      if (!regua) { return; }
+      regua.querySelectorAll(".pf-ticks__camada i").forEach(function (t) {
+        var r = t.getBoundingClientRect(), d = Math.abs(e.clientX - (r.left + 1.5));
+        var cls = t.classList.contains("is-major") ? "is-major" : t.classList.contains("is-mid") ? "is-mid" : "is-minor";
+        t.style.setProperty("--h", (base[cls] + Math.max(0, 26 * (1 - d / 90))) + "px");
+      });
+    });
+  });
+  document.addEventListener("pointerout", function (ev) {
+    if (ev.target.closest && ev.target.closest(".pf-rule") && !(ev.relatedTarget && ev.relatedTarget.closest && ev.relatedTarget.closest(".pf-rule"))) {
+      document.querySelectorAll(".pf-rule .pf-ticks i").forEach(function (t) { t.style.removeProperty("--h"); });
+    }
   });
 })();
