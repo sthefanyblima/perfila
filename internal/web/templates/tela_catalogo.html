@@ -8,22 +8,26 @@
 </header>
 {{template "alerta" (alertaInfo "Como a recomendação escolhe" "A recomendação escolhe o primeiro produto ativo da categoria preferida, por ordem alfabética. Produtos inativos nunca são recomendados.")}}
 {{if .Dados}}
-<div class="pf-tablewrap">
-  <table class="pf-table" data-teste="lista-catalogo">
-    <thead><tr><th scope="col">Produto</th><th scope="col" class="pf-r">Preço</th><th scope="col">Situação</th></tr></thead>
-    <tbody>
-    {{range .Dados}}
-      <tr class="pf-table__grupo"><th scope="rowgroup" colspan="3">{{.Categoria}} <span class="pf-muted pf-small">· {{len .Produtos}}</span></th></tr>
-      {{range .Produtos}}
-      <tr>
-        <td>{{if $pode}}<a href="/painel/catalogo/{{.ID}}" data-teste="acao-editar-produto">{{.Nome}}</a>{{else}}{{.Nome}}{{end}}</td>
-        <td class="pf-r pf-num">{{dinheiro .Preco}}</td>
-        <td>{{if .Ativo}}<span class="pf-tag pf-tag--ok">{{icone "ok"}}Ativo</span>{{else}}{{template "tag" "INATIVO"}}{{end}}</td>
-      </tr>
-      {{end}}
-    {{end}}
-    </tbody>
-  </table>
+<div class="pf-stack" data-teste="lista-catalogo">
+  {{range .Dados}}
+  <section class="pf-panel" aria-labelledby="cat-{{.Categoria}}">
+    <div class="pf-panel__head"><h2 class="pf-panel__title" id="cat-{{.Categoria}}">{{.Categoria}}</h2><span class="pf-muted pf-small">{{len .Produtos}} {{if eq (len .Produtos) 1}}produto{{else}}produtos{{end}}</span></div>
+    <div class="pf-tablewrap">
+      <table class="pf-table">
+        <thead><tr><th scope="col">Produto</th><th scope="col" class="pf-r">Preço</th><th scope="col">Situação</th></tr></thead>
+        <tbody>
+        {{range .Produtos}}
+          <tr>
+            <td><strong class="pf-cell-main">{{if $pode}}<a href="/painel/catalogo/{{.ID}}" data-teste="acao-editar-produto">{{.Nome}}</a>{{else}}{{.Nome}}{{end}}</strong></td>
+            <td class="pf-r pf-num">{{dinheiro .Preco}}</td>
+            <td>{{if .Ativo}}<span class="pf-tag pf-tag--ok">{{icone "ok"}}Ativo</span>{{else}}{{template "tag" "INATIVO"}}{{end}}</td>
+          </tr>
+        {{end}}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {{end}}
 </div>
 {{else}}
 <div class="pf-panel"><div class="pf-empty"><h2 class="pf-empty__title">Catálogo vazio</h2><p class="pf-empty__text">Sem produtos ativos, nenhuma recomendação é gerada.{{if $pode}} Use "Novo produto" para cadastrar.{{end}}</p></div></div>

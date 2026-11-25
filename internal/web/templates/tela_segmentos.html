@@ -43,7 +43,7 @@
 {{define "linha-segmento"}}{{$seg := .Seg}}
 <tr>
   <td class="pf-r pf-num">{{$seg.Prioridade}}</td>
-  <td><span class="pf-tag pf-tag--accent">{{$seg.Nome}}</span></td>
+  <td><strong class="pf-cell-main">{{$seg.Nome}}</strong></td>
   <td>{{if $seg.Descricao}}{{$seg.Descricao}}{{else}}<span class="pf-muted">—</span>{{end}}</td>
   <td>
     {{with condicoes $seg.Criterio nil}}
