@@ -206,6 +206,18 @@ func (uc *GerenciarOperadoresUseCase) TrocarSenha(ctx context.Context, ator enti
 	return o, uc.operadores.Salvar(ctx, o)
 }
 
+// Sair encerra as sessões abertas do próprio operador (o carimbo muda; o cookie antigo deixa de
+// valer em qualquer réplica). Vale para qualquer papel e não exige permissão: é a própria conta.
+// Spec: RN-12, Q-38, Q-72.
+func (uc *GerenciarOperadoresUseCase) Sair(ctx context.Context, ator entity.Operador) error {
+	o, err := uc.operadores.BuscarPorID(ctx, ator.ID)
+	if err != nil {
+		return err
+	}
+	o.EncerrarSessoes(uc.clock.Agora())
+	return uc.operadores.Salvar(ctx, o)
+}
+
 // CriarAdministradorInicial grava o ADMINISTRADOR de PAINEL_USUARIO e PAINEL_SENHA_HASH só se não
 // houver nenhum operador (atômico no repositório). Sem TrocarSenha: a senha já foi gerada fora
 // do sistema (Q-28). Spec: RN-12, Q-35.

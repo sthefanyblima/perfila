@@ -84,10 +84,16 @@ func (p *painel) entrar(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, destino, http.StatusSeeOther)
 }
 
-// POST /painel/sair — apaga o cookie (a sessão assinada perde a validade no navegador).
+// POST /painel/sair — muda o carimbo do operador (o cookie antigo deixa de valer em qualquer
+// réplica, Q-72) e apaga o cookie do navegador. Isso encerra também as outras sessões da mesma conta.
 func (p *painel) sair(w http.ResponseWriter, r *http.Request) {
 	p.acao(r, "sair", "")
 	p.auditar(r, entity.AcaoSair, entity.AlvoNenhum, uuid.Nil, nil)
+	if op := operadorAtual(r); op.ID != uuid.Nil {
+		if err := p.d.Operadores.Sair(r.Context(), op); err != nil {
+			p.d.Log.Error("sair_encerrar_sessoes", "erro", err.Error()) // o cookie é apagado de qualquer forma
+		}
+	}
 	gravarCookie(w, cookieSessao, "", time.Unix(1, 0))
 	http.Redirect(w, r, "/painel/entrar", http.StatusSeeOther)
 }
