@@ -156,6 +156,15 @@ body:has(.htmx-request)::after { content: ""; position: fixed; left: 0; top: 0; 
 .pf-fieldset[disabled] .pf-field { opacity: 0.6; }
 .pf-form__foot { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; padding-top: var(--space-2); }
 
+/* Busca e filtro segmentado da lista -------------------------------- */
+.pf-search { position: relative; flex: 1 1 240px; min-width: 200px; max-width: 380px; }
+.pf-search .pf-ico { position: absolute; left: 14px; top: 15px; color: var(--ink-muted); z-index: 1; pointer-events: none; }
+.pf-search .pf-input { padding-left: 40px; }
+.pf-segctl { display: inline-flex; flex-wrap: wrap; max-width: 100%; gap: var(--space-1); padding: 4px; border-radius: 24px; background: var(--surface-1); border: 1px solid var(--line); }
+.pf .pf-segctl a { padding: 7px 14px; border-radius: var(--radius-pill); font: 700 14px/1.4 var(--font-sans); color: var(--ink-muted); text-decoration: none; transition: background-color 200ms, color 200ms; }
+.pf .pf-segctl a:hover { color: var(--ink); background: var(--brand-tint); }
+.pf .pf-segctl a[aria-current="true"] { background: var(--ink); color: var(--surface-0); }
+
 /* StatusTag ---------------------------------------------------------- */
 .pf-tag {
   display: inline-flex; align-items: center; gap: 6px;
@@ -189,6 +198,7 @@ body:has(.htmx-request)::after { content: ""; position: fixed; left: 0; top: 0; 
 .pf-panel__body { display: grid; gap: var(--space-4); min-width: 0; }
 .pf-panel__head .pf-stamp--sm { margin: 4px 8px 22px; }
 .pf-panel > .pf-panel__body, .pf-panel > form.pf-panel__body { padding: 0; }
+.pf-panel:has(> form.pf-form) { max-width: calc(var(--size-measure) + 2 * var(--space-panel)); }
 .pf-panel .pf-tablewrap { border: 0; border-radius: 0; padding: 0; margin: 0 -8px; }
 
 /* DataTable ---------------------------------------------------------- */
@@ -457,7 +467,7 @@ body:has(.htmx-request)::after { content: ""; position: fixed; left: 0; top: 0; 
 .pf-grid-2 > *, .pf-grid-3 > * { min-width: 0; }
 .pf-grid-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--space-4); align-items: start; }
 .pf-filters { display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-4); align-items: flex-start; }
-.pf-filters__acoes { display: flex; gap: var(--space-2); padding-top: 28px; }
+.pf-filters--barra { align-items: center; } .pf-filters__acoes { display: flex; gap: var(--space-2); padding-top: 28px; }
 .pf-filters .pf-field { flex: 1 1 240px; }
 .pf-filters .pf-field--estreito { flex: 0 1 200px; }
 .pf-historico summary { cursor: pointer; color: var(--brand); font-weight: 700; }

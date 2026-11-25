@@ -42,7 +42,7 @@
 <form method="post" action="/painel/segmentos/{{.Seg.ID}}/{{.Confirmar}}" class="pf-form__foot">
   {{template "csrf" $.CSRF}}
   <button type="submit" class="pf-btn {{if eq .Confirmar "desativar"}}pf-btn--danger{{else}}pf-btn--primary{{end}}" data-teste="acao-{{.Confirmar}}-segmento">{{if eq .Confirmar "desativar"}}Desativar{{else}}Ativar{{end}}</button>
-  <a class="pf-btn pf-btn--quiet" href="/painel/segmentos">Cancelar</a>
+  <a class="pf-btn" href="/painel/segmentos">Cancelar</a>
 </form>
 {{end}}
 {{else}}
