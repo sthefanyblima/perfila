@@ -22,13 +22,20 @@ Os nomes de clientes são sintéticos (Nina Sintética, Fábio Sintético, Olga 
 | 1 | 1 min | Slides (UML4 e UML8) | Mostrar o fluxo e a arquitetura | Problema: perfilar e segmentar **só com consentimento LGPD**. Spec e BDD guiaram o agente de IA (SDD): 518 cenários, teste de arquitetura |
 | 2 | 4 min | **Administrador** · Clientes → Cadastrar | Cadastrar "Cliente Demonstracao" (e-mail `demo@exemplo.test`) → selo **Não concedido** e aviso de bloqueio → tentar registrar evento (bloqueado) → **Conceder** (finalidade, versão do termo) → 3 compras em "livros" → **Processar agora** | O consentimento vem antes de tudo e a interface nem oferece o que o domínio recusaria (C-03). Mostrar a faixa de 4 etapas, o laudo do perfil, o segmento com seus critérios e a recomendação |
 | 3 | 1 min | Mesma ficha | **Revogar** (foco em Cancelar) → selo **Revogado**, painéis bloqueados; **Processar** recusado | A revogação vale na hora (RN-03) e fica no histórico |
-| 4 | 2 min | **Analista** | Menu só com Segmentos, Catálogo, Relatórios e Públicos; abrir `/painel/clientes` → **Sem permissão**. Segmentos → Editar `engajado` → **Ver prévia** (só contagens) → Salvar. Relatórios: período de 12 meses, grupos "menos de 5" | Cada papel vê só o que precisa (minimização, Q-35 a Q-41). Relatórios são agregados, sem nome nem ID (RN-15) |
+| 4 | 2 min | **Analista** | Menu só com Segmentos, Catálogo, Relatórios e Públicos; abrir `/painel/clientes` → **Sem permissão**. Segmentos → Editar `engajado` → trocar 0,7 por 0,5 → **Ver prévia** (só contagens: engajado vai de 1 para 5 clientes, explorador perde 1) → **Salvar alterações**. Desativar o `padrao` é recusado. Relatórios: período de 12 meses, grupos "menos de 5" | Cada papel vê só o que precisa (minimização, Q-35 a Q-41). Relatórios são agregados, sem nome nem ID (RN-15) |
 | 5 | 1 min | **Atendimento** | Entra em Clientes e em **Importar eventos** (modelo CSV → conferir), sem acesso a Relatórios, Usuários nem Auditoria | Cada linha do lote passa pelo consentimento (RN-16) |
 | 6 | 3 min | **Portal do titular** (janela anônima) + Administrador | No portal, pedir o link com `c-006@exemplo.test` → resposta igual para qualquer e-mail. No administrador: **Operação › Caixa de saída (simulada)** → copiar o link → abrir no portal → Meus dados → Revogar ou autorizar de novo → na ficha, o movimento "pelo portal do titular"; **Pedidos do titular** | O titular exerce os direitos sem telefonar. O link vale uma vez e por 30 minutos; **nenhum e-mail sai de verdade**: a caixa de saída é simulada (Q-56, Q-57) |
 | 7 | 2 min | **Administrador** | Ficha do Fábio Sintético (revogado) → **Direitos do titular** → Baixar dados (JSON) → Eliminar (digitar "Fábio Sintético") → ficha **Eliminada**. Depois **Auditoria** | Direitos do art. 18: acesso, portabilidade, eliminação. A prova do consentimento fica sem nome nem e-mail (art. 16, I). A trilha guarda só IDs e login |
 | 8 | 1 min | Slides | Encerramento: T-01 a T-54 concluídas, `OPEN_QUESTIONS.md` com as decisões e `docs/CHECKLIST_LGPD.md` | O que ficou para depois: envio real de e-mail e publicidade real |
 
-Total: 15 min. Se faltar tempo, corte o passo 5; se sobrar, mostre **Públicos** (ficha da Nina: conceder publicidade → gerar arquivo com e-mail em SHA-256 → revogar → "1 remoção pendente").
+Total: 15 min. Se faltar tempo, corte o passo 5; se sobrar, mostre **Públicos**: ficha da Nina Sintética → Consentimento → **Conceder publicidade** → Públicos, segmento `padrao` ("1 entra") → **Gerar arquivo** → Baixar (só `email_sha256,segmento`) → voltar à ficha e **Revogar publicidade** → Públicos mostra "1 remoção pendente".
+
+### Cuidados na sala
+
+- **Sair encerra a conta inteira** (Q-72): não use o mesmo usuário em duas janelas se for sair de uma. Com um perfil por janela, não afeta.
+- **Dados do ensaio:** quem ensaiou deixou clientes alterados (Fábio eliminado, Nina com publicidade, segmento `engajado` em 0,5). Reiniciar o serviço no Render (**Manual Deploy › Clear build cache & deploy** ou **Restart**) devolve tudo ao estado inicial. Reinicie na véspera, não na hora.
+- **Importar eventos:** o arquivo `docs/exemplos/eventos-lote.csv` dá 4 prontas, 1 duplicada e 5 com erro. Se o Fábio já tiver sido eliminado, uma das linhas passa a dizer "dados eliminados" em vez de "sem consentimento".
+- **Senha errada 5 vezes** bloqueia o IP por 5 minutos (RN-12): copie a senha do administrador, não digite.
 
 ### Como funciona o login do portal (pergunta provável)
 
