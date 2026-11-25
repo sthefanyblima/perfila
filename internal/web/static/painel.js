@@ -127,8 +127,36 @@
     iniciar();
   }
 
+  // Confete: ao voltar do processamento (aviso "Processamento concluído"), um estouro de pontos sai
+  // do ingresso da recomendação. Só Web Animations e CSSOM (compatível com a CSP); nada com movimento
+  // reduzido.
+  function confete(raiz) {
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) { return; }
+    var t = Array.prototype.filter.call(raiz.querySelectorAll(".pf-toast"), function (x) {
+      return !x.hasAttribute("data-confete") && /^\s*Processamento concluído/.test(x.textContent || "");
+    })[0];
+    var alvo = document.querySelector(".pf-ticket");
+    if (!t || !alvo || !alvo.animate) { return; }
+    t.setAttribute("data-confete", "1");
+    var r = alvo.getBoundingClientRect(), cores = ["var(--brand)", "var(--accent)", "var(--ok)", "var(--stage-lit)"];
+    for (var i = 0; i < 22; i++) {
+      var p = document.createElement("i");
+      p.className = "pf-confete";
+      p.style.left = (r.left + r.width / 2) + "px";
+      p.style.top = (r.top + r.height / 2) + "px";
+      p.style.background = cores[i % 4];
+      document.body.appendChild(p);
+      var a = Math.random() * Math.PI * 2, d = 70 + Math.random() * 130;
+      p.animate([
+        { transform: "translate(0,0) scale(1)", opacity: 1 },
+        { transform: "translate(" + (Math.cos(a) * d) + "px," + (Math.sin(a) * d + 40) + "px) scale(.2)", opacity: 0 }
+      ], { duration: 700 + Math.random() * 400, easing: "cubic-bezier(.2,.8,.2,1)" }).onfinish = (function (el) { return function () { el.remove(); }; })(p);
+    }
+  }
+
   function preparar(raiz) {
     raiz.querySelectorAll(".pf-toast").forEach(agendar);
+    confete(document);
     // O botão de copiar já chega visível (não pisca); só some se o navegador não puder copiar.
     if (!navigator.clipboard) {
       raiz.querySelectorAll("[data-copiar]").forEach(function (b) { b.hidden = true; });

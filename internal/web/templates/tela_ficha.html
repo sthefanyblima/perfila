@@ -14,12 +14,6 @@
     <section class="pf-stage" aria-labelledby="titulo-processamento" id="painel-processamento" data-teste="painel-processamento">
       <div class="pf-stage__acao">
         <h2 class="pf-stage__titulo" id="titulo-processamento">Processamento</h2>
-        {{if .PodeAgir}}
-        <form method="post" action="/painel/clientes/{{.Cliente.ID}}/processamento">
-          {{template "csrf" $.CSRF}}
-          <button type="submit" class="pf-btn pf-btn--primary" data-teste="acao-processar">{{icone "processar"}} Processar agora</button>
-        </form>
-        {{else}}<span class="pf-btn-motivo">Cadastro inativo: processamento bloqueado</span>{{end}}
       </div>
       <ol class="pf-pipe" aria-label="Etapas do processamento">
         {{range .Etapas}}
@@ -45,6 +39,14 @@
     <div class="pf-laudo">
       {{if not .Processado}}<p class="pf-laudo__texto" data-teste="nao-processado">Este cliente ainda não foi processado. Registre os eventos e use "Processar agora".</p>
       {{else}}{{with .Resultado}}<p class="pf-laudo__texto" data-teste="laudo">{{primeiroNome $.Dados.Cliente.Nome}}{{with .Segmento}} está no segmento <mark>{{.Nome}}</mark>{{else}} ainda não está em nenhum segmento{{end}}{{with $.Dados.Recomendacao}}. Recomendamos <em>{{$.Dados.NomeProduto .ProdutoID}}</em>{{end}}.</p>{{end}}{{end}}
+      <div class="pf-laudo__acoes">
+        {{if .PodeAgir}}
+        <form method="post" action="/painel/clientes/{{.Cliente.ID}}/processamento">
+          {{template "csrf" $.CSRF}}
+          <button type="submit" class="pf-btn pf-btn--primary" data-teste="acao-processar">{{icone "processar"}} Processar agora</button>
+        </form>
+        {{else}}<span class="pf-btn-motivo">Cadastro inativo: processamento bloqueado</span>{{end}}
+      </div>
     </div>
 
     {{if .Processado}}{{with .Resultado}}
@@ -196,7 +198,7 @@
   <section class="pf-panel" aria-labelledby="titulo-consentimento" data-teste="consentimento-completo">
     <div class="pf-panel__head">
       <h2 class="pf-panel__title" id="titulo-consentimento">Segmentação</h2>
-      <span data-teste="selo-finalidade" data-finalidade="segmentacao" data-estado="{{estado .Consentimento.Status}}">{{template "tag" (estado .Consentimento.Status)}}</span>
+      <div class="pf-stamp pf-stamp--sm pf-stamp--{{tom (estado .Consentimento.Status)}}" data-teste="selo-finalidade" data-finalidade="segmentacao" data-estado="{{estado .Consentimento.Status}}" role="status"><small>Termo {{if .Consentimento.VersaoTermo}}{{.Consentimento.VersaoTermo}}{{else}}—{{end}}</small><strong>{{rotulo (estado .Consentimento.Status)}}</strong><small>{{if eq (estado .Consentimento.Status) "CONCEDIDO"}}{{dataHora .Consentimento.DataConsentimento}}{{else if eq (estado .Consentimento.Status) "REVOGADO"}}{{dataHoraPtr .Consentimento.DataRevogacao}}{{else}}nenhum registro{{end}}</small></div>
       <div class="pf-consent__actions">{{template "acao-consentimento" .}}</div>
     </div>
     <div class="pf-panel__body">
@@ -236,7 +238,7 @@
   <section class="pf-panel" aria-labelledby="titulo-publicidade" data-teste="consentimento-publicidade">
     <div class="pf-panel__head">
       <h2 class="pf-panel__title" id="titulo-publicidade">Publicidade com terceiros</h2>
-      <span data-teste="selo-finalidade" data-finalidade="publicidade_terceiros" data-estado="{{estado .Publicidade.Status}}">{{template "tag" (estado .Publicidade.Status)}}</span>
+      <div class="pf-stamp pf-stamp--sm pf-stamp--{{tom (estado .Publicidade.Status)}}" data-teste="selo-finalidade" data-finalidade="publicidade_terceiros" data-estado="{{estado .Publicidade.Status}}" role="status"><small>Termo {{if .Publicidade.VersaoTermo}}{{.Publicidade.VersaoTermo}}{{else}}—{{end}}</small><strong>{{rotulo (estado .Publicidade.Status)}}</strong><small>{{if eq (estado .Publicidade.Status) "CONCEDIDO"}}{{dataHora .Publicidade.DataConsentimento}}{{else if eq (estado .Publicidade.Status) "REVOGADO"}}{{dataHoraPtr .Publicidade.DataRevogacao}}{{else}}nenhum registro{{end}}</small></div>
       <div class="pf-consent__actions">
         {{- if eq (estado .Publicidade.Status) "CONCEDIDO"}}
         <a class="pf-btn pf-btn--danger" href="/painel/clientes/{{.Cliente.ID}}/consentimento/revogar?finalidade=publicidade_terceiros" data-teste="acao-revogar-publicidade">Revogar publicidade</a>
