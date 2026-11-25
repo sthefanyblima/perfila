@@ -11,6 +11,8 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 
@@ -162,6 +164,29 @@ func (s *statusWriter) WriteHeader(code int) {
 // cabecalhos aplica os cabeçalhos de segurança da Spec 3.7.1 a toda resposta do painel.
 func (p *painel) cabecalhos(next http.Handler) http.Handler { return cabecalhosSeguranca(next) }
 
+// formularioUTF8 recusa formulário (urlencoded) com bytes que não são UTF-8: o PostgreSQL rejeitaria
+// o texto e a pessoa veria um erro 500 em vez de uma resposta clara. Envio multipart (importação)
+// tem validação própria. Spec: 3.7.1.
+func formularioUTF8(r *http.Request) bool {
+	if r.Method != http.MethodPost || !strings.HasPrefix(r.Header.Get("Content-Type"), "application/x-www-form-urlencoded") {
+		return true
+	}
+	if err := r.ParseForm(); err != nil {
+		return true // o erro de leitura segue o caminho normal de cada tela
+	}
+	for k, vs := range r.PostForm {
+		if !utf8.ValidString(k) {
+			return false
+		}
+		for _, v := range vs {
+			if !utf8.ValidString(v) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 // cabecalhosSeguranca vale para o painel e para o portal do titular (3.7.1, 3.7.2).
 func cabecalhosSeguranca(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -176,6 +201,10 @@ func cabecalhosSeguranca(next http.Handler) http.Handler {
 		// em HTTP puro (desenvolvimento local) o cabeçalho não é enviado.
 		if r.Header.Get("X-Forwarded-Proto") == "https" {
 			h.Set("Strict-Transport-Security", "max-age=31536000")
+		}
+		if !formularioUTF8(r) {
+			http.Error(w, "Texto em codificação inválida: envie o formulário em UTF-8.", http.StatusBadRequest)
+			return
 		}
 		next.ServeHTTP(w, r)
 	})
