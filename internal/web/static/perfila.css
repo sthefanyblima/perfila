@@ -56,6 +56,7 @@ body.pf {
 .pf-label { font: 700 11px/1.2 var(--font-sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted); }
 .pf-row { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }
 .pf-stack { display: grid; gap: var(--space-4); }
+.pf-stack--paineis { gap: var(--space-5); }
 .pf-ico { width: 16px; height: 16px; flex: none; }
 .pf-ico__visto { stroke: var(--on-brand); }
 .pf-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

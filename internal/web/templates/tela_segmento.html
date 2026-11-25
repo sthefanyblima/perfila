@@ -9,7 +9,7 @@
   </div>
 </header>
 {{with .Erro}}{{template "alerta" .}}{{end}}
-<form class="pf-stack" method="post" action="/painel/segmentos/previa" data-teste="form-segmento">
+<form class="pf-stack pf-stack--paineis" method="post" action="/painel/segmentos/previa" data-teste="form-segmento">
   {{template "csrf" $.CSRF}}
   {{if not .Novo}}<input type="hidden" name="id" value="{{.Seg.ID}}">{{end}}
   <section class="pf-panel" aria-labelledby="titulo-dados">

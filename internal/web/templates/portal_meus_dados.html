@@ -4,7 +4,7 @@
   <p class="pf-header__meta">Aqui você vê o que guardamos sobre você e decide como seus dados podem ser usados.</p>
 </header>
 {{with .Erro}}{{template "alerta" .}}{{end}}
-<div class="pf-stack">
+<div class="pf-stack pf-stack--paineis">
   <section class="pf-panel" aria-labelledby="titulo-cadastro" data-teste="painel-cadastro">
     <div class="pf-panel__head"><h2 class="pf-panel__title" id="titulo-cadastro">Seus dados de cadastro</h2></div>
     <div class="pf-panel__body">
@@ -19,7 +19,7 @@
   <section class="pf-panel" aria-labelledby="titulo-autorizacao" data-teste="painel-autorizacao">
     <div class="pf-panel__head">
       <h2 class="pf-panel__title" id="titulo-autorizacao">Sua autorização</h2>
-      <span data-teste="selo" data-estado="{{estado .Consentimento.Status}}">{{template "tag" (estado .Consentimento.Status)}}</span>
+      <div class="pf-stamp pf-stamp--sm pf-stamp--{{tom (estado .Consentimento.Status)}}" data-teste="selo" data-estado="{{estado .Consentimento.Status}}" role="status"><small>Autorização{{if .Consentimento.VersaoTermo}} · termo {{.Consentimento.VersaoTermo}}{{end}}</small><strong>{{rotulo (estado .Consentimento.Status)}}</strong><small>{{if eq (estado .Consentimento.Status) "CONCEDIDO"}}{{dataHora .Consentimento.DataConsentimento}}{{else if eq (estado .Consentimento.Status) "REVOGADO"}}{{dataHoraPtr .Consentimento.DataRevogacao}}{{else}}nenhum registro{{end}}</small></div>
     </div>
     <div class="pf-panel__body pf-form">
       {{if .Concedido}}
