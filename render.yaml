@@ -1,0 +1,31 @@
+# Publicação gratuita da demonstração no Render (modo memória, dados sintéticos; ver docs/PUBLICAR_ONLINE.md).
+# Os valores marcados com sync: false são segredos: você os informa no painel do Render, nunca no repositório.
+services:
+  - type: web
+    name: perfila-omega
+    runtime: docker
+    plan: free
+    dockerfilePath: ./deploy/Dockerfile.render
+    dockerContext: .
+    healthCheckPath: /saude
+    envVars:
+      - key: HTTP_PORT
+        value: "8080"
+      - key: PORT
+        value: "8080"
+      - key: ENGAJAMENTO_META_EVENTOS
+        value: "10"
+      - key: LOG_LEVEL
+        value: info
+      - key: PAINEL_USUARIO
+        value: operador
+      - key: AUTH_TOKEN
+        sync: false
+      - key: PAINEL_SENHA_HASH
+        sync: false
+      - key: PAINEL_CHAVE_SESSAO
+        sync: false
+      - key: PORTAL_CHAVE_SESSAO
+        sync: false
+      - key: PORTAL_URL_BASE
+        sync: false

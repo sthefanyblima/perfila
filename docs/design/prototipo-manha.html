@@ -101,7 +101,7 @@ td{padding:14px 12px;border-top:1px solid var(--line);vertical-align:middle}
 td.r,th.r{text-align:right}td.num,td .tag,td.mono{white-space:nowrap;overflow-wrap:normal}td:first-child{min-width:170px}
 .acell{display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-wrap:nowrap;white-space:nowrap}.acell .btn{flex:none}td.r:has(.acell){width:1%}
 tr.link{cursor:pointer}tr.link:hover td{background:var(--pri-t)}tr.link td:first-child{border-radius:14px 0 0 14px}tr.link td:last-child{border-radius:0 14px 14px 0}
-td b{font-weight:700;display:block}td b+.uuid{margin-top:4px}td small{display:block;color:var(--muted)}
+td b{font-weight:700}.cl{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}td small{display:block;color:var(--muted)}
 .bar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
 .pager{display:flex;justify-content:space-between;align-items:center;margin-top:16px;color:var(--muted);font-size:14px}
 .field{display:grid;gap:6px;margin-bottom:16px}.field label{font-weight:700;font-size:14px}.field .h{font-size:13px;color:var(--muted)}
@@ -477,7 +477,7 @@ function pgImportar(){
 }
 function pgPedidos(){
   const l=S.clients.filter(c=>c.pedido).sort((a,b)=>(a.eliminado-b.eliminado));
-  return{html:ph([["Clientes","#/clientes"],["Pedidos do titular"]],"Pedidos do titular")+`<div class="panel">${l.length?`<div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Pedido em</th><th>Situação</th><th>Consentimento</th></tr></thead><tbody>${l.map(c=>`<tr class="link" data-go="#/clientes/${c.id}/direitos"><td><b>${esc(c.eliminado?"Titular eliminado":c.nome)}</b>${uuid(c.id)}</td><td class="num">${fmt(c.pedido)}</td><td>${c.eliminado?tag("ok","Atendido"):tag("warn","Aberto")}</td><td>${cTag(c.cons.seg.status)}</td></tr>`).join("")}</tbody></table></div>`:emptyH("Nenhum pedido do titular.","Os pedidos de eliminação feitos pelo portal aparecem aqui.","","heart")}</div>`,perm:"pedidos"};
+  return{html:ph([["Clientes","#/clientes"],["Pedidos do titular"]],"Pedidos do titular")+`<div class="panel">${l.length?`<div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Pedido em</th><th>Situação</th><th>Consentimento</th></tr></thead><tbody>${l.map(c=>`<tr class="link" data-go="#/clientes/${c.id}/direitos"><td><div class="cl"><b>${esc(c.eliminado?"Titular eliminado":c.nome)}</b>${uuid(c.id)}</div></td><td class="num">${fmt(c.pedido)}</td><td>${c.eliminado?tag("ok","Atendido"):tag("warn","Aberto")}</td><td>${cTag(c.cons.seg.status)}</td></tr>`).join("")}</tbody></table></div>`:emptyH("Nenhum pedido do titular.","Os pedidos de eliminação feitos pelo portal aparecem aqui.","","heart")}</div>`,perm:"pedidos"};
 }
 
 /* ----- análise e campanhas ----- */

@@ -234,7 +234,7 @@ body:has(.htmx-request)::after { content: ""; position: fixed; left: 0; top: 0; 
 .pf-cell-main { font-weight: 700; display: block; }
 .pf .pf-cell-main a { color: var(--ink); text-decoration: none; }
 .pf .pf-cell-main a:hover { color: var(--brand); text-decoration: underline; }
-.pf-cell-main + .pf-uuid { margin-top: var(--space-1); }
+.pf-cell-linha { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); }
 .pf-table small { display: block; color: var(--ink-muted); }
 
 /* Tabs --------------------------------------------------------------- */
