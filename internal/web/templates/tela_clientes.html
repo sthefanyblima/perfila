@@ -35,7 +35,7 @@
     <tbody>
     {{range .Lista.Linhas}}
       <tr data-href="/painel/clientes/{{.Cliente.ID}}" data-teste="linha-cliente">
-        <td><span class="pf-cell-main"><a href="/painel/clientes/{{.Cliente.ID}}">{{.Cliente.Nome}}</a></span>{{template "uuid" .Cliente.ID}}</td>
+        <td><div class="pf-cell-linha"><span class="pf-cell-main"><a href="/painel/clientes/{{.Cliente.ID}}">{{.Cliente.Nome}}</a></span>{{template "uuid" .Cliente.ID}}</div></td>
         <td class="pf-mono">{{mascara .Cliente.Email}}</td>
         <td>{{template "tag" (estado .Consentimento)}}{{if not .Cliente.Ativo}} {{template "tag" "INATIVO"}}{{end}}</td>
         <td>{{if .Segmento}}{{.Segmento}}{{else}}<span class="pf-muted">—</span>{{end}}</td>

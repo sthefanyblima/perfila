@@ -1,0 +1,17 @@
+# omega-server para hospedagem gratuita (Render): modo memória com dados sintéticos (D-23).
+# Sem arquivo de configuração: tudo vem das variáveis de ambiente. Contexto de build: raiz do repositório.
+FROM golang:1.22-alpine AS build
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY cmd ./cmd
+COPY internal ./internal
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/omega-server ./cmd/omega-server
+
+FROM alpine:3.20
+RUN adduser -D -H -u 10001 omega
+COPY --from=build /out/omega-server /usr/local/bin/omega-server
+USER omega
+EXPOSE 8080
+ENTRYPOINT ["omega-server"]
+CMD ["serve"]

@@ -16,7 +16,7 @@
     <tbody>
     {{range .Dados}}
       <tr data-href="/painel/clientes/{{.Cliente.ID}}/direitos" data-teste="linha-pedido">
-        <td><span class="pf-cell-main"><a href="/painel/clientes/{{.Cliente.ID}}/direitos">{{.Cliente.Nome}}</a></span>{{template "uuid" .Cliente.ID}}</td>
+        <td><div class="pf-cell-linha"><span class="pf-cell-main"><a href="/painel/clientes/{{.Cliente.ID}}/direitos">{{.Cliente.Nome}}</a></span>{{template "uuid" .Cliente.ID}}</div></td>
         <td class="pf-num">{{dataHora .Pedido.DataPedido}}</td>
         <td><span data-teste="selo" data-estado="{{estado .Pedido.Status}}">{{template "tag" (estado .Pedido.Status)}}</span>{{if .Pedido.DataAtendimento}}<br><span class="pf-muted pf-small">em {{dataHoraPtr .Pedido.DataAtendimento}}</span>{{end}}</td>
         <td>{{template "tag" (estado .Consentimento)}}</td>

@@ -122,7 +122,7 @@
 .pf-table tbody tr[data-href] td:first-child { border-radius: var(--radius-field) 0 0 var(--radius-field); }
 .pf-table tbody tr[data-href] td:last-child { border-radius: 0 var(--radius-field) var(--radius-field) 0; }
 .pf-cell-main { display: block; font-weight: 700; }
-.pf-cell-main + .pf-uuid { margin-top: var(--space-1); }
+.pf-cell-linha { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); }
 .pf-table small { display: block; color: var(--ink-muted); }
 .pf-table__foot { display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-4); color: var(--ink-muted); font-size: 14px; }
 .pf-filters { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; margin-bottom: 18px; }
