@@ -7,3 +7,5 @@ A recomendação do cliente, em forma de ingresso violeta com picote.
 **Sem produto elegível.** Não é erro: no lugar do ingresso vai um `Alert` de atenção "Sem produto elegível" com o motivo ("Nenhum produto ativo na categoria preferida (games).").
 
 **Movimento.** Ao concluir o processamento ou ativar a recomendação, o ingresso pulsa e sai um pequeno estouro de confete dele (desligado com movimento reduzido).
+
+**Confete no painel.** Ao voltar do processamento (aviso "Processamento concluído"), 22 pontos (`pf-confete`) saem do ingresso. O painel não tem ação "Ativar recomendação": a recomendação nasce ativa, então o confete só acontece no processamento.

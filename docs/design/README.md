@@ -92,7 +92,7 @@ Tipos de evento: navegação (seta), compra (sacola), interação (envelope). A 
 
 ## Nomes de classe
 
-`bundle.css` e `internal/web/static/perfila.css` usam os mesmos nomes onde o componente existe nos dois: `pf-ficha`, `pf-stamp`, `pf-stage`, `pf-pipe__step--concluida`, `--atencao` e `--falhou`, `pf-laudo`, `pf-segseal`, `pf-ticket`, `pf-tag--accent` e os demais. Só existem no design system, sem uso no painel ainda: `pf-switch`, `pf-segctl`, `pf-steps`, `pf-stat`, `pf-skel`, `pf-pipe__step--run` e `--blocked`. O painel implementado acrescenta ainda `pf-kpi` (no lugar de `pf-stat`) e `pf-score` (gráfico em SVG, no lugar de `pf-pips`).
+`bundle.css` e `internal/web/static/perfila.css` usam os mesmos nomes onde o componente existe nos dois: `pf-ficha`, `pf-stamp`, `pf-stage`, `pf-pipe__step--concluida`, `--atencao` e `--falhou`, `pf-laudo`, `pf-segseal`, `pf-ticket`, `pf-tag--accent`, `pf-search`, `pf-segctl` (no painel, em links com `aria-current="true"`; no design system também em botões com `aria-pressed`), `pf-stat`, `pf-pips`, `pf-stage--rodando` e `pf-confete`. Só existem no design system, sem uso no painel: `pf-switch`, `pf-steps`, `pf-skel`, `pf-pipe__step--run` e `--blocked`. O painel acrescenta `pf-kpi` e `pf-score` (cabeçalho e nota do engajamento, que agora usa `pf-pips`).
 
 ## Contraste (WCAG 2.2 AA)
 
