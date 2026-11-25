@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Perfila · Protótipo navegável (Manhã)</title>
+<!-- Demonstração: entre com rita (Administrador), caio (Analista) ou bia (Atendimento), com qualquer senha. O portal do titular abre em #/titular/entrar. Recarregar a página reinicia os dados. -->
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=DM+Sans:opsz,wght@9..40,400..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -297,9 +298,9 @@ const PERM={Administrador:["clientes","analise","campanhas","config","admin","pe
 const can=g=>S.session&&PERM[S.session.papel].includes(g);
 const canEdit=()=>S.session&&S.session.papel!=="Atendimento";
 const NAV=[["Clientes","clientes",[["Clientes","#/clientes","users"],["Importar eventos","#/eventos/importar","upload"],["Pedidos do titular","#/pedidos","heart","pedidos"]]],
- ["Análise","analise",[["Relatórios","#/relatorios","chart"]]],["Campanhas","campanhas",[["Públicos","#/publicos","mega"]]],
+ ["Análise","analise",[["Relatórios","#/relatorios","chart"]]],["Campanhas","campanhas",[["Públicos","#/publicos","mega"],["Relatório agregado","#/publicos/relatorio","chart"]]],
  ["Configuração","config",[["Segmentos","#/segmentos","sliders"],["Catálogo","#/catalogo","tag"]]],
- ["Administração","admin",[["Operação","#/operacao","shield"],["Caixa de saída","#/operacao/caixa-saida","inbox"],["Operadores","#/usuarios","users"],["Auditoria","#/auditoria","list"]]]];
+ ["Administração","admin",[["Saúde e expiração","#/operacao","shield"],["Caixa de saída (simulada)","#/operacao/caixa-saida","inbox"],["Usuários","#/usuarios","users"],["Auditoria","#/auditoria","list"]]]];
 
 /* ---------- componentes de interface ---------- */
 const uuid=id=>`<button class="uuid" data-act="copy" data-v="${id}" title="Copiar ID">${id}${ic("copy")}</button>`;
@@ -325,7 +326,7 @@ const field=(id,label,val="",o={})=>`<div class="field"><label for="${id}">${lab
 const setErr=(id,m)=>{const e=$("#"+id+"-e");if(e)e.textContent=m;const i=$("#"+id);if(i)i.setAttribute("aria-invalid",m?"true":"false")};
 
 /* ---------- régua de processamento ---------- */
-const STEPS=["Coletar eventos","Calcular perfil","Atribuir segmento","Gerar recomendação"];
+const STEPS=["Coletar eventos","Gerar perfil","Segmentar","Recomendar"];
 let RUN=null;
 function stageInfo(c){
   const consent=c.cons.seg.status==="CONCEDIDO";
@@ -341,12 +342,12 @@ function stageInfo(c){
 function litOf(c){if(c.cons.seg.status!=="CONCEDIDO")return 0;if(RUN&&RUN.id===c.id)return(RUN.i+1)*25;if(c.fail)return c.fail.i*25+12;return c.proc?100:0}
 function stageH(c){
   const inf=stageInfo(c),lit=litOf(c);
-  return`<section class="stage" id="stage" aria-label="Processamento"><div class="stages" id="stages">${inf.map(([s,d],i)=>`<div class="stg" data-s="${s}"><div class="rw"><span class="dot">${ic(s==="done"?"check":s==="run"?"run":s==="err"||s==="blk"?"x":s==="attn"?"warn":"pend")}</span><span>0${i+1}</span></div><h3>${STEPS[i]}</h3><p>${esc(d)}</p></div>`).join("")}</div>
+  return`<section class="stage" id="stage" aria-label="Processamento"><div class="stages" id="stages">${inf.map(([s,d],i)=>`<div class="stg" data-s="${s}"><div class="rw"><span class="dot">${ic(s==="done"?"check":s==="run"?"run":s==="err"||s==="blk"?"x":s==="attn"?"warn":"pend")}</span><span>ETAPA ${i+1}</span></div><h3>${STEPS[i]}</h3><p>${esc(d)}</p></div>`).join("")}</div>
   <div class="rule" id="rule"><div class="ticks" id="ticks" aria-hidden="true">${Array.from({length:101},(_,i)=>`<i class="${i%25===0?"M":i%5===0?"m":"u"}" data-lit="${lit>0&&i<=lit}"></i>`).join("")}</div><div class="needle" id="needle" style="left:${lit}%" data-hide="${lit===0}"><span>agora</span></div></div></section>`;
 }
 function paintStage(c,perTick=30){
   const inf=stageInfo(c),lit=litOf(c),ticks=$$("#ticks i");const prev=ticks.filter(t=>t.dataset.lit==="true").length-1;
-  $("#stages").innerHTML=inf.map(([s,d],i)=>`<div class="stg" data-s="${s}"><div class="rw"><span class="dot">${ic(s==="done"?"check":s==="run"?"run":s==="err"||s==="blk"?"x":s==="attn"?"warn":"pend")}</span><span>0${i+1}</span></div><h3>${STEPS[i]}</h3><p>${esc(d)}</p></div>`).join("");
+  $("#stages").innerHTML=inf.map(([s,d],i)=>`<div class="stg" data-s="${s}"><div class="rw"><span class="dot">${ic(s==="done"?"check":s==="run"?"run":s==="err"||s==="blk"?"x":s==="attn"?"warn":"pend")}</span><span>ETAPA ${i+1}</span></div><h3>${STEPS[i]}</h3><p>${esc(d)}</p></div>`).join("");
   ticks.forEach((t,i)=>{const on=lit>0&&i<=lit;t.style.transitionDelay=(on&&i>prev&&!reduce)?((i-prev)*perTick)+"ms":"0ms";t.dataset.lit=String(on)});
   const n=$("#needle");n.style.left=lit+"%";n.dataset.hide=String(lit===0);
 }
@@ -496,7 +497,7 @@ function pgPublicos(q){
   }
   return{html:ph([["Campanhas"],["Públicos"]],"Públicos",`<a class="btn" href="#/publicos/relatorio">Relatório agregado</a>`)+alertH("info","Quem entra no público","Entra quem está no segmento, está ativo e concedeu Segmentação e Publicidade com terceiros. O arquivo leva só o e-mail em hash (SHA-256), que ainda é dado pessoal.")+`<div class="panel" style="margin-top:22px"><div class="row" style="align-items:flex-end"><div class="field" style="margin:0;min-width:260px"><label for="psel">Segmento</label><select id="psel"><option value="">Escolha um segmento</option>${ativos.map(s=>`<option value="${s.id}" ${s.id===sid?"selected":""}>${esc(s.nome)}</option>`).join("")}</select></div></div></div>${body}`,perm:"campanhas"};
 }
-function pgPubRel(){const g=grupos();return{html:ph([["Campanhas","#/publicos"],["Relatório agregado"]],"Relatório de públicos")+`<div class="panel"><p class="sub">Candidatos por segmento: quem concedeu Segmentação e Publicidade. Grupos com menos de 5 não são detalhados.</p><div class="tablewrap"><table><thead><tr><th>Segmento</th><th class="r">Entram no público</th></tr></thead><tbody>${S.segs.filter(s=>s.ativo).map(s=>{const n=entram(s.id).length;return`<tr><td><b>${esc(s.nome)}</b></td><td class="r num">${n<5&&n>0?"menos de 5":n}</td></tr>`}).join("")}</tbody></table></div></div>`,perm:"campanhas"}}
+function pgPubRel(){const g=grupos();return{html:ph([["Campanhas","#/publicos"],["Relatório agregado"]],"Relatório agregado")+`<div class="panel"><p class="sub">Candidatos por segmento: quem concedeu Segmentação e Publicidade. Grupos com menos de 5 não são detalhados.</p><div class="tablewrap"><table><thead><tr><th>Segmento</th><th class="r">Entram no público</th></tr></thead><tbody>${S.segs.filter(s=>s.ativo).map(s=>{const n=entram(s.id).length;return`<tr><td><b>${esc(s.nome)}</b></td><td class="r num">${n<5&&n>0?"menos de 5":n}</td></tr>`}).join("")}</tbody></table></div></div>`,perm:"campanhas"}}
 
 /* ----- configuração ----- */
 let DRAFT=null;
@@ -543,13 +544,13 @@ function pgProdForm(id){
 /* ----- administração ----- */
 function pgOperacao(){
   const venc=S.clients.filter(c=>c.proc&&c.proc.recStatus==="ATIVA"&&new Date(c.proc.validade)<NOW).length;
-  return{html:ph([["Administração"],["Operação"]],"Operação")+`<div class="g2"><section class="panel"><h2>Saúde</h2><div class="stack" style="gap:12px;margin-top:10px"><div class="row" style="justify-content:space-between"><span>Banco de dados</span>${tag("ok","Operacional")}</div><div class="row" style="justify-content:space-between"><span>Migrações</span><span class="mono">versão 14</span></div><div class="row" style="justify-content:space-between"><span>Réplicas</span><span class="mono">2 de 2 ativas</span></div></div></section>
+  return{html:ph([["Operação"],["Saúde e expiração"]],"Operação")+`<div class="g2"><section class="panel"><h2>Saúde</h2><div class="stack" style="gap:12px;margin-top:10px"><div class="row" style="justify-content:space-between"><span>Banco de dados</span>${tag("ok","Operacional")}</div><div class="row" style="justify-content:space-between"><span>Migrações</span><span class="mono">versão 14</span></div><div class="row" style="justify-content:space-between"><span>Réplicas</span><span class="mono">2 de 2 ativas</span></div></div></section>
   <section class="panel"><h2>Expirar recomendações vencidas</h2><p class="sub">Recomendações ativas com validade vencida passam a Expirada.</p><button class="btn" data-act="expirar">Expirar agora</button></section>
   <section class="panel"><h2>Retenção após a revogação</h2><p class="sub">Titulares que revogaram há mais de ${S.prazo} dias têm os dados eliminados. O histórico do consentimento permanece.</p><button class="btn crit" data-act="reter">Aplicar retenção</button></section>
-  <section class="panel"><h2>Simulação</h2><p class="sub">Somente na demonstração: faz a etapa de segmento falhar no próximo processamento, para ver o fluxo de erro.</p><button class="sw" role="switch" aria-checked="${S.falha}" data-act="falha"><i></i>Falha de configuração dos segmentos</button></section></div>`,perm:"admin"};
+</div>`,perm:"admin"};
 }
-function pgCaixa(){return{html:ph([["Administração","#/operacao"],["Caixa de saída"]],"Caixa de saída")+alertH("info","Simulação para a demonstração","Nenhum e-mail sai do sistema. Mensagens com mais de 24 horas são apagadas.")+`<div class="panel" style="margin-top:22px">${S.outbox.length?`<div class="tablewrap"><table><thead><tr><th>Para</th><th>Assunto</th><th>Enviada em</th><th>Mensagem</th></tr></thead><tbody>${S.outbox.map(m=>`<tr><td class="mono">${mask(m.para)}</td><td><b>${esc(m.assunto)}</b></td><td class="num">${fmt(m.q)}</td><td>${esc(m.txt.split("#")[0])}${m.txt.includes("#")?`<a class="mono" style="color:var(--pri);text-decoration:underline" href="#${m.txt.split("#")[1]}">abrir link</a>`:""}</td></tr>`).join("")}</tbody></table></div>`:emptyH("Nenhuma mensagem nas últimas 24 horas.","Quando o titular pedir um link no portal, ele aparece aqui.","","inbox")}</div>`,perm:"admin"}}
-function pgUsuarios(){return{html:ph([["Administração"],["Operadores"]],"Operadores",`<button class="btn pri" data-act="novouser">${ic("plus")}Novo operador</button>`)+`<div class="panel"><div class="tablewrap"><table><thead><tr><th>Operador</th><th>Papel</th><th>Situação</th><th></th></tr></thead><tbody>${S.users.map(u=>`<tr><td><b>${esc(u.nome)}</b><small class="mono">${u.u}</small></td><td><select data-chg="papel" data-u="${u.u}" style="width:170px;min-height:38px">${Object.keys(PERM).map(p=>`<option ${p===u.papel?"selected":""}>${p}</option>`).join("")}</select></td><td>${u.ativo?tag("ok","Ativo"):tag("neu","Inativo")}</td><td class="r"><div class="acell"><button class="btn sm" data-act="senhaprov" data-u="${u.u}">Redefinir senha</button><button class="btn sm ${u.ativo?"crit":""}" data-act="toggleuser" data-u="${u.u}">${u.ativo?"Desativar":"Ativar"}</button></div></td></tr>`).join("")}</tbody></table></div></div>`,perm:"admin"}}
+function pgCaixa(){return{html:ph([["Operação","#/operacao"],["Caixa de saída (simulada)"]],"Caixa de saída (simulada)")+alertH("info","Simulação para a demonstração","Nenhum e-mail sai do sistema. Mensagens com mais de 24 horas são apagadas.")+`<div class="panel" style="margin-top:22px">${S.outbox.length?`<div class="tablewrap"><table><thead><tr><th>Para</th><th>Assunto</th><th>Enviada em</th><th>Mensagem</th></tr></thead><tbody>${S.outbox.map(m=>`<tr><td class="mono">${mask(m.para)}</td><td><b>${esc(m.assunto)}</b></td><td class="num">${fmt(m.q)}</td><td>${esc(m.txt.split("#")[0])}${m.txt.includes("#")?`<a class="mono" style="color:var(--pri);text-decoration:underline" href="#${m.txt.split("#")[1]}">abrir link</a>`:""}</td></tr>`).join("")}</tbody></table></div>`:emptyH("Nenhuma mensagem nas últimas 24 horas.","Quando o titular pedir um link no portal, ele aparece aqui.","","inbox")}</div>`,perm:"admin"}}
+function pgUsuarios(){return{html:ph([["Administração"],["Usuários"]],"Usuários",`<button class="btn pri" data-act="novouser">${ic("plus")}Novo operador</button>`)+`<div class="panel"><div class="tablewrap"><table><thead><tr><th>Operador</th><th>Papel</th><th>Situação</th><th></th></tr></thead><tbody>${S.users.map(u=>`<tr><td><b>${esc(u.nome)}</b><small class="mono">${u.u}</small></td><td><select data-chg="papel" data-u="${u.u}" style="width:170px;min-height:38px">${Object.keys(PERM).map(p=>`<option ${p===u.papel?"selected":""}>${p}</option>`).join("")}</select></td><td>${u.ativo?tag("ok","Ativo"):tag("neu","Inativo")}</td><td class="r"><div class="acell"><button class="btn sm" data-act="senhaprov" data-u="${u.u}">Redefinir senha</button><button class="btn sm ${u.ativo?"crit":""}" data-act="toggleuser" data-u="${u.u}">${u.ativo?"Desativar":"Ativar"}</button></div></td></tr>`).join("")}</tbody></table></div></div>`,perm:"admin"}}
 function pgAuditoria(q){const ops=[...new Set(S.audit.map(a=>a.op))],l=S.audit.filter(a=>(!q.op||a.op===q.op));return{html:ph([["Administração"],["Auditoria"]],"Auditoria")+`<div class="panel"><div class="bar"><div class="field" style="margin:0;width:220px"><label for="aop">Operador</label><select id="aop"><option value="">Todos</option>${ops.map(o=>`<option ${o===q.op?"selected":""}>${o}</option>`).join("")}</select></div></div>${l.length?`<div class="tablewrap"><table><thead><tr><th>Quando</th><th>Operador</th><th>Ação</th><th>Detalhe</th></tr></thead><tbody>${l.slice(0,60).map(a=>`<tr><td class="num">${fmt(a.q)}</td><td class="mono">${a.op}</td><td><b>${esc(a.acao)}</b></td><td class="muted">${esc(a.det)}</td></tr>`).join("")}</tbody></table></div>`:emptyH("Nenhum registro","As ações do painel aparecem aqui.","","list")}</div>`,perm:"admin"}}
 function pgSenha(){return{html:ph([["Minha senha"]],"Minha senha")+`<div class="panel form"><form id="fsenha" novalidate>${field("s0","Senha atual","",{type:"password",ac:"current-password"})}${field("s1","Nova senha","",{type:"password",h:"Pelo menos 8 caracteres.",ac:"new-password"})}${field("s2","Repita a nova senha","",{type:"password",ac:"new-password"})}<button class="btn pri">Trocar senha</button></form></div>`,perm:"*"}}
 
@@ -561,12 +562,11 @@ function shell(page){
   const nav=NAV.filter(([,g])=>can(g)).map(([t,g,items])=>`<div class="grp">${t}</div>${items.filter(i=>!i[3]||can(i[3])).map(([n,h,ico])=>`<a class="nv" href="${h}" ${h===best?'aria-current="page"':""}>${ic(ico)}${n}</a>`).join("")}`).join("");
   return`<div class="app"><aside class="side" id="side"><div class="sbox"><div class="logo"><i>p</i>perfila</div><nav aria-label="Principal">${nav}</nav>
   <div class="sfoot"><div class="who"><span class="av">${S.session.nome[0]}</span><div><b>${esc(S.session.nome)}</b><span>${S.session.papel}</span></div></div>
-  <label class="sr" for="trocapapel">Papel (demonstração)</label><select id="trocapapel">${Object.keys(PERM).map(p=>`<option ${p===S.session.papel?"selected":""}>${p}</option>`).join("")}</select><span class="why">Troque o papel para ver as permissões.</span>
-  <a class="lnk" href="#/minha-senha">Minha senha</a><a class="lnk" href="#/titular/entrar">Abrir portal do titular</a><button class="lnk" data-act="reset">Reiniciar demonstração</button><button class="lnk" data-act="sair">Sair</button></div></div></aside><div class="scrim" data-act="menu"></div>
+  <a class="lnk" href="#/minha-senha">Minha senha</a><button class="lnk" data-act="sair">Sair</button></div></div></aside><div class="scrim" data-act="menu"></div>
   <div><div class="mtop"><div class="logo" style="padding:0"><i>p</i>perfila</div><button class="btn sm" data-act="menu">${ic("menu")}Menu</button></div><main class="main" id="main"><div class="page" id="pg">${page.html}</div></main></div></div>`;
 }
 function entrar(msg=""){
-  return`<div class="center"><div class="card"><div class="logo" style="padding:0"><i>p</i>perfila</div><h1>Entre no painel</h1><p class="lead">Segmentação e perfilamento de clientes, sempre com consentimento.</p>${msg?alertH(msg.k,msg.t)+'<div style="height:16px"></div>':""}<form id="flogin" novalidate>${field("lu","Usuário","rita",{ac:"username"})}${field("ls","Senha","demonstracao",{type:"password",ac:"current-password"})}<button class="btn pri" style="width:100%">Entrar</button></form><div class="quick"><small>Atalho da demonstração: entrar como</small>${Object.entries({rita:"Administrador",caio:"Analista",bia:"Atendimento"}).map(([u,p])=>`<button class="btn sm" data-act="entrarcomo" data-u="${u}">${p}</button>`).join("")}<a class="btn sm" href="#/titular/entrar" style="margin-top:8px">Portal do titular</a></div></div></div>`;
+  return`<div class="center"><div class="card"><div class="logo" style="padding:0"><i>p</i>perfila</div><h1>Entrar</h1><p class="lead">Painel de operação: cadastro, consentimento LGPD e processamento de clientes.</p>${msg?alertH(msg.k,msg.t)+'<div style="height:16px"></div>':""}<form id="flogin" novalidate>${field("lu","Usuário","rita",{ac:"username"})}${field("ls","Senha","demonstracao",{type:"password",ac:"current-password"})}<button class="btn pri" style="width:100%">Entrar</button></form><p class="why" style="margin-top:20px">Acesso restrito à equipe de operação. As ações ficam registradas com o seu usuário.</p></div></div>`;
 }
 const FIRST={Administrador:"#/clientes",Analista:"#/relatorios",Atendimento:"#/clientes"};
 function parse(){
@@ -701,7 +701,6 @@ document.addEventListener("click",e=>{
 function syncDraft(){if(!DRAFT||!$("#fseg"))return;DRAFT.nome=$("#sn").value;DRAFT.prio=$("#sp").value;DRAFT.desc=$("#sd").value;$$("[data-cond]").forEach(el=>{DRAFT.conds[+el.dataset.i][el.dataset.cond]=el.value})}
 document.addEventListener("change",e=>{
   const t=e.target;
-  if(t.id==="trocapapel"){const p=t.value;S.session={...S.session,papel:p};nav(FIRST[p]);route(true);toast("Papel: "+p)}
   if(t.id==="psel"){nav("#/publicos?seg="+t.value)}
   if(t.id==="aop"){nav("#/auditoria"+(t.value?"?op="+t.value:""))}
   if(t.dataset.chg==="papel"){S.users.find(u=>u.u===t.dataset.u).papel=t.value;log("Papel alterado",t.dataset.u+" → "+t.value);toast("Papel atualizado")}

@@ -80,7 +80,15 @@ body.pf {
 .pf-main > .pf-header { margin-bottom: var(--space-2); }
 .pf-topbar { display: none; }
 body:has(.htmx-request) { cursor: progress; }
-body:has(.htmx-request) .pf-main, body:has(.htmx-request) .pf-portal__main { opacity: 0.5; transition: opacity 150ms; }
+/* Esqueleto: se a próxima página demora mais de 170 ms, o conteúdo some e entram blocos com o formato do que vem. */
+body:has(.htmx-request) .pf-main { position: relative; }
+body:has(.htmx-request) .pf-main > * { opacity: 0; transition: opacity 120ms 170ms; }
+body:has(.htmx-request) .pf-main::before, body:has(.htmx-request) .pf-main::after { content: ""; position: absolute; left: var(--space-page); background: linear-gradient(90deg, var(--line) 30%, var(--surface-1) 50%, var(--line) 70%) 0 0 / 300% 100%; animation: pf-esqueleto 1.2s linear infinite, pf-surge 200ms 170ms both; pointer-events: none; }
+body:has(.htmx-request) .pf-main::before { top: 56px; width: 30%; height: 44px; border-radius: 9px; }
+body:has(.htmx-request) .pf-main::after { top: 130px; right: var(--space-page); height: 220px; border-radius: 24px; }
+@keyframes pf-esqueleto { to { background-position: -300% 0; } }
+@keyframes pf-surge { from { opacity: 0; } }
+body:has(.htmx-request) .pf-portal__main { opacity: 0.5; transition: opacity 150ms; }
 body:has(.htmx-request)::after { content: ""; position: fixed; left: 0; top: 0; width: 100%; height: 3px; background: var(--brand); transform-origin: left; animation: pf-carrega 1s var(--ease) infinite; z-index: 80; }
 @keyframes pf-carrega { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes pf-page { from { opacity: 0; transform: translateY(8px); } }
