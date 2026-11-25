@@ -62,10 +62,7 @@
             <dd>
               <div class="pf-score" role="meter" aria-valuemin="0" aria-valuemax="1" aria-valuenow="{{.Perfil.ScoreEngajamento}}" aria-label="Score de engajamento">
                 <div class="pf-score__top"><span>Score</span><span class="pf-score__valor">{{decimal .Perfil.ScoreEngajamento 2}}</span></div>
-                <svg class="pf-score__svg" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true">
-                  <rect class="pf-score__track" x="0.5" y="0.5" width="99" height="9" rx="4"/>
-                  <rect class="pf-score__fill" x="0.5" y="0.5" width="{{porcento .Perfil.ScoreEngajamento}}" height="9" rx="4"/>
-                </svg>
+                <div class="pf-pips" aria-hidden="true">{{range marcasScore .Perfil.ScoreEngajamento}}<i{{if .}} class="is-on"{{end}}></i>{{end}}</div>
                 <span class="pf-score__note">{{$.Dados.EventosScore}}</span>
               </div>
             </dd>

@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"io/fs"
 	"log/slog"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -143,6 +144,23 @@ func regua(etapas []etapaVista) reguaVista {
 	return r
 }
 
+// marcasScore devolve as 10 marcas do engajamento (ScoreMeter): acende as primeiras, em número
+// igual ao score arredondado. Spec: RN-05.
+func marcasScore(score float64) []bool {
+	n := int(math.Round(score * 10))
+	if n < 0 {
+		n = 0
+	}
+	if n > 10 {
+		n = 10
+	}
+	m := make([]bool, 10)
+	for i := 0; i < n; i++ {
+		m[i] = true
+	}
+	return m
+}
+
 // nomeFichaVista divide o nome do cliente para o cabeçalho da ficha: primeiro nome em tinta, o
 // resto em violeta; nomes longos reduzem a fonte (README, Nomes longos).
 type nomeFichaVista struct {
@@ -176,7 +194,7 @@ func funcoes(versoes map[string]string, prefixo string) template.FuncMap {
 	return template.FuncMap{
 		"dataHora": dataHora, "data": soData, "dataHoraPtr": dataHoraPtr, "dinheiro": dinheiro,
 		"decimal": decimal, "mascara": mascararEmail, "uuidCurto": uuidCurto, "rotulo": rotulo,
-		"tom": tomDoEstado, "iconeEstado": iconeDoEstado, "condicoes": condicoes, "porcento": porcento, "icone": icone, "regua": regua, "nomeFicha": nomeFicha, "primeiroNome": primeiroNome,
+		"tom": tomDoEstado, "iconeEstado": iconeDoEstado, "condicoes": condicoes, "porcento": porcento, "icone": icone, "regua": regua, "marcasScore": marcasScore, "nomeFicha": nomeFicha, "primeiroNome": primeiroNome,
 		"estatico": func(nome string) string { return prefixo + nome + "?v=" + versoes[nome] },
 		"estado":   func(v any) string { return fmt.Sprint(v) },
 		"soma":     func(a, b int) int { return a + b },

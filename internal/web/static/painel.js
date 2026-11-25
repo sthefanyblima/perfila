@@ -130,6 +130,14 @@
   // Confete: ao voltar do processamento (aviso "Processamento concluído"), um estouro de pontos sai
   // do ingresso da recomendação. Só Web Animations e CSSOM (compatível com a CSP); nada com movimento
   // reduzido.
+  function rodarFaixa() {
+    var t = Array.prototype.filter.call(document.querySelectorAll(".pf-toast"), function (x) {
+      return /^\s*Processamento concluído/.test(x.textContent || "");
+    })[0];
+    var faixa = document.querySelector(".pf-stage");
+    if (t && faixa && !faixa.classList.contains("pf-stage--rodando")) { faixa.classList.add("pf-stage--rodando"); }
+  }
+
   function confete(raiz) {
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) { return; }
     var t = Array.prototype.filter.call(raiz.querySelectorAll(".pf-toast"), function (x) {
@@ -156,6 +164,7 @@
 
   function preparar(raiz) {
     raiz.querySelectorAll(".pf-toast").forEach(agendar);
+    rodarFaixa();
     confete(document);
     // O botão de copiar já chega visível (não pisca); só some se o navegador não puder copiar.
     if (!navigator.clipboard) {

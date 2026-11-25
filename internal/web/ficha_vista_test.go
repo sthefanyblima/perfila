@@ -86,3 +86,29 @@ func TestPrimeiroNome(t *testing.T) {
 		}
 	}
 }
+
+// Spec: RN-05. O engajamento aparece em 10 marcas: score arredondado, entre 0 e 10.
+func TestMarcasScore(t *testing.T) {
+	casos := []struct {
+		score  float64
+		acesas int
+	}{{0, 0}, {0.04, 0}, {0.05, 1}, {0.4, 4}, {0.75, 8}, {1, 10}, {1.4, 10}, {-0.3, 0}}
+	for _, c := range casos {
+		m := marcasScore(c.score)
+		if len(m) != 10 {
+			t.Fatalf("marcasScore(%v) tem %d marcas, quer 10", c.score, len(m))
+		}
+		n := 0
+		for i, on := range m {
+			if on {
+				n++
+				if i >= c.acesas {
+					t.Errorf("marcasScore(%v): marca %d acesa fora da frente", c.score, i)
+				}
+			}
+		}
+		if n != c.acesas {
+			t.Errorf("marcasScore(%v) acende %d, quer %d", c.score, n, c.acesas)
+		}
+	}
+}
