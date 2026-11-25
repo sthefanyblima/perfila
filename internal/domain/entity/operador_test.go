@@ -106,3 +106,29 @@ func TestOperadorAlteracoes(t *testing.T) {
 		t.Fatalf("definir senha: %v %+v", err, o)
 	}
 }
+
+// Spec: RN-12 Q-38 Q-72 — EncerrarSessoes sempre produz um carimbo diferente (e maior) que o anterior.
+func TestEncerrarSessoes(t *testing.T) {
+	base := time.Date(2026, 11, 25, 12, 0, 0, 123456789, time.UTC)
+	casos := []struct {
+		nome  string
+		agora time.Time
+	}{
+		{"depois", base.Add(time.Minute)},
+		{"mesmo instante", base},
+		{"antes", base.Add(-time.Hour)},
+	}
+	for _, c := range casos {
+		t.Run(c.nome, func(t *testing.T) {
+			o := Operador{SenhaAtualizadaEm: base.Truncate(time.Microsecond), SenhaHash: "h"}
+			antes := o.SenhaAtualizadaEm
+			o.EncerrarSessoes(c.agora)
+			if !o.SenhaAtualizadaEm.After(antes) || o.SenhaAtualizadaEm.UnixMicro() == antes.UnixMicro() {
+				t.Fatalf("carimbo %v não é posterior a %v", o.SenhaAtualizadaEm, antes)
+			}
+			if o.SenhaHash != "h" {
+				t.Fatal("a senha não pode mudar")
+			}
+		})
+	}
+}

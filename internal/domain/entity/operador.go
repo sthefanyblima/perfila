@@ -139,6 +139,17 @@ func (o *Operador) Desativar() { o.Ativo = false }
 // Ativar devolve o acesso. Spec: RN-12.
 func (o *Operador) Ativar() { o.Ativo = true }
 
+// EncerrarSessoes muda o carimbo sem tocar na senha: todo cookie emitido antes deixa de valer,
+// em qualquer réplica, porque o painel confere o carimbo a cada requisição. Usado ao sair. O
+// carimbo novo é sempre diferente do anterior (no mínimo 1 µs depois). Spec: RN-12, Q-38, Q-72.
+func (o *Operador) EncerrarSessoes(agora time.Time) {
+	novo := agora.UTC().Truncate(time.Microsecond)
+	if !novo.After(o.SenhaAtualizadaEm) {
+		novo = o.SenhaAtualizadaEm.Add(time.Microsecond)
+	}
+	o.SenhaAtualizadaEm = novo
+}
+
 // DefinirSenha grava um novo hash e atualiza o carimbo, o que encerra as sessões abertas.
 // trocar marca a senha como provisória. Spec: RN-12, Q-38, Q-40.
 func (o *Operador) DefinirSenha(senhaHash string, trocar bool, agora time.Time) error {
