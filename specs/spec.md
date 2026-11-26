@@ -861,7 +861,7 @@ Proposta da equipe: os diagramas citam handlers, rotas e DTOs, mas não as defin
 
 ### 3.7.1 Painel web do operador [ADIÇÃO, v1.3]
 
-Adaptador de apresentação HTML em `internal/web` (irmão de `internal/api`, Q-20), montado no mesmo `omega-server` sob `/painel`. HTML gerado no servidor com `html/template`; htmx 2.0.3, fontes IBM Plex e CSS servidos do próprio binário. Telas, fluxos e textos: `docs/design/02-telas-e-fluxos.md` e `03-textos.md`.
+Adaptador de apresentação HTML em `internal/web` (irmão de `internal/api`, Q-20), montado no mesmo `omega-server` sob `/painel`. HTML gerado no servidor com `html/template`; htmx 2.0.3, fontes (Bricolage Grotesque, DM Sans e JetBrains Mono) e CSS servidos do próprio binário. Telas, fluxos e textos: `docs/design/02-telas-e-fluxos.md` e `03-textos.md`.
 
 | Método e rota | Tela ou ação | Caso de uso |
 |---|---|---|
